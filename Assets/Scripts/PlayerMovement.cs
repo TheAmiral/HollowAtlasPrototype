@@ -12,6 +12,7 @@ public class PlayerMovement : MonoBehaviour
 
     [Header("Ground")]
     public float groundedStickForce = -2f;
+    public float spawnGroundSnapDistance = 2f;
 
     [Header("Dash Settings")]
     public float dashSpeed = 18f;
@@ -55,7 +56,9 @@ public class PlayerMovement : MonoBehaviour
 
     void Start()
     {
-        verticalVelocity = groundedStickForce;
+        SnapToGroundOnSpawn();
+
+        verticalVelocity = controller.isGrounded ? groundedStickForce : 0f;
     }
 
     void Update()
@@ -80,7 +83,7 @@ public class PlayerMovement : MonoBehaviour
 
         currentMoveDirection = move;
 
-        if (controller.isGrounded)
+        if (controller.isGrounded && verticalVelocity < 0f)
             verticalVelocity = groundedStickForce;
         else
             verticalVelocity += Physics.gravity.y * Time.deltaTime;
@@ -112,7 +115,10 @@ public class PlayerMovement : MonoBehaviour
         Vector3 finalVelocity = horizontalVelocity;
         finalVelocity.y = verticalVelocity;
 
-        controller.Move(finalVelocity * Time.deltaTime);
+        CollisionFlags collisionFlags = controller.Move(finalVelocity * Time.deltaTime);
+
+        if ((collisionFlags & CollisionFlags.Below) != 0 && verticalVelocity < 0f)
+            verticalVelocity = groundedStickForce;
 
         if (isDashing)
             ProcessDashDamage();
@@ -281,6 +287,24 @@ public class PlayerMovement : MonoBehaviour
             trailMaterial.color = new Color(1f, 0.8f, 0.25f, 1f);
             dashTrail.material = trailMaterial;
         }
+    }
+
+    void SnapToGroundOnSpawn()
+    {
+        if (spawnGroundSnapDistance <= 0f)
+            return;
+
+        float capsuleBottom = transform.position.y + controller.center.y - (controller.height * 0.5f);
+        Vector3 rayOrigin = transform.position + Vector3.up * 0.1f;
+
+        if (!Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, spawnGroundSnapDistance + 0.1f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            return;
+
+        float targetBottom = hit.point.y + controller.skinWidth;
+        float delta = targetBottom - capsuleBottom;
+
+        if (Mathf.Abs(delta) > 0.001f)
+            controller.Move(Vector3.up * delta);
     }
 
     void OnDrawGizmosSelected()
