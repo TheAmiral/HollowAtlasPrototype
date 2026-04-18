@@ -10,6 +10,7 @@ public class PlayerLevelSystem : MonoBehaviour
     public int xpGrowthPerLevel = 4;
 
     [Header("Left UI")]
+    public bool showLegacyHudOnGUI = false;
     public float uiX = 10f;
     public float uiY = 136f;
     public float uiWidth = 220f;
@@ -169,9 +170,12 @@ public class PlayerLevelSystem : MonoBehaviour
         if (GameManager.Instance != null && GameManager.Instance.IsGameOver)
             return;
 
-        GUI.Box(new Rect(uiX, uiY, uiWidth, uiHeight), "Level");
-        GUI.Label(new Rect(uiX + 10f, uiY + 18f, uiWidth - 20f, 18f), $"Level: {level}");
-        GUI.Label(new Rect(uiX + 110f, uiY + 18f, uiWidth - 120f, 18f), $"XP: {currentXP}/{xpToNextLevel}");
+        if (showLegacyHudOnGUI)
+        {
+            GUI.Box(new Rect(uiX, uiY, uiWidth, uiHeight), "Level");
+            GUI.Label(new Rect(uiX + 10f, uiY + 18f, uiWidth - 20f, 18f), $"Level: {level}");
+            GUI.Label(new Rect(uiX + 110f, uiY + 18f, uiWidth - 120f, 18f), $"XP: {currentXP}/{xpToNextLevel}");
+        }
 
         if (pendingLevelRewards <= 0)
             return;

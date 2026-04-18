@@ -7,12 +7,6 @@ public class GameManager : MonoBehaviour
     public float ElapsedTime { get; private set; }
     public bool IsGameOver { get; private set; }
 
-    [Header("Run UI")]
-    public float runBoxX = 10f;
-    public float runBoxY = 190f;
-    public float runBoxWidth = 220f;
-    public float runBoxHeight = 40f;
-
     private Texture2D whiteTexture;
     private GUIStyle gameOverTitleStyle;
     private GUIStyle gameOverShadowStyle;
@@ -33,6 +27,12 @@ public class GameManager : MonoBehaviour
         whiteTexture = new Texture2D(1, 1);
         whiteTexture.SetPixel(0, 0, Color.white);
         whiteTexture.Apply();
+
+        if (FindObjectOfType<MainHudCanvasUI>() == null)
+        {
+            GameObject hudObject = new GameObject("MainHudCanvas");
+            hudObject.AddComponent<MainHudCanvasUI>();
+        }
     }
 
     void Update()
@@ -82,9 +82,6 @@ public class GameManager : MonoBehaviour
     void OnGUI()
     {
         EnsureStyles();
-
-        GUI.Box(new Rect(runBoxX, runBoxY, runBoxWidth, runBoxHeight), "Run");
-        GUI.Label(new Rect(runBoxX + 10f, runBoxY + 17f, runBoxWidth - 20f, 18f), $"Time: {ElapsedTime:0.0}s");
 
         if (!IsGameOver)
             return;

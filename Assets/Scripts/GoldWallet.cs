@@ -8,6 +8,7 @@ public class GoldWallet : MonoBehaviour
     public int bankGold;
 
     [Header("UI")]
+    public bool showLegacyOnGUI = false;
     public float uiX = 10f;
     public float uiY = 10f;
     public float uiWidth = 220f;
@@ -56,6 +57,9 @@ public class GoldWallet : MonoBehaviour
 
     void OnGUI()
     {
+        if (!showLegacyOnGUI)
+            return;
+
         if (GameManager.Instance != null && GameManager.Instance.IsGameOver)
             return;
 
