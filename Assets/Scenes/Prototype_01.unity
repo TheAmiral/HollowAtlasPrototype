@@ -150,9 +150,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BossSpawnSystem
   miniBossPrefab: {fileID: 688597333956293172, guid: 8e1767a672b8f9045ae5bd1a5f2c21cc, type: 3}
   player: {fileID: 1096577504}
-  firstBossTime: 5
+  firstBossTime: 1
   spawnDistance: 14
   warningDuration: 3
+  bossSpawnHeight: 1
 --- !u!4 &24891308
 Transform:
   m_ObjectHideFlags: 0
@@ -197,6 +198,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 906245ac958c2e649af8fcad44a7f050, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
+  runBoxX: 10
+  runBoxY: 320
+  runBoxWidth: 220
+  runBoxHeight: 55
 --- !u!4 &255869072
 Transform:
   m_ObjectHideFlags: 0
@@ -513,6 +518,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb41574d1eae5094d8922e640859ff49, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterAnimatorBridge
+  horParam: Hor
+  vertParam: Vert
+  stateParam: State
+  isJumpParam: IsJump
+  dampTime: 0.08
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -562,6 +572,61 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1012776700
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1012776702}
+  - component: {fileID: 1012776701}
+  m_Layer: 0
+  m_Name: BossHealthUI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1012776701
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1012776700}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 52b4b467c54afed47aa618695f5988b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossHealthUI
+  panelColor: {r: 0, g: 0, b: 0, a: 0.55}
+  barBackgroundColor: {r: 0, g: 0, b: 0, a: 0.6}
+  barFillColor: {r: 0.8, g: 0.1, b: 0.1, a: 1}
+  topMargin: 6
+  reservedLeftWidth: 240
+  reservedRightWidth: 270
+  preferredBarWidth: 520
+  minBarWidth: 260
+  barHeight: 26
+  pulseDuration: 0.12
+  pulseMaxAlpha: 0.38
+--- !u!4 &1012776702
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1012776700}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.06288, y: 0, z: 0.61286}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1071859754 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 146935546818660778, guid: 7f6862d8aee10a042821738d523fc6fa, type: 3}
@@ -584,6 +649,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb41574d1eae5094d8922e640859ff49, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterAnimatorBridge
+  horParam: Hor
+  vertParam: Vert
+  stateParam: State
+  isJumpParam: IsJump
+  dampTime: 0.08
 --- !u!1 &1096577497
 GameObject:
   m_ObjectHideFlags: 0
@@ -622,6 +692,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 643fbc9dddc92484cb1b2cba7066ebd6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GoldWallet
+  runGold: 0
+  bankGold: 0
+  uiX: 10
+  uiY: 110
+  uiWidth: 220
+  uiHeight: 86
 --- !u!114 &1096577499
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -636,8 +712,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   moveSpeed: 6
   rotationSpeed: 12
-  cameraTransform: {fileID: 330585546}
-  dashSpeed: 18
+  cameraTransform: {fileID: 0}
+  groundedStickForce: -2
+  dashSpeed: 12
   dashDuration: 0.18
   dashCooldown: 0.75
   dashDamage: 12
@@ -669,7 +746,7 @@ CharacterController:
   m_StepOffset: 0.3
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0.43, z: 0}
 --- !u!136 &1096577501
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -759,8 +836,8 @@ Transform:
   m_GameObject: {fileID: 1096577497}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0, y: 1.19, z: 0}
+  m_LocalScale: {x: 1.35, y: 1.35, z: 1.35}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1071859755}
@@ -795,7 +872,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
   maxHealth: 100
-  invulnerabilityDuration: 0.5
+  uiX: 10
+  uiY: 196
+  uiWidth: 220
+  uiHeight: 44
 --- !u!114 &1096577507
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -808,6 +888,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e61a50cd620f40444b8da079381f3268, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerLevelSystem
+  level: 1
+  currentXP: 0
+  xpToNextLevel: 5
+  xpGrowthPerLevel: 4
+  uiX: 10
+  uiY: 252
+  uiWidth: 220
+  uiHeight: 68
 --- !u!114 &1096577508
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1075,7 +1163,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 667049195000124176, guid: 7f6862d8aee10a042821738d523fc6fa, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -1.1
+      value: -0.88
       objectReference: {fileID: 0}
     - target: {fileID: 667049195000124176, guid: 7f6862d8aee10a042821738d523fc6fa, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1132,6 +1220,52 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 1071859757}
   m_SourcePrefab: {fileID: 100100000, guid: 7f6862d8aee10a042821738d523fc6fa, type: 3}
+--- !u!1 &1458836663
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1458836665}
+  - component: {fileID: 1458836664}
+  m_Layer: 0
+  m_Name: BossRewardSystem
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1458836664
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1458836663}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc388eed6feb28e41b9754433f74d404, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossRewardSystem
+  rewardPending: 0
+  rewardTaken: 0
+--- !u!4 &1458836665
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1458836663}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 4.81828, y: -0, z: -0.19134}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1670118973
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1353,3 +1487,5 @@ SceneRoots:
   - {fileID: 1983945344}
   - {fileID: 1106685177}
   - {fileID: 24891308}
+  - {fileID: 1012776702}
+  - {fileID: 1458836665}
