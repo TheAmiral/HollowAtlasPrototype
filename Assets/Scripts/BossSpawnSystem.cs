@@ -125,7 +125,10 @@ public class BossSpawnSystem : MonoBehaviour
 
         EnsureGuiStyles();
 
-        float rightPanelX = Screen.width - 260f;
+        float panelWidth = 250f;
+        float panelHeight = 60f;
+        float rightPanelX = Screen.width - panelWidth - 18f;
+        float bottomAnchorY = Screen.height - panelHeight - 138f;
 
         if (!bossSpawned)
         {
@@ -136,14 +139,14 @@ public class BossSpawnSystem : MonoBehaviour
 
             float remaining = Mathf.Max(0f, firstBossTime - elapsedTime);
 
-            GUI.Box(new Rect(rightPanelX, 120f, 250f, 60f), "Mini Boss");
-            GUI.Label(new Rect(rightPanelX + 10f, 145f, 220f, 20f), $"{remaining:0.0}s sonra geliyor");
+            GUI.Box(new Rect(rightPanelX, bottomAnchorY, panelWidth, panelHeight), "Mini Boss");
+            GUI.Label(new Rect(rightPanelX + 10f, bottomAnchorY + 25f, 220f, 20f), $"{remaining:0.0}s sonra geliyor");
         }
 
         if (bossSpawned && !bossDefeated && activeBoss != null)
         {
-            GUI.Box(new Rect(rightPanelX, 190f, 250f, 55f), "Mini Boss");
-            GUI.Label(new Rect(rightPanelX + 10f, 215f, 220f, 20f), "Haritada aktif");
+            GUI.Box(new Rect(rightPanelX, bottomAnchorY, panelWidth, panelHeight - 5f), "Mini Boss");
+            GUI.Label(new Rect(rightPanelX + 10f, bottomAnchorY + 25f, 220f, 20f), "Haritada aktif");
         }
 
         DrawCenterWarning();

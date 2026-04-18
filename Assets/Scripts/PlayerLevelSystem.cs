@@ -1,13 +1,11 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
-
 public class PlayerLevelSystem : MonoBehaviour
 {
     [Header("Level Data")]
     public int level = 1;
     public int currentXP = 0;
-    public int xpToNextLevel = 5;
-    public int xpGrowthPerLevel = 4;
+    public int xpToNextLevel = 100;
+    public int xpPerLevel = 100;
 
     [Header("Left UI")]
     public bool showLegacyHudOnGUI = false;
@@ -20,15 +18,18 @@ public class PlayerLevelSystem : MonoBehaviour
     public int CurrentXP => currentXP;
     public int XPToNextLevel => xpToNextLevel;
 
-    private int pendingLevelRewards;
-
     private AutoAttackAura aura;
     private PlayerMovement movement;
     private PlayerHealth playerHealth;
 
-    private GUIStyle popupTitleStyle;
-    private GUIStyle popupBodyStyle;
-    private GUIStyle popupHintStyle;
+    [Header("Level Up Popup")]
+    public float levelUpPopupDuration = 1.8f;
+    public float levelUpPopupOffsetY = -40f;
+
+    private GUIStyle levelUpStyle;
+    private GUIStyle levelUpShadowStyle;
+    private float levelUpPopupTimer;
+    private int latestLevelPopup = 1;
 
     void Start()
     {
@@ -45,35 +46,8 @@ public class PlayerLevelSystem : MonoBehaviour
         if (GameManager.Instance != null && GameManager.Instance.IsGameOver)
             return;
 
-        if (BossRewardSystem.Instance != null && BossRewardSystem.Instance.RewardPending)
-            return;
-
-        if (pendingLevelRewards <= 0)
-            return;
-
-        if (Time.timeScale != 0f)
-            Time.timeScale = 0f;
-
-        if (Keyboard.current == null)
-            return;
-
-        if (Keyboard.current.digit1Key.wasPressedThisFrame || Keyboard.current.numpad1Key.wasPressedThisFrame)
-        {
-            ApplyReward(1);
-            return;
-        }
-
-        if (Keyboard.current.digit2Key.wasPressedThisFrame || Keyboard.current.numpad2Key.wasPressedThisFrame)
-        {
-            ApplyReward(2);
-            return;
-        }
-
-        if (Keyboard.current.digit3Key.wasPressedThisFrame || Keyboard.current.numpad3Key.wasPressedThisFrame)
-        {
-            ApplyReward(3);
-            return;
-        }
+        if (levelUpPopupTimer > 0f)
+            levelUpPopupTimer = Mathf.Max(0f, levelUpPopupTimer - Time.deltaTime);
     }
 
     public void AddXP(int amount)
@@ -92,8 +66,10 @@ public class PlayerLevelSystem : MonoBehaviour
         {
             currentXP -= xpToNextLevel;
             level++;
-            xpToNextLevel += xpGrowthPerLevel;
-            pendingLevelRewards++;
+            xpToNextLevel = Mathf.Max(1, xpPerLevel);
+            latestLevelPopup = level;
+            levelUpPopupTimer = levelUpPopupDuration;
+            ApplyLevelReward();
         }
     }
 
@@ -107,44 +83,23 @@ public class PlayerLevelSystem : MonoBehaviour
         AddExperience(neededXP);
     }
 
-    void ApplyReward(int option)
+    void ApplyLevelReward()
     {
         FindPlayerRefs();
 
-        switch (option)
+        if (aura != null)
         {
-            case 1:
-                if (aura != null)
-                {
-                    aura.damage += 2;
-                    aura.radius += 0.15f;
-                }
-                break;
-
-            case 2:
-                if (movement != null)
-                {
-                    movement.moveSpeed += 0.4f;
-                }
-                break;
-
-            case 3:
-                if (playerHealth != null)
-                {
-                    playerHealth.IncreaseMaxHealth(10);
-                    playerHealth.Heal(10);
-                }
-                break;
+            aura.damage += 1;
+            aura.radius += 0.05f;
         }
 
-        pendingLevelRewards--;
+        if (movement != null)
+            movement.moveSpeed += 0.08f;
 
-        if (pendingLevelRewards <= 0)
+        if (playerHealth != null)
         {
-            pendingLevelRewards = 0;
-
-            if (GameManager.Instance == null || !GameManager.Instance.IsGameOver)
-                Time.timeScale = 1f;
+            playerHealth.IncreaseMaxHealth(2);
+            playerHealth.Heal(2);
         }
     }
 
@@ -157,27 +112,17 @@ public class PlayerLevelSystem : MonoBehaviour
 
     void EnsureStyles()
     {
-        if (popupTitleStyle != null)
+        if (levelUpStyle != null)
             return;
 
-        popupTitleStyle = new GUIStyle(GUI.skin.label);
-        popupTitleStyle.alignment = TextAnchor.MiddleCenter;
-        popupTitleStyle.fontSize = 16;
-        popupTitleStyle.fontStyle = FontStyle.Bold;
-        popupTitleStyle.normal.textColor = Color.white;
+        levelUpStyle = new GUIStyle(GUI.skin.label);
+        levelUpStyle.alignment = TextAnchor.MiddleCenter;
+        levelUpStyle.fontSize = 72;
+        levelUpStyle.fontStyle = FontStyle.Bold;
+        levelUpStyle.normal.textColor = new Color(1f, 0.92f, 0.3f, 1f);
 
-        popupBodyStyle = new GUIStyle(GUI.skin.label);
-        popupBodyStyle.alignment = TextAnchor.UpperLeft;
-        popupBodyStyle.fontSize = 12;
-        popupBodyStyle.fontStyle = FontStyle.Bold;
-        popupBodyStyle.normal.textColor = Color.white;
-        popupBodyStyle.wordWrap = true;
-
-        popupHintStyle = new GUIStyle(GUI.skin.label);
-        popupHintStyle.alignment = TextAnchor.MiddleCenter;
-        popupHintStyle.fontSize = 11;
-        popupHintStyle.fontStyle = FontStyle.Bold;
-        popupHintStyle.normal.textColor = Color.white;
+        levelUpShadowStyle = new GUIStyle(levelUpStyle);
+        levelUpShadowStyle.normal.textColor = new Color(0f, 0f, 0f, 0.85f);
     }
 
     void OnGUI()
@@ -192,25 +137,23 @@ public class PlayerLevelSystem : MonoBehaviour
             GUI.Label(new Rect(uiX + 110f, uiY + 18f, uiWidth - 120f, 18f), $"XP: {currentXP}/{xpToNextLevel}");
         }
 
-        if (pendingLevelRewards <= 0)
-            return;
-
-        if (BossRewardSystem.Instance != null && BossRewardSystem.Instance.RewardPending)
+        if (levelUpPopupTimer <= 0f)
             return;
 
         EnsureStyles();
 
-        float panelWidth = 360f;
-        float panelHeight = 150f;
-        float x = Screen.width * 0.5f - panelWidth * 0.5f;
-        float y = Screen.height * 0.5f - panelHeight * 0.5f;
+        float normalized = Mathf.Clamp01(levelUpPopupTimer / Mathf.Max(0.01f, levelUpPopupDuration));
+        float alpha = Mathf.SmoothStep(0f, 1f, normalized);
 
-        GUI.Box(new Rect(x, y, panelWidth, panelHeight), "");
-        GUI.Label(new Rect(x, y + 8f, panelWidth, 22f), "LEVEL UP!", popupTitleStyle);
-        GUI.Label(new Rect(x + 16f, y + 36f, panelWidth - 32f, 18f), "Bir güçlendirme seç:", popupBodyStyle);
-        GUI.Label(new Rect(x + 16f, y + 60f, panelWidth - 32f, 18f), "1 - Aura güçlenir (+hasar, +menzil)", popupBodyStyle);
-        GUI.Label(new Rect(x + 16f, y + 84f, panelWidth - 32f, 18f), "2 - Hareket hızı artar", popupBodyStyle);
-        GUI.Label(new Rect(x + 16f, y + 108f, panelWidth - 32f, 18f), "3 - Maksimum can ve iyileşme", popupBodyStyle);
-        GUI.Label(new Rect(x, y + 128f, panelWidth, 16f), "[1] [2] [3] ile seç", popupHintStyle);
+        levelUpStyle.normal.textColor = new Color(1f, 0.92f, 0.3f, alpha);
+        levelUpShadowStyle.normal.textColor = new Color(0f, 0f, 0f, alpha * 0.9f);
+
+        float width = Screen.width;
+        float height = 120f;
+        float y = Screen.height * 0.5f + levelUpPopupOffsetY;
+        string popupText = $"LEVEL {latestLevelPopup}";
+
+        GUI.Label(new Rect(4f, y + 4f, width, height), popupText, levelUpShadowStyle);
+        GUI.Label(new Rect(0f, y, width, height), popupText, levelUpStyle);
     }
 }

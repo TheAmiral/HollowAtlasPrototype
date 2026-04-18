@@ -16,6 +16,10 @@ public class MainHudCanvasUI : MonoBehaviour
     private PlayerHealth playerHealth;
     private PlayerLevelSystem playerLevelSystem;
     private GoldWallet goldWallet;
+    private float displayedXpFill;
+
+    [Header("XP Bar Animation")]
+    [SerializeField] private float xpFillSpeed = 3.5f;
 
     void Awake()
     {
@@ -49,7 +53,9 @@ public class MainHudCanvasUI : MonoBehaviour
                 ? (float)playerLevelSystem.CurrentXP / playerLevelSystem.XPToNextLevel
                 : 0f;
 
-            xpFillImage.fillAmount = Mathf.Clamp01(xpRatio);
+            float targetFill = Mathf.Clamp01(xpRatio);
+            displayedXpFill = Mathf.MoveTowards(displayedXpFill, targetFill, xpFillSpeed * Time.deltaTime);
+            xpFillImage.fillAmount = displayedXpFill;
         }
     }
 
@@ -96,6 +102,15 @@ public class MainHudCanvasUI : MonoBehaviour
 
         if (goldWallet == null)
             goldWallet = FindObjectOfType<GoldWallet>();
+
+        if (playerLevelSystem != null && xpFillImage != null && displayedXpFill <= 0f)
+        {
+            float initialRatio = playerLevelSystem.XPToNextLevel > 0
+                ? (float)playerLevelSystem.CurrentXP / playerLevelSystem.XPToNextLevel
+                : 0f;
+            displayedXpFill = Mathf.Clamp01(initialRatio);
+            xpFillImage.fillAmount = displayedXpFill;
+        }
     }
 
     private void EnsureRuntimeHud()
