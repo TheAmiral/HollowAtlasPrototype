@@ -3,6 +3,7 @@ using UnityEngine;
 public class ExperiencePickup : MonoBehaviour
 {
     public int xpAmount = 1;
+    public bool fillsToNextLevel = false;
     public float rotateSpeed = 120f;
 
     void Update()
@@ -15,7 +16,11 @@ public class ExperiencePickup : MonoBehaviour
         PlayerLevelSystem levelSystem = other.GetComponent<PlayerLevelSystem>();
         if (levelSystem == null) return;
 
-        levelSystem.AddXP(xpAmount);
+        if (fillsToNextLevel)
+            levelSystem.FillXPToNextLevel();
+        else
+            levelSystem.AddXP(xpAmount);
+
         Destroy(gameObject);
     }
 }

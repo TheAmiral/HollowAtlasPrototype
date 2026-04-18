@@ -3,6 +3,7 @@ using UnityEngine;
 public class RunContractSystem : MonoBehaviour
 {
     public static RunContractSystem Instance;
+    private const float MinimapReservedHeight = 220f;
 
     public enum ContractType
     {
@@ -152,7 +153,7 @@ public class RunContractSystem : MonoBehaviour
     void OnGUI()
     {
         float x = Screen.width - 260f;
-        float y = 10f;
+        float y = MinimapReservedHeight;
         float width = 250f;
         float height = 105f;
 
