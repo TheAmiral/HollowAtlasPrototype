@@ -53,6 +53,11 @@ public class PlayerMovement : MonoBehaviour
         SetupDashTrail();
     }
 
+    void Start()
+    {
+        verticalVelocity = groundedStickForce;
+    }
+
     void Update()
     {
         if (GameManager.Instance != null && GameManager.Instance.IsGameOver)
@@ -75,10 +80,10 @@ public class PlayerMovement : MonoBehaviour
 
         currentMoveDirection = move;
 
-        if (controller.isGrounded && verticalVelocity < 0f)
+        if (controller.isGrounded)
             verticalVelocity = groundedStickForce;
-
-        verticalVelocity += Physics.gravity.y * Time.deltaTime;
+        else
+            verticalVelocity += Physics.gravity.y * Time.deltaTime;
 
         if (!isDashing && Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame && dashCooldownTimer <= 0f)
             StartDash();
