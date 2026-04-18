@@ -21,6 +21,7 @@ public class MainHudCanvasUI : MonoBehaviour
     {
         EnsureRuntimeHud();
         ResolveReferences();
+        ForceVisibleHudState();
     }
 
     void Update()
@@ -28,6 +29,7 @@ public class MainHudCanvasUI : MonoBehaviour
         ResolveReferences();
         UpdateHealthAndXPBars();
         UpdateLabels();
+        ForceVisibleHudState();
     }
 
     public void UpdateHealthAndXPBars()
@@ -69,7 +71,19 @@ public class MainHudCanvasUI : MonoBehaviour
             timerText.text = $"Time: {GameManager.Instance.ElapsedTime:0.0}s";
 
         if (minimapPlaceholderImage != null)
+        {
             minimapPlaceholderImage.enabled = true;
+
+            if (!minimapPlaceholderImage.gameObject.activeSelf)
+                minimapPlaceholderImage.gameObject.SetActive(true);
+        }
+    }
+
+    private void ForceVisibleHudState()
+    {
+        Canvas canvas = GetComponent<Canvas>();
+        if (canvas != null && !canvas.enabled)
+            canvas.enabled = true;
     }
 
     private void ResolveReferences()

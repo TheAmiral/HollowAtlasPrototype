@@ -28,17 +28,52 @@ public class GameManager : MonoBehaviour
         whiteTexture.SetPixel(0, 0, Color.white);
         whiteTexture.Apply();
 
-        if (FindObjectOfType<MainHudCanvasUI>() == null)
-        {
-            GameObject hudObject = new GameObject("MainHudCanvas");
-            hudObject.AddComponent<MainHudCanvasUI>();
-        }
+        EnsureMainHudCanvas();
     }
 
     void Update()
     {
         if (!IsGameOver && Time.timeScale > 0f)
             ElapsedTime += Time.deltaTime;
+
+        if (!IsGameOver)
+            EnsureMainHudCanvas();
+    }
+
+    void EnsureMainHudCanvas()
+    {
+        MainHudCanvasUI hud = FindExistingHud();
+
+        if (hud == null)
+        {
+            GameObject hudObject = new GameObject("MainHudCanvas");
+            hud = hudObject.AddComponent<MainHudCanvasUI>();
+        }
+
+        if (!hud.gameObject.activeSelf)
+            hud.gameObject.SetActive(true);
+
+        if (!hud.enabled)
+            hud.enabled = true;
+    }
+
+    MainHudCanvasUI FindExistingHud()
+    {
+        MainHudCanvasUI[] allHudObjects = Resources.FindObjectsOfTypeAll<MainHudCanvasUI>();
+
+        for (int i = 0; i < allHudObjects.Length; i++)
+        {
+            MainHudCanvasUI hud = allHudObjects[i];
+            if (hud == null)
+                continue;
+
+            if (!hud.gameObject.scene.IsValid())
+                continue;
+
+            return hud;
+        }
+
+        return null;
     }
 
     void EnsureStyles()
