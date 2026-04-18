@@ -30,7 +30,9 @@ public class CharacterAnimatorBridge : MonoBehaviour
         if (animator == null || playerMovement == null)
             return;
 
-        Vector3 move = playerMovement.CurrentMoveDirection;
+        // Animator parametrelerini karakterin local eksenine göre beslemek,
+        // 8 yönlü hareket blend'inin kamera/world açılarına göre bozulmasını engeller.
+        Vector3 move = transform.InverseTransformDirection(playerMovement.CurrentMoveDirection);
 
         float hor = move.x;
         float vert = move.z;
