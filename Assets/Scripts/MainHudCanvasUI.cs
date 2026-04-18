@@ -147,7 +147,10 @@ public class MainHudCanvasUI : MonoBehaviour
             CreateBar(panel, "Health", new Vector2(12f, -46f), new Vector2(326f, 24f), new Color(0.18f, 0.18f, 0.18f, 0.95f), new Color(0.9f, 0.2f, 0.2f, 1f), "HP: 100/100", out healthFillImage, out healthText, font);
 
         if (xpFillImage == null || xpText == null)
+        {
             CreateBar(panel, "XP", new Vector2(12f, -84f), new Vector2(326f, 18f), new Color(0.18f, 0.18f, 0.18f, 0.95f), new Color(0.26f, 0.68f, 1f, 1f), "XP: 0/5", out xpFillImage, out xpText, font, 15);
+            xpFillImage.fillAmount = 0f;
+        }
     }
 
     private void BuildTopLeftHud(RectTransform root, Font font)

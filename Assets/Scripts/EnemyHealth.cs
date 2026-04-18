@@ -107,6 +107,9 @@ public class EnemyHealth : MonoBehaviour
 
         ExperiencePickup xpPickup = xp.GetComponent<ExperiencePickup>();
         if (xpPickup != null)
-            xpPickup.xpAmount = xpDropValue;
+        {
+            xpPickup.fillsToNextLevel = isBoss;
+            xpPickup.xpAmount = isBoss ? 0 : xpDropValue;
+        }
     }
 }

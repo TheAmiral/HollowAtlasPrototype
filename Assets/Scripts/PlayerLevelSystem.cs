@@ -97,6 +97,16 @@ public class PlayerLevelSystem : MonoBehaviour
         }
     }
 
+    public void FillXPToNextLevel()
+    {
+        int neededXP = xpToNextLevel - currentXP;
+
+        if (neededXP <= 0)
+            neededXP = xpToNextLevel;
+
+        AddExperience(neededXP);
+    }
+
     void ApplyReward(int option)
     {
         FindPlayerRefs();
