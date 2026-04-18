@@ -32,6 +32,11 @@ public class PlayerLevelSystem : MonoBehaviour
 
     void Start()
     {
+        level = 1;
+        currentXP = 0;
+        if (xpToNextLevel < 1)
+            xpToNextLevel = 1;
+
         FindPlayerRefs();
     }
 
