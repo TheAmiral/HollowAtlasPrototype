@@ -6,6 +6,7 @@ public class PlayerHealth : MonoBehaviour
     public int maxHealth = 100;
 
     [Header("UI")]
+    public bool showLegacyOnGUI = false;
     public float uiX = 10f;
     public float uiY = 202f;
     public float uiWidth = 220f;
@@ -79,6 +80,9 @@ public class PlayerHealth : MonoBehaviour
 
     void OnGUI()
     {
+        if (!showLegacyOnGUI)
+            return;
+
         if (GameManager.Instance != null && GameManager.Instance.IsGameOver)
             return;
 
