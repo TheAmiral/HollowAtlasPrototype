@@ -602,7 +602,9 @@ public class CardWidget : MonoBehaviour,
     Vector2 _basePos;
     Vector3 _baseScale = Vector3.one;
 
-    const float HOVER_SPEED = 8f;
+    const float HOVER_SPEED     = 8f;
+    const float WIDGET_SCALE    = 1.055f;   // LevelUpCardSystem.HOVER_SCALE yerel kopyası
+    const float WIDGET_LIFT     = 10f;      // LevelUpCardSystem.HOVER_LIFT yerel kopyası
 
     public void Init(int index, RectTransform rootRect,
                      Image cardBg, Image border, Image glow2,
@@ -627,11 +629,11 @@ public class CardWidget : MonoBehaviour,
         _hoverT = Mathf.Lerp(_hoverT, target, Time.unscaledDeltaTime * HOVER_SPEED);
 
         // Scale
-        float s = Mathf.Lerp(1f, LevelUpCardSystem.HOVER_SCALE, _hoverT);
+        float s = Mathf.Lerp(1f, WIDGET_SCALE, _hoverT);
         RootRect.localScale = Vector3.one * s;
 
         // Y lift
-        float lift = Mathf.Lerp(0f, LevelUpCardSystem.HOVER_LIFT, _hoverT);
+        float lift = Mathf.Lerp(0f, WIDGET_LIFT, _hoverT);
         RootRect.anchoredPosition = _basePos + Vector2.up * lift;
 
         // Sınır parlaması
@@ -672,7 +674,7 @@ public class CardWidget : MonoBehaviour,
         while (t < dur)
         {
             t += Time.unscaledDeltaTime;
-            float s = Mathf.Lerp(LevelUpCardSystem.HOVER_SCALE, 1.12f, t / dur);
+            float s = Mathf.Lerp(WIDGET_SCALE, 1.12f, t / dur);
             RootRect.localScale = Vector3.one * s;
 
             // Border beyaza flash
