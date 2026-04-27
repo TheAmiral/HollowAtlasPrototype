@@ -51,7 +51,8 @@ public class EnemySpawner : MonoBehaviour
 
         int currentMaxAlive = maxAliveEnemies + Mathf.FloorToInt(timeBonus * 10f);
 
-        int aliveCount = FindObjectsByType<EnemyHealth>(FindObjectsSortMode.None).Length;
+        // Statik sayaç kullan — her frame FindObjectsByType çağırmak yerine O(1)
+        int aliveCount = EnemyHealth.AliveCount;
         if (aliveCount >= currentMaxAlive)
             return;
 

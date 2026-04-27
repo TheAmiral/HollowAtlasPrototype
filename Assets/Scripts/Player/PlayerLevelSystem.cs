@@ -66,7 +66,9 @@ public class PlayerLevelSystem : MonoBehaviour
         {
             currentXP -= xpToNextLevel;
             level++;
-            xpToNextLevel = Mathf.Max(1, xpPerLevel);
+            // XP Scaling: her seviye giderek daha fazla XP ister
+            // Formül: level * 80 + 20  (Lv1=100, Lv2=180, Lv5=420, Lv10=820)
+            xpToNextLevel = Mathf.Max(1, level * 80 + 20);
             latestLevelPopup = level;
             levelUpPopupTimer = levelUpPopupDuration;
             ApplyLevelReward();
@@ -85,6 +87,14 @@ public class PlayerLevelSystem : MonoBehaviour
 
     void ApplyLevelReward()
     {
+        // Kart sistemi varsa → kart seçim ekranını aç
+        if (LevelUpCardSystem.Instance != null)
+        {
+            LevelUpCardSystem.Instance.TriggerSelection(level);
+            return;
+        }
+
+        // Fallback: kart sistemi sahnede yoksa direkt stat uygula
         FindPlayerRefs();
 
         if (aura != null)

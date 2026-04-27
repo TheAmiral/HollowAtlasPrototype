@@ -2,6 +2,9 @@ using UnityEngine;
 
 public class EnemyHealth : MonoBehaviour
 {
+    // Statik sayaç — EnemySpawner her frame FindObjectsByType yerine bunu okur
+    public static int AliveCount { get; private set; } = 0;
+
     [Header("Identity")]
     public bool isBoss = false;
     public string bossDisplayName = "Enemy";
@@ -32,9 +35,16 @@ public class EnemyHealth : MonoBehaviour
     {
         currentHealth = maxHealth;
         isDead = false;
+        AliveCount++;
 
         visuals = GetComponent<EnemyVisuals>();
         bossSpecialAttack = GetComponent<BossSpecialAttack>();
+    }
+
+    void OnDestroy()
+    {
+        if (!isDead)
+            AliveCount--; // Sahne değişimi veya erken destroy için güvenlik
     }
 
     public void TakeDamage(int amount)
@@ -62,6 +72,7 @@ public class EnemyHealth : MonoBehaviour
             return;
 
         isDead = true;
+        AliveCount--; // Ölünce sayacı düşür
 
         if (bossSpecialAttack != null)
             bossSpecialAttack.HandleOwnerDeath();

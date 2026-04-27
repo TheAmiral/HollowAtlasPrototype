@@ -22,6 +22,8 @@ public class GoldWallet : MonoBehaviour
         if (GameManager.Instance != null && GameManager.Instance.IsGameOver)
             return;
 
+#if UNITY_EDITOR
+        // Debug kısayolları — sadece Editor'da aktif, build'de yok
         if (Keyboard.current == null)
             return;
 
@@ -30,6 +32,7 @@ public class GoldWallet : MonoBehaviour
 
         if (Keyboard.current.rKey.wasPressedThisFrame)
             ResetRunGold();
+#endif
     }
 
     public void AddGold(int amount)

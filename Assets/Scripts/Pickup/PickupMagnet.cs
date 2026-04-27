@@ -7,17 +7,25 @@ public class PickupMagnet : MonoBehaviour
 
     private Transform target;
 
+    void Awake()
+    {
+        // Awake'te bir kez bul — Update'te her frame aramak yerine
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+            target = player.transform;
+    }
+
     void Update()
     {
+        // Fallback: Awake'te bulunamadıysa tekrar dene (geç spawn durumu)
         if (target == null)
         {
             GameObject player = GameObject.FindGameObjectWithTag("Player");
             if (player != null)
                 target = player.transform;
+            else
+                return;
         }
-
-        if (target == null)
-            return;
 
         float distance = Vector3.Distance(transform.position, target.position);
 

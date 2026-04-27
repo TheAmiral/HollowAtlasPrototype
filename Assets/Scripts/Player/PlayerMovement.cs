@@ -66,6 +66,10 @@ public class PlayerMovement : MonoBehaviour
         if (GameManager.Instance != null && GameManager.Instance.IsGameOver)
             return;
 
+        // Kart seçimi bekleniyorken hareket etme
+        if (LevelUpCardSystem.Instance != null && LevelUpCardSystem.Instance.SelectionPending)
+            return;
+
         if (BossRewardSystem.Instance != null && BossRewardSystem.Instance.RewardPending)
             return;
 
