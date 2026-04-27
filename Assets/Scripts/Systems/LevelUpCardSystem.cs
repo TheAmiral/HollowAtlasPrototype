@@ -29,9 +29,9 @@ public class LevelUpCardSystem : MonoBehaviour
     const float CARD_W       = 272f;
     const float CARD_H       = 390f;
     const float CARD_GAP     = 32f;
-    const float ENTER_OFFSET = 260f;   // başlangıç Y kayması
-    const float HOVER_SCALE  = 1.055f;
-    const float HOVER_LIFT   = 10f;
+    const float ENTER_OFFSET = 260f;
+    public const float HOVER_SCALE  = 1.055f;
+    public const float HOVER_LIFT   = 10f;
 
     // ── İç durum ─────────────────────────────────────────────────────────────
     GameObject   _root;
@@ -95,7 +95,7 @@ public class LevelUpCardSystem : MonoBehaviour
 
         _root.AddComponent<GraphicRaycaster>();
 
-        if (FindObjectOfType<EventSystem>() == null)
+        if (FindFirstObjectByType<EventSystem>() == null)
         {
             var es = new GameObject("EventSystem");
             es.AddComponent<EventSystem>();

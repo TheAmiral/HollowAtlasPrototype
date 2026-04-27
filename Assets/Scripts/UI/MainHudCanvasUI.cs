@@ -95,13 +95,13 @@ public class MainHudCanvasUI : MonoBehaviour
     private void ResolveReferences()
     {
         if (playerHealth == null)
-            playerHealth = FindObjectOfType<PlayerHealth>();
+            playerHealth = FindFirstObjectByType<PlayerHealth>();
 
         if (playerLevelSystem == null)
-            playerLevelSystem = FindObjectOfType<PlayerLevelSystem>();
+            playerLevelSystem = FindFirstObjectByType<PlayerLevelSystem>();
 
         if (goldWallet == null)
-            goldWallet = FindObjectOfType<GoldWallet>();
+            goldWallet = FindFirstObjectByType<GoldWallet>();
 
         if (playerLevelSystem != null && xpFillImage != null && displayedXpFill <= 0f)
         {
