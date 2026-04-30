@@ -49,5 +49,7 @@ public class EnemyProjectile : MonoBehaviour
 
         if (enemy != null)
             return;
+
+        Destroy(gameObject);
     }
 }
