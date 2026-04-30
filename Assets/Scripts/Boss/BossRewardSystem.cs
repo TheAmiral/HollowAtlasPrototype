@@ -119,6 +119,13 @@ public class BossRewardSystem : MonoBehaviour
 
         if (GameManager.Instance == null || !GameManager.Instance.IsGameOver)
             Time.timeScale = 1f;
+
+        if (BossSpawnSystem.Instance != null)
+        {
+            BossSpawnSystem.Instance.ScheduleNextWave();
+            rewardTaken    = false;
+            rewardUiOpened = false;
+        }
     }
 
     List<LevelUpCard> BuildBossRewardCards()

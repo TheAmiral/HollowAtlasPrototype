@@ -15,6 +15,9 @@ public class BossSpawnSystem : MonoBehaviour
     public float warningDuration = 3f;
     public float bossSpawnHeight = 1f;
 
+    [Header("Multi-Wave")]
+    public float waveInterval = 90f;
+
     public EnemyHealth ActiveBoss => activeBoss;
     public bool BossSpawned => bossSpawned;
     public bool BossDefeated => bossDefeated;
@@ -24,6 +27,7 @@ public class BossSpawnSystem : MonoBehaviour
     private bool bossDefeated;
     private float warningTimer;
     private string warningMessage = "";
+    private float nextBossTime;
 
     private GUIStyle centerWarningStyle;
     private GUIStyle centerWarningShadowStyle;
@@ -41,6 +45,8 @@ public class BossSpawnSystem : MonoBehaviour
 
     void Start()
     {
+        nextBossTime = firstBossTime;
+
         if (player == null)
         {
             GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
@@ -64,7 +70,7 @@ public class BossSpawnSystem : MonoBehaviour
             if (GameManager.Instance != null)
                 elapsedTime = GameManager.Instance.ElapsedTime;
 
-            if (elapsedTime >= firstBossTime)
+            if (elapsedTime >= nextBossTime)
                 SpawnBoss();
 
             return;
@@ -84,6 +90,15 @@ public class BossSpawnSystem : MonoBehaviour
 
             Debug.Log($"{bossDisplayName} yenildi!");
         }
+    }
+
+    public void ScheduleNextWave()
+    {
+        float now = GameManager.Instance != null ? GameManager.Instance.ElapsedTime : 0f;
+        nextBossTime = now + waveInterval;
+        bossSpawned  = false;
+        bossDefeated = false;
+        activeBoss   = null;
     }
 
     void SpawnBoss()
@@ -160,7 +175,7 @@ public class BossSpawnSystem : MonoBehaviour
             if (GameManager.Instance != null)
                 elapsedTime = GameManager.Instance.ElapsedTime;
 
-            float remaining = Mathf.Max(0f, firstBossTime - elapsedTime);
+            float remaining = Mathf.Max(0f, nextBossTime - elapsedTime);
 
             GUI.Box(new Rect(rightPanelX, bottomAnchorY, panelWidth, panelHeight), bossDisplayName);
             GUI.Label(new Rect(rightPanelX + 10f, bottomAnchorY + 25f, 220f, 20f), $"{remaining:0.0}s sonra geliyor");
