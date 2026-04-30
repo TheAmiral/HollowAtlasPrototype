@@ -202,6 +202,8 @@ public class PlayerMovement : MonoBehaviour
 
         enemiesHitThisDash.Clear();
 
+        AudioManager.Instance?.PlayDash();
+
         if (dashTrail != null)
         {
             dashTrail.time = dashTrailTime;

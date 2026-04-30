@@ -11,6 +11,7 @@ public class GameManager : MonoBehaviour
     private GUIStyle gameOverTitleStyle;
     private GUIStyle gameOverShadowStyle;
     private GUIStyle gameOverSubStyle;
+    private MainHudCanvasUI cachedHud;
 
     void Awake()
     {
@@ -42,6 +43,9 @@ public class GameManager : MonoBehaviour
 
     void EnsureMainHudCanvas()
     {
+        if (cachedHud != null && cachedHud.gameObject.activeSelf && cachedHud.enabled)
+            return;
+
         MainHudCanvasUI hud = FindExistingHud();
 
         if (hud == null)
@@ -55,6 +59,8 @@ public class GameManager : MonoBehaviour
 
         if (!hud.enabled)
             hud.enabled = true;
+
+        cachedHud = hud;
     }
 
     MainHudCanvasUI FindExistingHud()

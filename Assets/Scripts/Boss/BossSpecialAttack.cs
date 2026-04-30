@@ -47,8 +47,12 @@ public class BossSpecialAttack : MonoBehaviour
     {
         enemyChaser = GetComponent<EnemyChaser>();
         enemyHealth = GetComponent<EnemyHealth>();
+    }
 
-        // Bu script sadece boss üstünde çalışmalı.
+    void Start()
+    {
+        // Awake sırasında BossSpawnSystem henüz isBoss=true setlememiş olabilir.
+        // Instantiate döndükten sonra set edildiği için kontrol Start'a taşındı.
         if (enemyHealth == null || !enemyHealth.IsBoss)
         {
             enabled = false;
@@ -57,12 +61,6 @@ public class BossSpecialAttack : MonoBehaviour
 
         CacheVisuals();
         initialized = true;
-    }
-
-    void Start()
-    {
-        if (!initialized)
-            return;
 
         FindPlayer();
         cooldownTimer = attackCooldown;
