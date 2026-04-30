@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
@@ -39,6 +41,9 @@ public class GameManager : MonoBehaviour
 
         if (!IsGameOver)
             EnsureMainHudCanvas();
+
+        if (IsGameOver && Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
+            RestartGame();
     }
 
     void EnsureMainHudCanvas()
@@ -120,6 +125,12 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 1f;
     }
 
+    void RestartGame()
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
     void OnGUI()
     {
         EnsureStyles();
@@ -144,7 +155,7 @@ public class GameManager : MonoBehaviour
         GUI.Label(new Rect(x + 3f, y + 22f, panelWidth, 32f), "GAME OVER", gameOverShadowStyle);
         GUI.Label(new Rect(x, y + 20f, panelWidth, 32f), "GAME OVER", gameOverTitleStyle);
         GUI.Label(new Rect(x, y + 68f, panelWidth, 24f), $"Süre: {ElapsedTime:0.0}s", gameOverSubStyle);
-        GUI.Label(new Rect(x, y + 96f, panelWidth, 22f), "Tekrar oynamak için Play'i yeniden başlat", gameOverSubStyle);
+        GUI.Label(new Rect(x, y + 96f, panelWidth, 22f), "[ R ]  Yeniden Başlat", gameOverSubStyle);
 
         GUI.color = oldColor;
     }
