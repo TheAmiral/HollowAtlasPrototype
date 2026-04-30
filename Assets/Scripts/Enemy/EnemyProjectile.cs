@@ -50,6 +50,7 @@ public class EnemyProjectile : MonoBehaviour
         if (enemy != null)
             return;
 
-        Destroy(gameObject);
+        if (!other.isTrigger)
+            Destroy(gameObject);
     }
 }
