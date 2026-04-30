@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
+using System.Collections.Generic;
 
 public class BossRewardSystem : MonoBehaviour
 {
@@ -15,12 +15,7 @@ public class BossRewardSystem : MonoBehaviour
     private PlayerHealth playerHealth;
     private GoldWallet goldWallet;
 
-    private GUIStyle titleStyle;
-    private GUIStyle subtitleStyle;
-    private GUIStyle cardTitleStyle;
-    private GUIStyle cardBodyStyle;
-    private GUIStyle shadowStyle;
-    private GUIStyle hintStyle;
+    private bool rewardUiOpened;
 
     void Awake()
     {
@@ -37,6 +32,8 @@ public class BossRewardSystem : MonoBehaviour
     {
         rewardPending = false;
         rewardTaken = false;
+        rewardUiOpened = false;
+
         FindPlayerComponents();
     }
 
@@ -57,40 +54,38 @@ public class BossRewardSystem : MonoBehaviour
             return;
         }
 
-        if (!rewardTaken && !rewardPending && BossSpawnSystem.Instance != null)
-        {
-            if (BossSpawnSystem.Instance.BossSpawned && BossSpawnSystem.Instance.BossDefeated)
-            {
-                rewardPending = true;
-                Time.timeScale = 0f;
-            }
-        }
-
-        if (!rewardPending || Keyboard.current == null)
+        if (rewardTaken || rewardUiOpened || BossSpawnSystem.Instance == null)
             return;
 
-        if (Keyboard.current.digit1Key.wasPressedThisFrame || Keyboard.current.numpad1Key.wasPressedThisFrame)
-        {
-            ApplyReward(1);
+        if (!BossSpawnSystem.Instance.BossSpawned || !BossSpawnSystem.Instance.BossDefeated)
             return;
-        }
 
-        if (Keyboard.current.digit2Key.wasPressedThisFrame || Keyboard.current.numpad2Key.wasPressedThisFrame)
-        {
-            ApplyReward(2);
+        if (LevelUpCardSystem.Instance == null || LevelUpCardSystem.Instance.SelectionPending)
             return;
-        }
 
-        if (Keyboard.current.digit3Key.wasPressedThisFrame || Keyboard.current.numpad3Key.wasPressedThisFrame)
-        {
-            ApplyReward(3);
+        List<LevelUpCard> cards = BuildBossRewardCards();
+
+        if (cards == null || cards.Count == 0)
             return;
+
+        bool opened = LevelUpCardSystem.Instance.ShowCustomCards(
+            "ATLAS ÖDÜLÜ",
+            "Muhafızın gücünden bir kalıntı seç",
+            cards,
+            OnBossRewardSelectionCompleted
+        );
+
+        if (opened)
+        {
+            rewardPending = true;
+            rewardUiOpened = true;
         }
     }
 
     void FindPlayerComponents()
     {
         GameObject player = GameObject.FindGameObjectWithTag("Player");
+
         if (player == null)
             return;
 
@@ -107,13 +102,15 @@ public class BossRewardSystem : MonoBehaviour
         switch (option)
         {
             case 1:
-                ApplyAtlasFury();
+                ApplyGuardianSeal();
                 break;
+
             case 2:
-                ApplyPhantomStep();
+                ApplyShadowStep();
                 break;
+
             case 3:
-                ApplyVitalCore();
+                ApplyAtlasCore();
                 break;
         }
 
@@ -124,131 +121,95 @@ public class BossRewardSystem : MonoBehaviour
             Time.timeScale = 1f;
     }
 
-    void ApplyAtlasFury()
+    List<LevelUpCard> BuildBossRewardCards()
+    {
+        return new List<LevelUpCard>
+        {
+            new LevelUpCard(
+                "boss_atlas_muhafiz_muhru",
+                "Muhafızın Mührü",
+                "Atlas Muhafızı'nın enerjisi saldırılarını güçlendirir. Aura hasarın ve menzilin artar.",
+                "+8 Aura Hasar  +0.35 Aura Menzili  +35 Gold",
+                "◈",
+                "Atlas",
+                CardGod.Atlas,
+                CardRarity.Epic,
+                _ => ApplyReward(1)
+            ),
+
+            new LevelUpCard(
+                "boss_golge_adim",
+                "Gölge Adım",
+                "Boss savaşından öğrendiğin ritimle daha hızlı hareket eder ve dash'i daha sık kullanırsın.",
+                "+0.8 Hız  -0.20 Dash CD  +3 Dash Hızı",
+                "⚡",
+                "Hermes",
+                CardGod.Hermes,
+                CardRarity.Epic,
+                _ => ApplyReward(2)
+            ),
+
+            new LevelUpCard(
+                "boss_atlas_cekirdegi",
+                "Atlas Çekirdeği",
+                "Atlas enerjisi bedenini güçlendirir. Maksimum canın artar, iyileşirsin ve yüksek altın kazanırsın.",
+                "+45 Maks. Can  +45 İyileşme  +60 Gold",
+                "☽",
+                "Nyx",
+                CardGod.Nyx,
+                CardRarity.Legendary,
+                _ => ApplyReward(3)
+            ),
+        };
+    }
+
+    void OnBossRewardSelectionCompleted()
+    {
+        rewardPending = false;
+    }
+
+    void ApplyGuardianSeal()
     {
         if (aura != null)
         {
-            aura.damage += 4;
-            aura.radius += 0.25f;
+            aura.damage += 8;
+            aura.radius += 0.35f;
         }
 
         if (goldWallet != null)
-            goldWallet.AddGold(15);
+            goldWallet.AddGold(35);
 
-        Debug.Log("Boss ödülü seçildi: Atlas Fury");
+        Debug.Log("Boss ödülü seçildi: Muhafızın Mührü");
     }
 
-    void ApplyPhantomStep()
+    void ApplyShadowStep()
     {
         if (movement != null)
         {
             movement.moveSpeed += 0.8f;
-            movement.dashCooldown = Mathf.Max(0.25f, movement.dashCooldown - 0.15f);
-            movement.dashSpeed += 2f;
+            movement.dashCooldown = Mathf.Max(0.25f, movement.dashCooldown - 0.20f);
+            movement.dashSpeed += 3f;
         }
 
-        Debug.Log("Boss ödülü seçildi: Phantom Step");
+        Debug.Log("Boss ödülü seçildi: Gölge Adım");
     }
 
-    void ApplyVitalCore()
+    void ApplyAtlasCore()
     {
         if (playerHealth != null)
         {
-            playerHealth.IncreaseMaxHealth(25);
-            playerHealth.Heal(25);
+            playerHealth.IncreaseMaxHealth(45);
+            playerHealth.Heal(45);
         }
 
         if (goldWallet != null)
-            goldWallet.AddGold(10);
+            goldWallet.AddGold(60);
 
-        Debug.Log("Boss ödülü seçildi: Vital Core");
-    }
-
-    void EnsureStyles()
-    {
-        if (titleStyle != null)
-            return;
-
-        titleStyle = new GUIStyle(GUI.skin.label);
-        titleStyle.alignment = TextAnchor.MiddleCenter;
-        titleStyle.fontSize = 17;
-        titleStyle.fontStyle = FontStyle.Bold;
-        titleStyle.normal.textColor = Color.white;
-
-        shadowStyle = new GUIStyle(titleStyle);
-        shadowStyle.normal.textColor = new Color(0f, 0f, 0f, 0.9f);
-
-        subtitleStyle = new GUIStyle(GUI.skin.label);
-        subtitleStyle.alignment = TextAnchor.MiddleLeft;
-        subtitleStyle.fontSize = 12;
-        subtitleStyle.fontStyle = FontStyle.Bold;
-        subtitleStyle.normal.textColor = Color.white;
-
-        cardTitleStyle = new GUIStyle(GUI.skin.label);
-        cardTitleStyle.alignment = TextAnchor.UpperLeft;
-        cardTitleStyle.fontSize = 12;
-        cardTitleStyle.fontStyle = FontStyle.Bold;
-        cardTitleStyle.normal.textColor = Color.white;
-        cardTitleStyle.wordWrap = true;
-
-        cardBodyStyle = new GUIStyle(GUI.skin.label);
-        cardBodyStyle.alignment = TextAnchor.UpperLeft;
-        cardBodyStyle.fontSize = 11;
-        cardBodyStyle.fontStyle = FontStyle.Bold;
-        cardBodyStyle.normal.textColor = Color.white;
-        cardBodyStyle.wordWrap = true;
-
-        hintStyle = new GUIStyle(GUI.skin.label);
-        hintStyle.alignment = TextAnchor.MiddleCenter;
-        hintStyle.fontSize = 11;
-        hintStyle.fontStyle = FontStyle.Bold;
-        hintStyle.normal.textColor = new Color(1f, 1f, 1f, 0.9f);
+        Debug.Log("Boss ödülü seçildi: Atlas Çekirdeği");
     }
 
     void OnGUI()
     {
-        if (!rewardPending)
-            return;
-
-        EnsureStyles();
-
-        float panelWidth = 620f;
-        float panelHeight = 185f;
-        float x = Screen.width * 0.5f - panelWidth * 0.5f;
-        float y = Screen.height * 0.5f - panelHeight * 0.5f;
-
-        GUI.Box(new Rect(x, y, panelWidth, panelHeight), "");
-
-        GUI.Label(new Rect(x + 2f, y + 8f, panelWidth, 24f), "BOSS ODULU", shadowStyle);
-        GUI.Label(new Rect(x, y + 6f, panelWidth, 24f), "BOSS ODULU", titleStyle);
-
-        GUI.Label(new Rect(x + 18f, y + 34f, panelWidth - 36f, 18f), "Bir guclendirme sec:", subtitleStyle);
-
-        DrawOptionBox(
-            x + 14f, y + 58f, 184f, 96f,
-            "1 - ATLAS FURY",
-            "+4 aura hasari\n+0.25 aura yaricapi\n+15 gold"
-        );
-
-        DrawOptionBox(
-            x + 218f, y + 58f, 184f, 96f,
-            "2 - PHANTOM STEP",
-            "+0.8 hareket hizi\n-0.15 dash bekleme\n+2 dash hizi"
-        );
-
-        DrawOptionBox(
-            x + 422f, y + 58f, 184f, 96f,
-            "3 - VITAL CORE",
-            "+25 maksimum can\n+25 iyilesme\n+10 gold"
-        );
-
-        GUI.Label(new Rect(x, y + 160f, panelWidth, 16f), "[1] [2] [3] ile sec", hintStyle);
-    }
-
-    void DrawOptionBox(float x, float y, float width, float height, string title, string body)
-    {
-        GUI.Box(new Rect(x, y, width, height), "");
-        GUI.Label(new Rect(x + 10f, y + 8f, width - 20f, 20f), title, cardTitleStyle);
-        GUI.Label(new Rect(x + 10f, y + 30f, width - 20f, height - 36f), body, cardBodyStyle);
+        return;
     }
 }

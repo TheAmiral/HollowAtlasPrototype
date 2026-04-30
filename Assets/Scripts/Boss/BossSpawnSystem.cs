@@ -4,9 +4,12 @@ public class BossSpawnSystem : MonoBehaviour
 {
     public static BossSpawnSystem Instance;
 
+    [Header("Boss Setup")]
     public GameObject miniBossPrefab;
     public Transform player;
+    public string bossDisplayName = "Atlas Muhafızı";
 
+    [Header("Spawn Settings")]
     public float firstBossTime = 60f;
     public float spawnDistance = 14f;
     public float warningDuration = 3f;
@@ -70,9 +73,16 @@ public class BossSpawnSystem : MonoBehaviour
         if (!bossDefeated && activeBoss == null)
         {
             bossDefeated = true;
-            warningMessage = "MINI BOSS YENILDI";
-            warningTimer = warningDuration;
-            Debug.Log("Mini Boss yenildi!");
+
+            // Boss öldüğünde ayrıca büyük "yenildi" yazısı göstermiyoruz.
+            // Ödül kart ekranı zaten oyuncuya boss'un bittiğini anlatıyor.
+            warningMessage = "";
+            warningTimer = 0f;
+
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.PlayBossDeath();
+
+            Debug.Log($"{bossDisplayName} yenildi!");
         }
     }
 
@@ -91,13 +101,23 @@ public class BossSpawnSystem : MonoBehaviour
         GameObject bossObject = Instantiate(miniBossPrefab, spawnPosition, Quaternion.identity);
 
         activeBoss = bossObject.GetComponent<EnemyHealth>();
+
+        if (activeBoss != null)
+        {
+            activeBoss.isBoss = true;
+            activeBoss.bossDisplayName = bossDisplayName;
+        }
+
         bossSpawned = true;
         bossDefeated = false;
 
-        warningMessage = "MINI BOSS GELDI";
+        warningMessage = $"{bossDisplayName.ToUpper()} GELDİ";
         warningTimer = warningDuration;
 
-        Debug.Log("Mini Boss doğdu!");
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayBossSpawn();
+
+        Debug.Log($"{bossDisplayName} doğdu!");
     }
 
     void EnsureGuiStyles()
@@ -123,6 +143,9 @@ public class BossSpawnSystem : MonoBehaviour
         if (BossRewardSystem.Instance != null && BossRewardSystem.Instance.RewardPending)
             return;
 
+        if (LevelUpCardSystem.Instance != null && LevelUpCardSystem.Instance.SelectionPending)
+            return;
+
         EnsureGuiStyles();
 
         float panelWidth = 250f;
@@ -139,13 +162,13 @@ public class BossSpawnSystem : MonoBehaviour
 
             float remaining = Mathf.Max(0f, firstBossTime - elapsedTime);
 
-            GUI.Box(new Rect(rightPanelX, bottomAnchorY, panelWidth, panelHeight), "Mini Boss");
+            GUI.Box(new Rect(rightPanelX, bottomAnchorY, panelWidth, panelHeight), bossDisplayName);
             GUI.Label(new Rect(rightPanelX + 10f, bottomAnchorY + 25f, 220f, 20f), $"{remaining:0.0}s sonra geliyor");
         }
 
         if (bossSpawned && !bossDefeated && activeBoss != null)
         {
-            GUI.Box(new Rect(rightPanelX, bottomAnchorY, panelWidth, panelHeight - 5f), "Mini Boss");
+            GUI.Box(new Rect(rightPanelX, bottomAnchorY, panelWidth, panelHeight - 5f), bossDisplayName);
             GUI.Label(new Rect(rightPanelX + 10f, bottomAnchorY + 25f, 220f, 20f), "Haritada aktif");
         }
 
@@ -169,7 +192,7 @@ public class BossSpawnSystem : MonoBehaviour
         centerWarningStyle.normal.textColor = mainColor;
         centerWarningShadowStyle.normal.textColor = shadowColor;
 
-        float width = 560f;
+        float width = 620f;
         float height = 64f;
         float x = Screen.width * 0.5f - width * 0.5f;
         float y = Screen.height * 0.5f - height * 0.5f - 55f;

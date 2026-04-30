@@ -7,11 +7,13 @@ public class HealthPickup : MonoBehaviour
     public float rotateSpeed = 120f;
 
     private SphereCollider pickupCollider;
+    private bool collected;
 
     void Awake()
     {
-        // 3D oyun — SphereCollider kullan (CircleCollider2D değil!)
+        // 3D oyun — SphereCollider kullan.
         pickupCollider = GetComponent<SphereCollider>();
+
         if (pickupCollider == null)
         {
             pickupCollider = gameObject.AddComponent<SphereCollider>();
@@ -25,19 +27,28 @@ public class HealthPickup : MonoBehaviour
         transform.Rotate(0f, rotateSpeed * Time.deltaTime, 0f, Space.World);
     }
 
-    // 3D trigger — OnTriggerEnter(Collider) kullan, OnTriggerEnter2D değil!
     void OnTriggerEnter(Collider other)
     {
+        if (collected)
+            return;
+
         PlayerHealth playerHealth = other.GetComponent<PlayerHealth>();
 
         if (playerHealth == null)
             playerHealth = other.GetComponentInParent<PlayerHealth>();
 
-        if (playerHealth != null && !playerHealth.IsDead)
-        {
-            playerHealth.Heal(healAmount);
-            Debug.Log($"Oyuncu {healAmount} can topladı! HP: {playerHealth.CurrentHealth}/{playerHealth.MaxHealth}");
-            Destroy(gameObject);
-        }
+        if (playerHealth == null || playerHealth.IsDead)
+            return;
+
+        collected = true;
+
+        playerHealth.Heal(healAmount);
+
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayHealthPickup();
+
+        Debug.Log($"Oyuncu {healAmount} can topladı! HP: {playerHealth.CurrentHealth}/{playerHealth.MaxHealth}");
+
+        Destroy(gameObject);
     }
 }

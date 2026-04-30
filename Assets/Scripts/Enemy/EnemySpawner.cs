@@ -20,9 +20,9 @@ public class EnemySpawner : MonoBehaviour
 
     [Header("XP Rewards")]
     public int basicEnemyXP = 1;
-    public int fastEnemyXP = 1;
-    public int shooterEnemyXP = 1;
-    public int tankEnemyXP = 3;
+    public int fastEnemyXP = 2;
+    public int shooterEnemyXP = 3;
+    public int tankEnemyXP = 4;
 
     public float difficultyRamp = 0.02f;
 
@@ -70,6 +70,7 @@ public class EnemySpawner : MonoBehaviour
 
         GameObject prefabToSpawn = ChooseEnemyPrefab();
         GameObject spawnedEnemy = Instantiate(prefabToSpawn, spawnPos, Quaternion.identity);
+
         ApplyXpRewardByType(spawnedEnemy, prefabToSpawn);
     }
 

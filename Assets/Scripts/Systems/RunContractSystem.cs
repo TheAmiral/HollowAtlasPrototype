@@ -153,6 +153,9 @@ public class RunContractSystem : MonoBehaviour
 
     void OnGUI()
     {
+        if (LevelUpCardSystem.Instance != null && LevelUpCardSystem.Instance.SelectionPending)
+            return;
+
         float width = 250f;
         float height = 105f;
         float x = Screen.width - width - RightMargin;

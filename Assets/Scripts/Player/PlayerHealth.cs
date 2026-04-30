@@ -21,6 +21,7 @@ public class PlayerHealth : MonoBehaviour
 
     void Awake()
     {
+        maxHealth = Mathf.Max(1, maxHealth);
         currentHealth = maxHealth;
         isDead = false;
     }
@@ -31,10 +32,14 @@ public class PlayerHealth : MonoBehaviour
             return;
 
         currentHealth -= amount;
+
         if (currentHealth < 0)
             currentHealth = 0;
 
         Debug.Log($"Player damaged: {amount} | HP: {currentHealth}/{maxHealth}");
+
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayPlayerDamage();
 
         if (currentHealth <= 0)
             Die();
@@ -47,6 +52,9 @@ public class PlayerHealth : MonoBehaviour
 
         isDead = true;
         currentHealth = 0;
+
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayPlayerDeath();
 
         Debug.Log("Player died.");
 
@@ -62,20 +70,29 @@ public class PlayerHealth : MonoBehaviour
             return;
 
         currentHealth += amount;
+
         if (currentHealth > maxHealth)
             currentHealth = maxHealth;
     }
 
     public void IncreaseMaxHealth(int amount)
     {
-        if (amount <= 0)
+        if (amount == 0)
             return;
 
         maxHealth += amount;
-        currentHealth += amount;
+
+        if (maxHealth < 1)
+            maxHealth = 1;
+
+        if (amount > 0)
+            currentHealth += amount;
 
         if (currentHealth > maxHealth)
             currentHealth = maxHealth;
+
+        if (currentHealth < 1 && !isDead)
+            currentHealth = 1;
     }
 
     void OnGUI()

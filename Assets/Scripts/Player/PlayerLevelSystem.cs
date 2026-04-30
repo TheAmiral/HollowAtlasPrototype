@@ -1,11 +1,12 @@
 using UnityEngine;
+
 public class PlayerLevelSystem : MonoBehaviour
 {
     [Header("Level Data")]
     public int level = 1;
     public int currentXP = 0;
-    public int xpToNextLevel = 100;
-    public int xpPerLevel = 100;
+    public int xpToNextLevel = 10;
+    public int xpPerLevel = 5;
 
     [Header("Left UI")]
     public bool showLegacyHudOnGUI = false;
@@ -35,8 +36,15 @@ public class PlayerLevelSystem : MonoBehaviour
     {
         level = 1;
         currentXP = 0;
-        if (xpToNextLevel < 1)
-            xpToNextLevel = 1;
+
+        // Hollow Atlas XP tablosu:
+        // Oyun her başladığında XP bar boş başlar ve level'a göre doğru eşik atanır.
+        xpToNextLevel = GetXPRequirementForLevel(level);
+
+        // Eski inspector değerleri çok yüksek kaydedildiyse güvenli aralığa çek.
+        xpPerLevel = Mathf.Max(1, xpPerLevel);
+        if (xpPerLevel > 50)
+            xpPerLevel = 5;
 
         FindPlayerRefs();
     }
@@ -66,11 +74,18 @@ public class PlayerLevelSystem : MonoBehaviour
         {
             currentXP -= xpToNextLevel;
             level++;
-            // XP Scaling: her seviye giderek daha fazla XP ister
-            // Formül: level * 80 + 20  (Lv1=100, Lv2=180, Lv5=420, Lv10=820)
-            xpToNextLevel = Mathf.Max(1, level * 80 + 20);
+
+            // Hollow Atlas dokümanındaki XP eğrisine göre yeni level eşiğini belirle.
+            xpToNextLevel = GetXPRequirementForLevel(level);
+
             latestLevelPopup = level;
-            levelUpPopupTimer = levelUpPopupDuration;
+
+            // Kart sistemi aktifse eski OnGUI level popup'ı yerine kart seçim ekranı kullanılır.
+            if (LevelUpCardSystem.Instance == null)
+                levelUpPopupTimer = levelUpPopupDuration;
+            else
+                levelUpPopupTimer = 0f;
+
             ApplyLevelReward();
         }
     }
@@ -85,16 +100,39 @@ public class PlayerLevelSystem : MonoBehaviour
         AddExperience(neededXP);
     }
 
+    int GetXPRequirementForLevel(int currentLevel)
+    {
+        int[] xpTable =
+        {
+            0,
+            10,   // Level 1 -> 2
+            15,   // Level 2 -> 3
+            22,   // Level 3 -> 4
+            30,   // Level 4 -> 5
+            40,   // Level 5 -> 6
+            52,   // Level 6 -> 7
+            66,   // Level 7 -> 8
+            82,   // Level 8 -> 9
+            100   // Level 9 -> 10
+        };
+
+        if (currentLevel > 0 && currentLevel < xpTable.Length)
+            return xpTable[currentLevel];
+
+        // Level 10 sonrası için fallback formül.
+        return Mathf.Max(1, 10 + currentLevel * currentLevel * 2);
+    }
+
     void ApplyLevelReward()
     {
-        // Kart sistemi varsa → kart seçim ekranını aç
+        // Kart sistemi varsa kart seçim ekranını aç.
         if (LevelUpCardSystem.Instance != null)
         {
             LevelUpCardSystem.Instance.TriggerSelection(level);
             return;
         }
 
-        // Fallback: kart sistemi sahnede yoksa direkt stat uygula
+        // Fallback: kart sistemi sahnede yoksa direkt küçük stat artışı uygula.
         FindPlayerRefs();
 
         if (aura != null)
@@ -139,6 +177,12 @@ public class PlayerLevelSystem : MonoBehaviour
     {
         if (GameManager.Instance != null && GameManager.Instance.IsGameOver)
             return;
+
+        if (LevelUpCardSystem.Instance != null && LevelUpCardSystem.Instance.SelectionPending)
+            return;
+
+        if (LevelUpCardSystem.Instance != null)
+            levelUpPopupTimer = 0f;
 
         if (showLegacyHudOnGUI)
         {

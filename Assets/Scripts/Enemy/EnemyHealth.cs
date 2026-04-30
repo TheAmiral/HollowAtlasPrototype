@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class EnemyHealth : MonoBehaviour
 {
-    // Statik sayaç — EnemySpawner her frame FindObjectsByType yerine bunu okur
+    // Statik sayaç — EnemySpawner her frame FindObjectsByType yerine bunu okur.
     public static int AliveCount { get; private set; } = 0;
 
     [Header("Identity")]
@@ -44,7 +44,7 @@ public class EnemyHealth : MonoBehaviour
     void OnDestroy()
     {
         if (!isDead)
-            AliveCount--; // Sahne değişimi veya erken destroy için güvenlik
+            AliveCount--;
     }
 
     public void TakeDamage(int amount)
@@ -53,6 +53,9 @@ public class EnemyHealth : MonoBehaviour
             return;
 
         currentHealth -= amount;
+
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayEnemyHit();
 
         if (currentHealth > 0)
         {
@@ -72,10 +75,15 @@ public class EnemyHealth : MonoBehaviour
             return;
 
         isDead = true;
-        AliveCount--; // Ölünce sayacı düşür
+        AliveCount--;
 
         if (bossSpecialAttack != null)
             bossSpecialAttack.HandleOwnerDeath();
+
+        // Boss death sesi BossSpawnSystem tarafından tetikleniyor.
+        // Normal düşmanlarda enemy death sesi burada çalıyor.
+        if (!isBoss && AudioManager.Instance != null)
+            AudioManager.Instance.PlayEnemyDeath();
 
         DropGold();
         DropXP();
