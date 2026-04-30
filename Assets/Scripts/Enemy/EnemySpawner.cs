@@ -78,9 +78,12 @@ public class EnemySpawner : MonoBehaviour
     {
         float roll = Random.value;
 
-        float shooterThreshold = shooterSpawnChance;
-        float fastThreshold = shooterThreshold + fastSpawnChance;
-        float tankThreshold = fastThreshold + tankSpawnChance;
+        float total = shooterSpawnChance + fastSpawnChance + tankSpawnChance;
+        float scale = total > 1f ? 1f / total : 1f;
+
+        float shooterThreshold = shooterSpawnChance * scale;
+        float fastThreshold    = shooterThreshold + fastSpawnChance * scale;
+        float tankThreshold    = fastThreshold    + tankSpawnChance * scale;
 
         if (shooterEnemyPrefab != null && roll < shooterThreshold)
             return shooterEnemyPrefab;
