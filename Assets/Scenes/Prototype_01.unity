@@ -198,10 +198,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 906245ac958c2e649af8fcad44a7f050, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  runBoxX: 10
-  runBoxY: 320
-  runBoxWidth: 220
-  runBoxHeight: 55
 --- !u!4 &255869072
 Transform:
   m_ObjectHideFlags: 0
@@ -694,6 +690,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GoldWallet
   runGold: 0
   bankGold: 0
+  showLegacyOnGUI: 0
   uiX: 10
   uiY: 110
   uiWidth: 220
@@ -718,7 +715,7 @@ MonoBehaviour:
   dashSpeed: 12
   dashDuration: 0.18
   dashCooldown: 0.75
-  dashDamage: 12
+  dashDamage: 100
   dashHitRadius: 1.2
   dashHitYOffset: 0.6
   dashTrailTime: 0.18
@@ -872,7 +869,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b4bc27e1dfb65249ac2f39bc9d32ae0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
-  maxHealth: 100
+  maxHealth: 150
+  showLegacyOnGUI: 0
   uiX: 10
   uiY: 196
   uiWidth: 220
@@ -892,11 +890,14 @@ MonoBehaviour:
   level: 1
   currentXP: 0
   xpToNextLevel: 5
-  xpGrowthPerLevel: 4
+  xpPerLevel: 100
+  showLegacyHudOnGUI: 0
   uiX: 10
   uiY: 252
   uiWidth: 220
   uiHeight: 68
+  levelUpPopupDuration: 1.8
+  levelUpPopupOffsetY: -40
 --- !u!114 &1096577508
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1073,6 +1074,50 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1239218265
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1239218267}
+  - component: {fileID: 1239218266}
+  m_Layer: 0
+  m_Name: 'LevelUpCardSystem '
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1239218266
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1239218265}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 458aba7c4a77b4740b280addc94ac95e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LevelUpCardSystem
+--- !u!4 &1239218267
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1239218265}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 7.03127, y: 0, z: 3.49186}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1285650914
 GameObject:
   m_ObjectHideFlags: 0
@@ -1114,6 +1159,10 @@ MonoBehaviour:
   fastSpawnChance: 0.25
   tankSpawnChance: 0.15
   shooterSpawnChance: 0.2
+  basicEnemyXP: 1
+  fastEnemyXP: 1
+  shooterEnemyXP: 1
+  tankEnemyXP: 3
   difficultyRamp: 0.02
 --- !u!4 &1285650916
 Transform:
@@ -1411,6 +1460,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7616696273613635351, guid: 7ffda6b1538f17b42b8e5697898562bd, type: 3}
+      propertyPath: rotateSpeed
+      value: 50
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1490,3 +1543,4 @@ SceneRoots:
   - {fileID: 24891308}
   - {fileID: 1012776702}
   - {fileID: 1458836665}
+  - {fileID: 1239218267}
