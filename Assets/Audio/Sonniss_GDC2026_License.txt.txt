@@ -1,0 +1,5 @@
+Source: Sonniss GDC 2026 Game Audio Bundle
+License: Royalty-free, commercial use allowed, no attribution required.
+Restriction: Raw redistribution and AI/ML training prohibited.
+Downloaded: 30.04.2026
+Used in project: Hollow Atlas
