@@ -23,3 +23,11 @@ UserSettings/
 *.mdb
 *.opendb
 *.VC.db
+
+# IDE
+.cursor/
+
+# Backup & geçici dosyalar
+*.zip
+*_BACKUP.txt
+Assets/_Recovery/
