@@ -30,7 +30,13 @@ UserSettings/
 
 # Backup & geçici dosyalar
 *.zip
+*.backup.txt
 *_BACKUP.txt
+*_ROOT_BACKUP.txt
 Assets/_Recovery/
 Assets/Context/
 Assets/Context.meta
+
+# Claude / AI context
+.claude/
+_Briefs/
