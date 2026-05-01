@@ -150,10 +150,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BossSpawnSystem
   miniBossPrefab: {fileID: 688597333956293172, guid: 8e1767a672b8f9045ae5bd1a5f2c21cc, type: 3}
   player: {fileID: 1096577504}
-  firstBossTime: 1
+  bossDisplayName: "Atlas Muhaf\u0131z\u0131"
+  firstBossTime: 60
   spawnDistance: 14
   warningDuration: 3
   bossSpawnHeight: 1
+  waveInterval: 90
 --- !u!4 &24891308
 Transform:
   m_ObjectHideFlags: 0
@@ -365,6 +367,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CameraFollow
   target: {fileID: 1096577504}
   offset: {x: -6, y: 9, z: -6}
+  smoothTime: 0.08
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -715,7 +718,7 @@ MonoBehaviour:
   dashSpeed: 12
   dashDuration: 0.18
   dashCooldown: 0.75
-  dashDamage: 100
+  dashDamage: 12
   dashHitRadius: 1.2
   dashHitYOffset: 0.6
   dashTrailTime: 0.18
@@ -1160,9 +1163,9 @@ MonoBehaviour:
   tankSpawnChance: 0.15
   shooterSpawnChance: 0.2
   basicEnemyXP: 1
-  fastEnemyXP: 1
-  shooterEnemyXP: 1
-  tankEnemyXP: 3
+  fastEnemyXP: 2
+  shooterEnemyXP: 3
+  tankEnemyXP: 4
   difficultyRamp: 0.02
 --- !u!4 &1285650916
 Transform:
