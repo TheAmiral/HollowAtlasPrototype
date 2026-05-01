@@ -55,6 +55,11 @@ public class EnemyChaser : MonoBehaviour
         }
     }
 
+    public void ScaleForWave(int waveScale)
+    {
+        moveSpeed = Mathf.Min(4.0f, moveSpeed + waveScale * 0.25f);
+    }
+
     void FindPlayer()
     {
         GameObject player = GameObject.FindGameObjectWithTag("Player");

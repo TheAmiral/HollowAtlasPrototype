@@ -138,6 +138,12 @@ public class BossSpecialAttack : MonoBehaviour
         }
     }
 
+    public void ScaleForWave(int waveScale)
+    {
+        projectileDamage += waveScale * 2;
+        attackCooldown = Mathf.Max(3.0f, attackCooldown - waveScale * 0.35f);
+    }
+
     public void HandleOwnerDeath()
     {
         if (ownerDead)

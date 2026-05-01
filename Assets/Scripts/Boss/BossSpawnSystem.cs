@@ -28,6 +28,7 @@ public class BossSpawnSystem : MonoBehaviour
     private float warningTimer;
     private string warningMessage = "";
     private float nextBossTime;
+    private int waveNumber = 0;
 
     private GUIStyle centerWarningStyle;
     private GUIStyle centerWarningShadowStyle;
@@ -99,6 +100,7 @@ public class BossSpawnSystem : MonoBehaviour
         bossSpawned  = false;
         bossDefeated = false;
         activeBoss   = null;
+        waveNumber++;
     }
 
     void SpawnBoss()
@@ -121,6 +123,19 @@ public class BossSpawnSystem : MonoBehaviour
         {
             activeBoss.isBoss = true;
             activeBoss.bossDisplayName = bossDisplayName;
+
+            if (waveNumber > 0)
+            {
+                activeBoss.ScaleMaxHealthForBoss(1f + waveNumber * 0.35f);
+
+                EnemyChaser chaser = bossObject.GetComponent<EnemyChaser>();
+                if (chaser != null)
+                    chaser.ScaleForWave(waveNumber);
+
+                BossSpecialAttack specialAttack = bossObject.GetComponent<BossSpecialAttack>();
+                if (specialAttack != null)
+                    specialAttack.ScaleForWave(waveNumber);
+            }
         }
 
         bossSpawned = true;

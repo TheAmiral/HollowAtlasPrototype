@@ -47,6 +47,12 @@ public class EnemyHealth : MonoBehaviour
             AliveCount--;
     }
 
+    public void ScaleMaxHealthForBoss(float multiplier)
+    {
+        maxHealth = Mathf.RoundToInt(maxHealth * multiplier);
+        currentHealth = maxHealth;
+    }
+
     public void TakeDamage(int amount)
     {
         if (isDead || amount <= 0)
