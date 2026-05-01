@@ -5,6 +5,12 @@ public class EnemyHealth : MonoBehaviour
     // Statik sayaç — EnemySpawner her frame FindObjectsByType yerine bunu okur.
     public static int AliveCount { get; private set; } = 0;
 
+    // Play Mode başlangıcında (Editor dahil) statik sayacı sıfırla.
+    // SceneManager.LoadScene ile sahne yeniden yüklendiğinde OnDestroy zincirleri
+    // sayacı doğru düşürür; bu metot yalnızca ilk giriş ve Editor restart için gerekli.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetAliveCount() => AliveCount = 0;
+
     [Header("Identity")]
     public bool isBoss = false;
     public string bossDisplayName = "Enemy";
