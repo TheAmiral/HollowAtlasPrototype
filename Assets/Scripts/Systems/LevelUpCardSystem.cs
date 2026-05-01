@@ -690,6 +690,13 @@ public class LevelUpCardSystem : MonoBehaviour
         _widgets.Clear();
         Time.timeScale = 1f;
 
+        if (_player != null)
+        {
+            PlayerHealth ph = _player.GetComponent<PlayerHealth>();
+            if (ph != null)
+                ph.GrantInvulnerability(1f);
+        }
+
         _onSelectionComplete?.Invoke();
         _onSelectionComplete = null;
         _overrideTitle = null;

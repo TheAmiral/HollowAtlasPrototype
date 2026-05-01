@@ -18,6 +18,8 @@ public class PlayerHealth : MonoBehaviour
 
     private int currentHealth;
     private bool isDead;
+    private bool isInvulnerable;
+    private float invulnerabilityExpiry;
 
     void Awake()
     {
@@ -26,9 +28,25 @@ public class PlayerHealth : MonoBehaviour
         isDead = false;
     }
 
+    void Update()
+    {
+        if (isInvulnerable && Time.unscaledTime >= invulnerabilityExpiry)
+            isInvulnerable = false;
+    }
+
+    public void GrantInvulnerability(float duration)
+    {
+        float newExpiry = Time.unscaledTime + duration;
+        invulnerabilityExpiry = Mathf.Max(invulnerabilityExpiry, newExpiry);
+        isInvulnerable = true;
+    }
+
     public void TakeDamage(int amount)
     {
         if (isDead || amount <= 0)
+            return;
+
+        if (isInvulnerable)
             return;
 
         currentHealth -= amount;

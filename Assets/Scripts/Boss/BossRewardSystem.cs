@@ -118,7 +118,11 @@ public class BossRewardSystem : MonoBehaviour
         rewardTaken = true;
 
         if (GameManager.Instance == null || !GameManager.Instance.IsGameOver)
+        {
             Time.timeScale = 1f;
+            if (playerHealth != null)
+                playerHealth.GrantInvulnerability(1f);
+        }
 
         if (BossSpawnSystem.Instance != null)
         {

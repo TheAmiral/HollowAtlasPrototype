@@ -30,6 +30,10 @@ public class CharacterAnimatorBridge : MonoBehaviour
         if (animator == null || playerMovement == null)
             return;
 
+        if ((LevelUpCardSystem.Instance != null && LevelUpCardSystem.Instance.SelectionPending) ||
+            (BossRewardSystem.Instance != null && BossRewardSystem.Instance.RewardPending))
+            return;
+
         // Animator parametrelerini karakterin local eksenine göre beslemek,
         // 8 yönlü hareket blend'inin kamera/world açılarına göre bozulmasını engeller.
         Vector3 move = transform.InverseTransformDirection(playerMovement.CurrentMoveDirection);
