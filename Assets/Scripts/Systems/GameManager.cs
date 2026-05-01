@@ -8,6 +8,7 @@ public class GameManager : MonoBehaviour
 
     public float ElapsedTime { get; private set; }
     public bool IsGameOver { get; private set; }
+    public bool IsPaused { get; private set; }
 
     private Texture2D whiteTexture;
     private GUIStyle gameOverTitleStyle;
@@ -44,6 +45,13 @@ public class GameManager : MonoBehaviour
 
         if (IsGameOver && Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
             RestartGame();
+
+        if (!IsGameOver
+            && Keyboard.current != null
+            && Keyboard.current.escapeKey.wasPressedThisFrame
+            && (LevelUpCardSystem.Instance == null || !LevelUpCardSystem.Instance.SelectionPending)
+            && (BossRewardSystem.Instance == null || !BossRewardSystem.Instance.RewardPending))
+            TogglePause();
     }
 
     void EnsureMainHudCanvas()
@@ -122,11 +130,19 @@ public class GameManager : MonoBehaviour
     {
         ElapsedTime = 0f;
         IsGameOver = false;
+        IsPaused = false;
         Time.timeScale = 1f;
+    }
+
+    void TogglePause()
+    {
+        IsPaused = !IsPaused;
+        Time.timeScale = IsPaused ? 0f : 1f;
     }
 
     void RestartGame()
     {
+        IsPaused = false;
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
@@ -134,6 +150,30 @@ public class GameManager : MonoBehaviour
     void OnGUI()
     {
         EnsureStyles();
+
+        if (IsPaused && !IsGameOver)
+        {
+            Color pauseOldColor = GUI.color;
+
+            GUI.color = new Color(0f, 0f, 0f, 0.55f);
+            GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), whiteTexture);
+
+            float pw = 440f;
+            float ph = 120f;
+            float px = Screen.width * 0.5f - pw * 0.5f;
+            float py = Screen.height * 0.5f - ph * 0.5f;
+
+            GUI.color = new Color(0f, 0f, 0f, 0.8f);
+            GUI.DrawTexture(new Rect(px, py, pw, ph), whiteTexture);
+
+            GUI.color = Color.white;
+            GUI.Label(new Rect(px + 3f, py + 22f, pw, 32f), "DURAKLATILDI", gameOverShadowStyle);
+            GUI.Label(new Rect(px, py + 20f, pw, 32f), "DURAKLATILDI", gameOverTitleStyle);
+            GUI.Label(new Rect(px, py + 72f, pw, 22f), "[ ESC ]  Devam Et", gameOverSubStyle);
+
+            GUI.color = pauseOldColor;
+            return;
+        }
 
         if (!IsGameOver)
             return;
