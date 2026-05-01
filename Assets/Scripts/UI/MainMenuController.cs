@@ -12,10 +12,10 @@ public class MainMenuController : MonoBehaviour
     [SerializeField] private Sprite backgroundSprite;
 
     [Header("Button Positions (canvas pixels from center)")]
-    [SerializeField] private Vector2 enterButtonPosition    = new Vector2(0f, -150f);
-    [SerializeField] private Vector2 enterButtonSize        = new Vector2(520f, 70f);
-    [SerializeField] private Vector2 settingsButtonPosition = new Vector2(0f, -235f);
-    [SerializeField] private Vector2 settingsButtonSize     = new Vector2(520f, 70f);
+    [SerializeField] private Vector2 enterButtonPosition    = new Vector2(-575f, -205f);
+    [SerializeField] private Vector2 enterButtonSize        = new Vector2(660f, 85f);
+    [SerializeField] private Vector2 settingsButtonPosition = new Vector2(-575f, -305f);
+    [SerializeField] private Vector2 settingsButtonSize     = new Vector2(660f, 85f);
 
     [Header("Scene")]
     [SerializeField] private string gameSceneName = "Prototype_01";
@@ -123,25 +123,26 @@ public class MainMenuController : MonoBehaviour
         overlayRt.offsetMax = Vector2.zero;
 
         Image overlayImg = overlay.AddComponent<Image>();
-        overlayImg.color = new Color(0f, 0f, 0f, 0.75f);
+        overlayImg.color = new Color(0f, 0f, 0f, 0.85f);
 
         GameObject card = new GameObject("SettingsCard");
         card.transform.SetParent(overlay.transform, false);
 
         RectTransform cardRt = card.AddComponent<RectTransform>();
         cardRt.anchoredPosition = Vector2.zero;
-        cardRt.sizeDelta = new Vector2(600f, 500f);
+        cardRt.sizeDelta = new Vector2(560f, 420f);
 
         Image cardImg = card.AddComponent<Image>();
-        cardImg.color = new Color(0.08f, 0.08f, 0.12f, 0.95f);
+        cardImg.color = new Color(0.06f, 0.06f, 0.09f, 0.97f);
 
-        CreateLabel(card.transform, "TitleLabel",    "AYARLAR",                    new Vector2(0f,  190f), 32);
-        CreateLabel(card.transform, "AudioLabel",    "Ses Ayarları   (yakında)",   new Vector2(0f,   80f), 22);
+        CreateLabel(card.transform, "TitleLabel",    "AYARLAR",                    new Vector2(0f,  160f), 32);
+        CreateLabel(card.transform, "AudioLabel",    "Ses Ayarları   (yakında)",   new Vector2(0f,   65f), 22);
         CreateLabel(card.transform, "DisplayLabel",  "Görüntü        (yakında)",   new Vector2(0f,    0f), 22);
-        CreateLabel(card.transform, "ControlsLabel", "Kontroller     (yakında)",   new Vector2(0f,  -80f), 22);
+        CreateLabel(card.transform, "ControlsLabel", "Kontroller     (yakında)",   new Vector2(0f,  -65f), 22);
 
-        BuildTransparentButton(cardRt, "BackButton", new Vector2(0f, -190f), new Vector2(260f, 50f), CloseSettings);
-        CreateLabel(card.transform, "BackLabel", "GERİ", new Vector2(0f, -190f), 22);
+        // BackLabel oluşturulur önce (raycastTarget=false), ardından BackButton üste gelir
+        CreateLabel(card.transform, "BackLabel", "GERİ", new Vector2(0f, -155f), 22);
+        BuildTransparentButton(cardRt, "BackButton", new Vector2(0f, -155f), new Vector2(280f, 52f), CloseSettings);
 
         return overlay;
     }
@@ -161,6 +162,7 @@ public class MainMenuController : MonoBehaviour
         label.alignment = TextAnchor.MiddleCenter;
         label.color = Color.white;
         label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        label.raycastTarget = false;
     }
 
     void LoadGameScene() => SceneManager.LoadScene(gameSceneName);
