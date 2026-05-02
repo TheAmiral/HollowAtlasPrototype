@@ -32,7 +32,16 @@ public class GameManager : MonoBehaviour
         whiteTexture.SetPixel(0, 0, Color.white);
         whiteTexture.Apply();
 
+        EnsureAudioManager();
         EnsureMainHudCanvas();
+    }
+
+    void EnsureAudioManager()
+    {
+        if (AudioManager.Instance != null)
+            return;
+
+        new GameObject("AudioManager").AddComponent<AudioManager>();
     }
 
     void Update()
