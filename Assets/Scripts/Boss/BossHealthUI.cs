@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class BossHealthUI : MonoBehaviour
 {
+    [SerializeField] private bool showLegacyOnGUI = false;
+
     public Color panelColor = new Color(0f, 0f, 0f, 0.35f);
     public Color barBackgroundColor = new Color(0.12f, 0.12f, 0.12f, 0.9f);
     public Color barFillColor = new Color(0.85f, 0.12f, 0.12f, 1f);
@@ -92,6 +94,9 @@ public class BossHealthUI : MonoBehaviour
 
     void OnGUI()
     {
+        if (!showLegacyOnGUI)
+            return;
+
         if (GameManager.Instance != null && GameManager.Instance.IsGameOver)
             return;
 

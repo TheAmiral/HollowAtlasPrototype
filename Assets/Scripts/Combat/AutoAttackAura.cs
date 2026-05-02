@@ -9,6 +9,12 @@ public class AutoAttackAura : MonoBehaviour
 
     private float timer;
 
+    void Start()
+    {
+        if (GetComponent<PlayerRangeIndicator>() == null)
+            gameObject.AddComponent<PlayerRangeIndicator>();
+    }
+
     void Update()
     {
         timer -= Time.deltaTime;

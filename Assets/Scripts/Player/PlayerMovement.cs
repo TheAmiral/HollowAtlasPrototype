@@ -13,6 +13,11 @@ public class PlayerMovement : MonoBehaviour
     [Header("Ground")]
     public float groundedStickForce = -2f;
     public float spawnGroundSnapDistance = 2f;
+    public float groundProbeDistance = 0.18f;
+    public float groundedCoyoteTime = 0.18f;
+    public float fallAnimationAirborneDelay = 0.24f;
+    public float fallAnimationMinVerticalSpeed = -1.25f;
+    public float resumeFallSuppressTime = 0.45f;
 
     [Header("Dash Settings")]
     public float dashSpeed = 18f;
@@ -30,9 +35,21 @@ public class PlayerMovement : MonoBehaviour
 
     public Vector3 CurrentMoveDirection => currentMoveDirection;
     public bool IsDashing => isDashing;
+    public float VerticalVelocity => verticalVelocity;
+    public bool StableGrounded => stableGrounded;
+    public bool ShouldPlayFallAnimation =>
+        airborneAnimationSuppressTimer <= 0f &&
+        !stableGrounded &&
+        airborneTimer >= fallAnimationAirborneDelay &&
+        verticalVelocity <= fallAnimationMinVerticalSpeed;
 
     private CharacterController controller;
     private float verticalVelocity;
+    private float timeSinceGrounded;
+    private float airborneTimer;
+    private float airborneAnimationSuppressTimer;
+    private bool stableGrounded = true;
+    private bool gameplayBlockedLastFrame;
 
     private Vector3 currentMoveDirection;
     private Vector3 dashDirection;
@@ -66,12 +83,24 @@ public class PlayerMovement : MonoBehaviour
         if (GameManager.Instance != null && GameManager.Instance.IsGameOver)
             return;
 
-        // Kart seçimi bekleniyorken hareket etme
-        if (LevelUpCardSystem.Instance != null && LevelUpCardSystem.Instance.SelectionPending)
+        if (IsGameplayBlocked())
+        {
+            gameplayBlockedLastFrame = true;
+            SuppressFallAnimation(resumeFallSuppressTime);
             return;
+        }
 
-        if (BossRewardSystem.Instance != null && BossRewardSystem.Instance.RewardPending)
-            return;
+        if (gameplayBlockedLastFrame)
+        {
+            gameplayBlockedLastFrame = false;
+            SuppressFallAnimation(resumeFallSuppressTime);
+
+            if (controller != null && (controller.isGrounded || ProbeGrounded()))
+                RegisterGrounded();
+        }
+
+        if (airborneAnimationSuppressTimer > 0f)
+            airborneAnimationSuppressTimer -= Time.deltaTime;
 
         if (cameraTransform == null && Camera.main != null)
             cameraTransform = Camera.main.transform;
@@ -123,6 +152,8 @@ public class PlayerMovement : MonoBehaviour
 
         if ((collisionFlags & CollisionFlags.Below) != 0 && verticalVelocity < 0f)
             verticalVelocity = groundedStickForce;
+
+        UpdateGroundingState((collisionFlags & CollisionFlags.Below) != 0 || controller.isGrounded || ProbeGrounded());
 
         if (isDashing)
             ProcessDashDamage();
@@ -293,6 +324,71 @@ public class PlayerMovement : MonoBehaviour
             trailMaterial.color = new Color(1f, 0.8f, 0.25f, 1f);
             dashTrail.material = trailMaterial;
         }
+    }
+
+    public void SuppressFallAnimation(float duration)
+    {
+        airborneAnimationSuppressTimer = Mathf.Max(airborneAnimationSuppressTimer, duration);
+    }
+
+    bool IsGameplayBlocked()
+    {
+        if (GameManager.Instance != null && GameManager.Instance.IsPaused)
+            return true;
+
+        if (LevelUpCardSystem.Instance != null && LevelUpCardSystem.Instance.SelectionPending)
+            return true;
+
+        if (BossRewardSystem.Instance != null && BossRewardSystem.Instance.RewardPending)
+            return true;
+
+        return Time.timeScale <= 0f;
+    }
+
+    void UpdateGroundingState(bool groundedContact)
+    {
+        if (groundedContact)
+        {
+            RegisterGrounded();
+            return;
+        }
+
+        timeSinceGrounded += Time.deltaTime;
+        stableGrounded = timeSinceGrounded <= groundedCoyoteTime;
+
+        if (stableGrounded)
+            airborneTimer = 0f;
+        else
+            airborneTimer += Time.deltaTime;
+    }
+
+    void RegisterGrounded()
+    {
+        timeSinceGrounded = 0f;
+        airborneTimer = 0f;
+        stableGrounded = true;
+    }
+
+    bool ProbeGrounded()
+    {
+        if (controller == null || groundProbeDistance <= 0f)
+            return false;
+
+        float radius = Mathf.Max(0.05f, controller.radius - controller.skinWidth);
+        float bottomSphereOffset = Mathf.Max(0f, controller.height * 0.5f - controller.radius);
+        Vector3 center = transform.position + controller.center;
+        Vector3 sphereOrigin = center + Vector3.down * bottomSphereOffset + Vector3.up * groundProbeDistance;
+        float castDistance = groundProbeDistance + controller.skinWidth + 0.03f;
+
+        return Physics.SphereCast(
+            sphereOrigin,
+            radius,
+            Vector3.down,
+            out _,
+            castDistance,
+            Physics.DefaultRaycastLayers,
+            QueryTriggerInteraction.Ignore
+        );
     }
 
     void SnapToGroundOnSpawn()

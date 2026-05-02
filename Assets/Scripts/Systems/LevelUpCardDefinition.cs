@@ -568,6 +568,240 @@ public static class CardPool
                     if (mv != null)
                         mv.moveSpeed = Mathf.Max(1.5f, mv.moveSpeed - 0.8f);
                 }
+            ),
+
+            // ── 10 yeni kart ─────────────────────────────────────────────────
+
+            new LevelUpCard(
+                "nyx_whisper",
+                "Gece Fısıltısı",
+                "Karanlık enerji auranı hafifçe güçlendirir.",
+                "+3 Aura Hasar  +0.1 Menzil",
+                "☽",
+                "Nyx",
+                CardGod.Nyx,
+                CardRarity.Common,
+                player =>
+                {
+                    var aura = player.GetComponent<AutoAttackAura>();
+                    if (aura != null)
+                    {
+                        aura.damage += 3;
+                        aura.radius += 0.1f;
+                    }
+                }
+            ),
+
+            new LevelUpCard(
+                "hermes_stride",
+                "Uzun Adım",
+                "Dash mesafesi ve hızı artar.",
+                "+0.06 Dash Süresi  +2 Dash Hızı",
+                "⚡",
+                "Hermes",
+                CardGod.Hermes,
+                CardRarity.Common,
+                player =>
+                {
+                    var mv = player.GetComponent<PlayerMovement>();
+                    if (mv != null)
+                    {
+                        mv.dashDuration += 0.06f;
+                        mv.dashSpeed += 2f;
+                    }
+                }
+            ),
+
+            new LevelUpCard(
+                "atlas_ward",
+                "Koruyucu Sur",
+                "Maksimum canın belirgin şekilde artar ve hafifçe iyileşirsin.",
+                "+30 Maks. Can  +10 İyileşme",
+                "◈",
+                "Atlas",
+                CardGod.Atlas,
+                CardRarity.Rare,
+                player =>
+                {
+                    var hp = player.GetComponent<PlayerHealth>();
+                    if (hp != null)
+                    {
+                        hp.IncreaseMaxHealth(30);
+                        hp.Heal(10);
+                    }
+                }
+            ),
+
+            new LevelUpCard(
+                "than_bleed",
+                "Kanayan Yara",
+                "Aura çok daha hızlı hasar verir.",
+                "Tick Hızı +%20  +3 Aura Hasar",
+                "⚔",
+                "Thanatos",
+                CardGod.Thanatos,
+                CardRarity.Rare,
+                player =>
+                {
+                    var aura = player.GetComponent<AutoAttackAura>();
+                    if (aura != null)
+                    {
+                        aura.tickInterval = Mathf.Max(0.2f, aura.tickInterval * 0.80f);
+                        aura.damage += 3;
+                    }
+                }
+            ),
+
+            new LevelUpCard(
+                "khaos_drift",
+                "Khaos Akışı",
+                "Kaotik enerji tüm temel gücü dengeli artırır.",
+                "+3 Aura Hasar  +0.2 Menzil  +0.25 Hız",
+                "∞",
+                "Khaos",
+                CardGod.Khaos,
+                CardRarity.Rare,
+                player =>
+                {
+                    var aura = player.GetComponent<AutoAttackAura>();
+                    if (aura != null)
+                    {
+                        aura.damage += 3;
+                        aura.radius += 0.2f;
+                    }
+
+                    var mv = player.GetComponent<PlayerMovement>();
+                    if (mv != null)
+                        mv.moveSpeed += 0.25f;
+                }
+            ),
+
+            new LevelUpCard(
+                "nyx_umbra",
+                "Umbra Kapısı",
+                "Karanlığın zirvesi aura menzilini büyük ölçüde genişletir.",
+                "+6 Aura Hasar  +0.55 Menzil",
+                "☽",
+                "Nyx",
+                CardGod.Nyx,
+                CardRarity.Epic,
+                player =>
+                {
+                    var aura = player.GetComponent<AutoAttackAura>();
+                    if (aura != null)
+                    {
+                        aura.damage += 6;
+                        aura.radius += 0.55f;
+                    }
+                }
+            ),
+
+            new LevelUpCard(
+                "hermes_slipstream",
+                "Kayma Akışı",
+                "Hareket hızın, dash süresi ve cooldown'u birlikte iyileşir.",
+                "+1.2 Hız  +0.15 Dash Süresi  -0.12 Dash CD",
+                "⚡",
+                "Hermes",
+                CardGod.Hermes,
+                CardRarity.Epic,
+                player =>
+                {
+                    var mv = player.GetComponent<PlayerMovement>();
+                    if (mv != null)
+                    {
+                        mv.moveSpeed += 1.2f;
+                        mv.dashDuration += 0.15f;
+                        mv.dashCooldown = Mathf.Max(0.2f, mv.dashCooldown - 0.12f);
+                    }
+                }
+            ),
+
+            new LevelUpCard(
+                "khaos_mirror",
+                "Khaos Aynası",
+                "Khaos tüm olasılıkları değerlendirir ve güçlü bir yol seçer.",
+                "Rastgele güçlü kombinasyon",
+                "∞",
+                "Khaos",
+                CardGod.Khaos,
+                CardRarity.Epic,
+                player =>
+                {
+                    var aura = player.GetComponent<AutoAttackAura>();
+                    var mv = player.GetComponent<PlayerMovement>();
+                    var hp = player.GetComponent<PlayerHealth>();
+                    int roll = UnityEngine.Random.Range(0, 4);
+
+                    switch (roll)
+                    {
+                        case 0:
+                            if (aura != null) { aura.damage += 10; aura.radius += 0.3f; }
+                            if (mv != null) mv.dashDamage += 8;
+                            break;
+                        case 1:
+                            if (mv != null) { mv.moveSpeed += 1.2f; mv.dashCooldown = Mathf.Max(0.2f, mv.dashCooldown - 0.2f); mv.dashSpeed += 4f; }
+                            break;
+                        case 2:
+                            if (hp != null) { hp.IncreaseMaxHealth(55); hp.Heal(35); }
+                            if (aura != null) aura.damage += 5;
+                            break;
+                        case 3:
+                            if (aura != null) { aura.damage += 7; aura.radius += 0.25f; }
+                            if (mv != null) mv.moveSpeed += 0.7f;
+                            if (hp != null) hp.Heal(20);
+                            break;
+                    }
+                }
+            ),
+
+            new LevelUpCard(
+                "than_reaper",
+                "Biçici",
+                "Thanatos'un biçici formu tüm hasar kaynaklarını öldürücü seviyeye taşır.",
+                "+10 Aura Hasar  +8 Dash Hasar  Tick Hızı +%20",
+                "⚔",
+                "Thanatos",
+                CardGod.Thanatos,
+                CardRarity.Legendary,
+                player =>
+                {
+                    var aura = player.GetComponent<AutoAttackAura>();
+                    if (aura != null)
+                    {
+                        aura.damage += 10;
+                        aura.tickInterval = Mathf.Max(0.2f, aura.tickInterval * 0.80f);
+                    }
+
+                    var mv = player.GetComponent<PlayerMovement>();
+                    if (mv != null)
+                        mv.dashDamage += 8;
+                }
+            ),
+
+            new LevelUpCard(
+                "cursed_frailty",
+                "Kırılganlık Lütfu",
+                "Muazzam saldırı gücü kazanırsın ama bedenin zayıflar.",
+                "+18 Aura Hasar  +14 Dash Hasar  -30 Maks. Can",
+                "✖",
+                "Lanet",
+                CardGod.Khaos,
+                CardRarity.Cursed,
+                player =>
+                {
+                    var hp = player.GetComponent<PlayerHealth>();
+                    if (hp != null)
+                        hp.IncreaseMaxHealth(-30);
+
+                    var aura = player.GetComponent<AutoAttackAura>();
+                    if (aura != null)
+                        aura.damage += 18;
+
+                    var mv = player.GetComponent<PlayerMovement>();
+                    if (mv != null)
+                        mv.dashDamage += 14;
+                }
             )
         };
     }

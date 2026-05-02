@@ -11,10 +11,14 @@ public class GameManager : MonoBehaviour
     public bool IsPaused { get; private set; }
 
     private Texture2D whiteTexture;
+    private Texture2D pauseBtnNormalTex;
+    private Texture2D pauseBtnHoverTex;
     private GUIStyle gameOverTitleStyle;
     private GUIStyle gameOverShadowStyle;
     private GUIStyle gameOverSubStyle;
+    private GUIStyle pauseButtonStyle;
     private MainHudCanvasUI cachedHud;
+    private GameOverUIController cachedGameOverUI;
 
     void Awake()
     {
@@ -34,6 +38,7 @@ public class GameManager : MonoBehaviour
 
         EnsureAudioManager();
         EnsureMainHudCanvas();
+        EnsureGameOverUI();
     }
 
     void EnsureAudioManager()
@@ -51,6 +56,8 @@ public class GameManager : MonoBehaviour
 
         if (!IsGameOver)
             EnsureMainHudCanvas();
+
+        EnsureGameOverUI();
 
         if (IsGameOver && Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
             RestartGame();
@@ -104,6 +111,20 @@ public class GameManager : MonoBehaviour
         return null;
     }
 
+    void EnsureGameOverUI()
+    {
+        if (cachedGameOverUI != null && cachedGameOverUI.gameObject.activeSelf && cachedGameOverUI.enabled)
+            return;
+
+        cachedGameOverUI = FindFirstObjectByType<GameOverUIController>();
+
+        if (cachedGameOverUI != null)
+            return;
+
+        GameObject uiObject = new GameObject("GameOverCanvas");
+        cachedGameOverUI = uiObject.AddComponent<GameOverUIController>();
+    }
+
     void EnsureStyles()
     {
         if (gameOverTitleStyle != null)
@@ -123,6 +144,25 @@ public class GameManager : MonoBehaviour
         gameOverSubStyle.fontSize = 18;
         gameOverSubStyle.fontStyle = FontStyle.Bold;
         gameOverSubStyle.normal.textColor = Color.white;
+
+        pauseBtnNormalTex = new Texture2D(1, 1);
+        pauseBtnNormalTex.SetPixel(0, 0, new Color(0.28f, 0.12f, 0.55f, 0.92f));
+        pauseBtnNormalTex.Apply();
+
+        pauseBtnHoverTex = new Texture2D(1, 1);
+        pauseBtnHoverTex.SetPixel(0, 0, new Color(0.45f, 0.22f, 0.75f, 0.95f));
+        pauseBtnHoverTex.Apply();
+
+        pauseButtonStyle = new GUIStyle();
+        pauseButtonStyle.alignment = TextAnchor.MiddleCenter;
+        pauseButtonStyle.fontSize = 18;
+        pauseButtonStyle.fontStyle = FontStyle.Bold;
+        pauseButtonStyle.normal.textColor = Color.white;
+        pauseButtonStyle.hover.textColor = new Color(1f, 0.88f, 1f, 1f);
+        pauseButtonStyle.active.textColor = new Color(0.75f, 0.55f, 1f, 1f);
+        pauseButtonStyle.normal.background = pauseBtnNormalTex;
+        pauseButtonStyle.hover.background = pauseBtnHoverTex;
+        pauseButtonStyle.active.background = pauseBtnNormalTex;
     }
 
     public void SetGameOver()
@@ -149,7 +189,7 @@ public class GameManager : MonoBehaviour
         Time.timeScale = IsPaused ? 0f : 1f;
     }
 
-    void RestartGame()
+    public void RestartGame()
     {
         IsPaused = false;
         Time.timeScale = 1f;
@@ -178,34 +218,14 @@ public class GameManager : MonoBehaviour
             GUI.color = Color.white;
             GUI.Label(new Rect(px + 3f, py + 22f, pw, 32f), "DURAKLATILDI", gameOverShadowStyle);
             GUI.Label(new Rect(px, py + 20f, pw, 32f), "DURAKLATILDI", gameOverTitleStyle);
-            GUI.Label(new Rect(px, py + 72f, pw, 22f), "[ ESC ]  Devam Et", gameOverSubStyle);
+            if (GUI.Button(new Rect(px + pw * 0.5f - 120f, py + 67f, 240f, 34f), "Devam Et", pauseButtonStyle))
+                TogglePause();
 
             GUI.color = pauseOldColor;
             return;
         }
 
-        if (!IsGameOver)
+        if (IsGameOver)
             return;
-
-        Color oldColor = GUI.color;
-
-        GUI.color = new Color(0f, 0f, 0f, 0.6f);
-        GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), whiteTexture);
-
-        float panelWidth = 440f;
-        float panelHeight = 150f;
-        float x = Screen.width * 0.5f - panelWidth * 0.5f;
-        float y = Screen.height * 0.5f - panelHeight * 0.5f;
-
-        GUI.color = new Color(0f, 0f, 0f, 0.8f);
-        GUI.DrawTexture(new Rect(x, y, panelWidth, panelHeight), whiteTexture);
-
-        GUI.color = Color.white;
-        GUI.Label(new Rect(x + 3f, y + 22f, panelWidth, 32f), "GAME OVER", gameOverShadowStyle);
-        GUI.Label(new Rect(x, y + 20f, panelWidth, 32f), "GAME OVER", gameOverTitleStyle);
-        GUI.Label(new Rect(x, y + 68f, panelWidth, 24f), $"Süre: {ElapsedTime:0.0}s", gameOverSubStyle);
-        GUI.Label(new Rect(x, y + 96f, panelWidth, 22f), "[ R ]  Yeniden Başlat", gameOverSubStyle);
-
-        GUI.color = oldColor;
     }
 }

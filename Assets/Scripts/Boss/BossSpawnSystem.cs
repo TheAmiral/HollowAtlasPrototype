@@ -18,9 +18,13 @@ public class BossSpawnSystem : MonoBehaviour
     [Header("Multi-Wave")]
     public float waveInterval = 90f;
 
+    [Header("UI")]
+    [SerializeField] private bool showLegacyBottomPanel = false;
+
     public EnemyHealth ActiveBoss => activeBoss;
     public bool BossSpawned => bossSpawned;
     public bool BossDefeated => bossDefeated;
+    public float NextBossTime => nextBossTime;
 
     private EnemyHealth activeBoss;
     private bool bossSpawned;
@@ -54,6 +58,11 @@ public class BossSpawnSystem : MonoBehaviour
             if (playerObject != null)
                 player = playerObject.transform;
         }
+
+        if (FindFirstObjectByType<BossStatusUIController>() == null)
+            new GameObject("BossStatusUIController").AddComponent<BossStatusUIController>();
+        if (FindFirstObjectByType<BossHealthCanvasUI>() == null)
+            new GameObject("BossHealthCanvasUI").AddComponent<BossHealthCanvasUI>();
     }
 
     void Update()
@@ -178,28 +187,31 @@ public class BossSpawnSystem : MonoBehaviour
 
         EnsureGuiStyles();
 
-        float panelWidth = 250f;
-        float panelHeight = 60f;
-        float rightPanelX = Screen.width - panelWidth - 18f;
-        float bottomAnchorY = Screen.height - panelHeight - 138f;
-
-        if (!bossSpawned)
+        if (showLegacyBottomPanel)
         {
-            float elapsedTime = 0f;
+            float panelWidth = 250f;
+            float panelHeight = 60f;
+            float rightPanelX = Screen.width - panelWidth - 18f;
+            float bottomAnchorY = Screen.height - panelHeight - 138f;
 
-            if (GameManager.Instance != null)
-                elapsedTime = GameManager.Instance.ElapsedTime;
+            if (!bossSpawned)
+            {
+                float elapsedTime = 0f;
 
-            float remaining = Mathf.Max(0f, nextBossTime - elapsedTime);
+                if (GameManager.Instance != null)
+                    elapsedTime = GameManager.Instance.ElapsedTime;
 
-            GUI.Box(new Rect(rightPanelX, bottomAnchorY, panelWidth, panelHeight), bossDisplayName);
-            GUI.Label(new Rect(rightPanelX + 10f, bottomAnchorY + 25f, 220f, 20f), $"{remaining:0.0}s sonra geliyor");
-        }
+                float remaining = Mathf.Max(0f, nextBossTime - elapsedTime);
 
-        if (bossSpawned && !bossDefeated && activeBoss != null)
-        {
-            GUI.Box(new Rect(rightPanelX, bottomAnchorY, panelWidth, panelHeight - 5f), bossDisplayName);
-            GUI.Label(new Rect(rightPanelX + 10f, bottomAnchorY + 25f, 220f, 20f), "Haritada aktif");
+                GUI.Box(new Rect(rightPanelX, bottomAnchorY, panelWidth, panelHeight), bossDisplayName);
+                GUI.Label(new Rect(rightPanelX + 10f, bottomAnchorY + 25f, 220f, 20f), $"{remaining:0.0}s sonra geliyor");
+            }
+
+            if (bossSpawned && !bossDefeated && activeBoss != null)
+            {
+                GUI.Box(new Rect(rightPanelX, bottomAnchorY, panelWidth, panelHeight - 5f), bossDisplayName);
+                GUI.Label(new Rect(rightPanelX + 10f, bottomAnchorY + 25f, 220f, 20f), "Haritada aktif");
+            }
         }
 
         DrawCenterWarning();

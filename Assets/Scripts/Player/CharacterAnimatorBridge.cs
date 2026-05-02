@@ -13,13 +13,16 @@ public class CharacterAnimatorBridge : MonoBehaviour
 
     private Animator animator;
     private PlayerMovement playerMovement;
-    private CharacterController controller;
+
+    private float resumeGraceTimer;
+    private float prevTimeScale = 1f;
+    private bool gameplayBlockedLastFrame;
+    private const float RESUME_GRACE = 0.45f;
 
     void Awake()
     {
         animator = GetComponent<Animator>();
         playerMovement = GetComponentInParent<PlayerMovement>();
-        controller = GetComponentInParent<CharacterController>();
 
         if (animator != null)
             animator.applyRootMotion = false;
@@ -30,23 +33,59 @@ public class CharacterAnimatorBridge : MonoBehaviour
         if (animator == null || playerMovement == null)
             return;
 
-        if ((LevelUpCardSystem.Instance != null && LevelUpCardSystem.Instance.SelectionPending) ||
-            (BossRewardSystem.Instance != null && BossRewardSystem.Instance.RewardPending))
-            return;
+        bool gameplayBlocked = IsGameplayBlocked();
+        bool resumedFromTimeScale = prevTimeScale <= 0f && Time.timeScale > 0f;
+        prevTimeScale = Time.timeScale;
 
-        // Animator parametrelerini karakterin local eksenine göre beslemek,
-        // 8 yönlü hareket blend'inin kamera/world açılarına göre bozulmasını engeller.
+        if (gameplayBlocked)
+        {
+            gameplayBlockedLastFrame = true;
+            resumeGraceTimer = RESUME_GRACE;
+            playerMovement.SuppressFallAnimation(RESUME_GRACE);
+            SetJump(false);
+            return;
+        }
+
+        if (gameplayBlockedLastFrame || resumedFromTimeScale)
+        {
+            gameplayBlockedLastFrame = false;
+            resumeGraceTimer = RESUME_GRACE;
+            playerMovement.SuppressFallAnimation(RESUME_GRACE);
+        }
+
+        if (resumeGraceTimer > 0f)
+            resumeGraceTimer -= Time.deltaTime;
+
         Vector3 move = transform.InverseTransformDirection(playerMovement.CurrentMoveDirection);
 
         float hor = move.x;
         float vert = move.z;
         float state = move.sqrMagnitude > 0.001f ? 1f : 0f;
-        bool isJump = controller != null && !controller.isGrounded;
+        bool isJump = resumeGraceTimer <= 0f && playerMovement.ShouldPlayFallAnimation;
 
         animator.SetFloat(horParam, hor, dampTime, Time.deltaTime);
         animator.SetFloat(vertParam, vert, dampTime, Time.deltaTime);
         animator.SetFloat(stateParam, state, dampTime, Time.deltaTime);
 
+        SetJump(isJump);
+    }
+
+    bool IsGameplayBlocked()
+    {
+        if (GameManager.Instance != null && GameManager.Instance.IsPaused)
+            return true;
+
+        if (LevelUpCardSystem.Instance != null && LevelUpCardSystem.Instance.SelectionPending)
+            return true;
+
+        if (BossRewardSystem.Instance != null && BossRewardSystem.Instance.RewardPending)
+            return true;
+
+        return Time.timeScale <= 0f;
+    }
+
+    void SetJump(bool isJump)
+    {
         if (HasParameter(isJumpParam))
             animator.SetBool(isJumpParam, isJump);
     }

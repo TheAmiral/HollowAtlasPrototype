@@ -22,8 +22,9 @@ public class RunContractSystem : MonoBehaviour
     public bool IsCompleted { get; private set; }
 
     private GoldWallet goldWallet;
-    private string contractTitle;
-    private string contractDescription;
+    public string contractTitle;
+    public string contractDescription;
+    [SerializeField] private bool showLegacyOnGUI = false;
 
     void Awake()
     {
@@ -47,6 +48,9 @@ public class RunContractSystem : MonoBehaviour
         }
 
         GenerateRandomContract();
+
+        if (FindFirstObjectByType<RunContractUIController>() == null)
+            new GameObject("RunContractUIController").AddComponent<RunContractUIController>();
     }
 
     void Update()
@@ -153,6 +157,9 @@ public class RunContractSystem : MonoBehaviour
 
     void OnGUI()
     {
+        if (!showLegacyOnGUI)
+            return;
+
         if (LevelUpCardSystem.Instance != null && LevelUpCardSystem.Instance.SelectionPending)
             return;
 

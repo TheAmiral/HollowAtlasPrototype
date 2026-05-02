@@ -156,6 +156,7 @@ MonoBehaviour:
   warningDuration: 3
   bossSpawnHeight: 1
   waveInterval: 90
+  showLegacyBottomPanel: 0
 --- !u!4 &24891308
 Transform:
   m_ObjectHideFlags: 0
@@ -600,6 +601,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 52b4b467c54afed47aa618695f5988b2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossHealthUI
+  showLegacyOnGUI: 0
   panelColor: {r: 0, g: 0, b: 0, a: 0.55}
   barBackgroundColor: {r: 0, g: 0, b: 0, a: 0.6}
   barFillColor: {r: 0.8, g: 0.1, b: 0.1, a: 1}
@@ -715,6 +717,11 @@ MonoBehaviour:
   cameraTransform: {fileID: 0}
   groundedStickForce: -2
   spawnGroundSnapDistance: 2
+  groundProbeDistance: 0.18
+  groundedCoyoteTime: 0.18
+  fallAnimationAirborneDelay: 0.24
+  fallAnimationMinVerticalSpeed: -1.25
+  resumeFallSuppressTime: 0.45
   dashSpeed: 12
   dashDuration: 0.18
   dashCooldown: 0.75
@@ -949,6 +956,9 @@ MonoBehaviour:
   targetValue: 0
   currentValue: 0
   rewardGold: 25
+  contractTitle:
+  contractDescription:
+  showLegacyOnGUI: 0
 --- !u!4 &1106685177
 Transform:
   m_ObjectHideFlags: 0

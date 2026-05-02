@@ -23,11 +23,11 @@ public class LevelUpCardSystem : MonoBehaviour
 
     const float CARD_W = 272f;
     const float CARD_H = 390f;
-    const float CARD_GAP = 32f;
+    const float CARD_GAP = 76f;
     const float ENTER_OFFSET = 260f;
 
-    public const float HOVER_SCALE = 1.055f;
-    public const float HOVER_LIFT = 10f;
+    public const float HOVER_SCALE = 1.085f;
+    public const float HOVER_LIFT = 20f;
 
     GameObject _root;
     CanvasGroup _overlayGroup;
@@ -146,7 +146,7 @@ public class LevelUpCardSystem : MonoBehaviour
             "Overlay",
             Vector2.zero,
             Vector2.one,
-            new Color(0.020f, 0.016f, 0.055f, 0f),
+            new Color(0.010f, 0.007f, 0.030f, 0.82f),
             new Vector2(0.5f, 0.5f)
         );
 
@@ -155,6 +155,7 @@ public class LevelUpCardSystem : MonoBehaviour
         _overlayGroup.blocksRaycasts = true;
 
         BuildVignette(overlay.GetComponent<RectTransform>());
+        BuildCardFocusBackdrop(overlay.GetComponent<RectTransform>());
 
         var titleRoot = MakePanel(
             overlay.GetComponent<RectTransform>(),
@@ -167,8 +168,8 @@ public class LevelUpCardSystem : MonoBehaviour
         var titleRootRect = titleRoot.GetComponent<RectTransform>();
         titleRootRect.anchorMin = titleRootRect.anchorMax = new Vector2(0.5f, 1f);
         titleRootRect.pivot = new Vector2(0.5f, 1f);
-        titleRootRect.sizeDelta = new Vector2(940f, 170f);
-        titleRootRect.anchoredPosition = new Vector2(0f, -52f);
+        titleRootRect.sizeDelta = new Vector2(980f, 158f);
+        titleRootRect.anchoredPosition = new Vector2(0f, -46f);
 
         _titleGroup = titleRoot.AddComponent<CanvasGroup>();
         _titleGroup.alpha = 0f;
@@ -181,7 +182,7 @@ public class LevelUpCardSystem : MonoBehaviour
             new Vector2(1f, 1f),
             new Vector2(0f, -18f),
             new Vector2(0f, 0f),
-            60,
+            58,
             FontStyle.Bold,
             new Color(0.988f, 0.816f, 0.000f, 1f)
         );
@@ -193,9 +194,9 @@ public class LevelUpCardSystem : MonoBehaviour
             "Bir lütuf seç",
             new Vector2(0f, 0f),
             new Vector2(1f, 0f),
-            new Vector2(2f, 35f),
-            new Vector2(0f, 42f),
-            30,
+            new Vector2(2f, 31f),
+            new Vector2(0f, 40f),
+            27,
             FontStyle.BoldAndItalic,
             new Color(0f, 0f, 0f, 0.88f)
         );
@@ -209,9 +210,9 @@ public class LevelUpCardSystem : MonoBehaviour
             "Bir lütuf seç",
             new Vector2(0f, 0f),
             new Vector2(1f, 0f),
-            new Vector2(0f, 37f),
-            new Vector2(0f, 42f),
-            30,
+            new Vector2(0f, 33f),
+            new Vector2(0f, 40f),
+            27,
             FontStyle.BoldAndItalic,
             new Color(0.94f, 0.90f, 1.00f, 1f)
         );
@@ -231,7 +232,7 @@ public class LevelUpCardSystem : MonoBehaviour
 
         float totalW = _currentCards.Count * CARD_W + (_currentCards.Count - 1) * CARD_GAP;
         cardAreaRect.sizeDelta = new Vector2(totalW, CARD_H);
-        cardAreaRect.anchoredPosition = new Vector2(0f, -20f);
+        cardAreaRect.anchoredPosition = new Vector2(0f, -24f);
 
         for (int i = 0; i < _currentCards.Count; i++)
         {
@@ -246,25 +247,45 @@ public class LevelUpCardSystem : MonoBehaviour
         var hintRect = hintRoot.AddComponent<RectTransform>();
         hintRect.anchorMin = hintRect.anchorMax = new Vector2(0.5f, 0f);
         hintRect.pivot = new Vector2(0.5f, 0f);
-        hintRect.sizeDelta = new Vector2(720f, 44f);
-        hintRect.anchoredPosition = new Vector2(0f, 38f);
+        hintRect.sizeDelta = new Vector2(780f, 50f);
+        hintRect.anchoredPosition = new Vector2(0f, 28f);
 
         _hintGroup = hintRoot.AddComponent<CanvasGroup>();
         _hintGroup.alpha = 0f;
 
+        var hintBorder = MakePanel(
+            hintRect,
+            "HintBorder",
+            Vector2.zero,
+            Vector2.one,
+            new Color(0.50f, 0.30f, 0.82f, 0.46f)
+        );
+
+        var hintBg = MakePanel(
+            hintBorder.GetComponent<RectTransform>(),
+            "HintBg",
+            Vector2.zero,
+            Vector2.one,
+            new Color(0.025f, 0.018f, 0.060f, 0.84f)
+        );
+        hintBg.GetComponent<RectTransform>().offsetMin = new Vector2(1.5f, 1.5f);
+        hintBg.GetComponent<RectTransform>().offsetMax = new Vector2(-1.5f, -1.5f);
+
         _hintText = MakeText(
             hintRect,
             "HintText",
-            "[ 1 ]  [ 2 ]  [ 3 ]  ile seç  —  veya karta tıkla",
+            "[ 1 ]   [ 2 ]   [ 3 ]   ile se\u00E7  \u2014  veya karta t\u0131kla",
             Vector2.zero,
             Vector2.one,
             Vector2.zero,
             Vector2.zero,
-            20,
-            FontStyle.Normal,
-            new Color(0.62f, 0.62f, 0.88f, 1f)
+            21,
+            FontStyle.Bold,
+            new Color(0.82f, 0.80f, 1.00f, 1f)
         );
         _hintText.alignment = TextAnchor.MiddleCenter;
+        hintBorder.GetComponent<Image>().raycastTarget = false;
+        hintBg.GetComponent<Image>().raycastTarget = false;
     }
 
     CardWidget BuildCard(RectTransform parent, LevelUpCard card, float xPos, int index)
@@ -277,7 +298,7 @@ public class LevelUpCardSystem : MonoBehaviour
             $"Glow_{index}",
             Vector2.zero,
             Vector2.zero,
-            new Color(godCol.r, godCol.g, godCol.b, 0.18f)
+            new Color(godCol.r, godCol.g, godCol.b, 0.24f)
         );
 
         var glowRect = glowGo.GetComponent<RectTransform>();
@@ -292,15 +313,29 @@ public class LevelUpCardSystem : MonoBehaviour
 
         glowRect.anchorMin = glowRect.anchorMax = new Vector2(0.5f, 0.5f);
         glowRect.pivot = new Vector2(0.5f, 0.5f);
-        glowRect.sizeDelta = new Vector2(CARD_W + 28f, CARD_H + 28f);
+        glowRect.sizeDelta = new Vector2(CARD_W + 42f, CARD_H + 42f);
         glowRect.anchoredPosition = new Vector2(xPos, 0f);
+
+        var hoverHaloGo = MakePanel(
+            glowRect,
+            "HoverHalo",
+            Vector2.zero,
+            Vector2.zero,
+            new Color(0f, 0f, 0f, 0f)
+        );
+
+        var hoverHaloRect = hoverHaloGo.GetComponent<RectTransform>();
+        hoverHaloRect.anchorMin = hoverHaloRect.anchorMax = new Vector2(0.5f, 0.5f);
+        hoverHaloRect.pivot = new Vector2(0.5f, 0.5f);
+        hoverHaloRect.sizeDelta = new Vector2(CARD_W + 72f, CARD_H + 72f);
+        hoverHaloRect.anchoredPosition = Vector2.zero;
 
         var glow2Go = MakePanel(
             glowRect,
             "Glow2",
             Vector2.zero,
             Vector2.zero,
-            new Color(godCol.r, godCol.g, godCol.b, 0.30f)
+            new Color(godCol.r, godCol.g, godCol.b, 0.34f)
         );
 
         var glow2Rect = glow2Go.GetComponent<RectTransform>();
@@ -315,10 +350,10 @@ public class LevelUpCardSystem : MonoBehaviour
 
         glow2Rect.anchorMin = glow2Rect.anchorMax = new Vector2(0.5f, 0.5f);
         glow2Rect.pivot = new Vector2(0.5f, 0.5f);
-        glow2Rect.sizeDelta = new Vector2(CARD_W + 12f, CARD_H + 12f);
+        glow2Rect.sizeDelta = new Vector2(CARD_W + 18f, CARD_H + 18f);
         glow2Rect.anchoredPosition = Vector2.zero;
 
-        var borderGo = MakePanel(glow2Rect, "Border", Vector2.zero, Vector2.zero, godCol);
+        var borderGo = MakePanel(glow2Rect, "Border", Vector2.zero, Vector2.zero, new Color(godCol.r, godCol.g, godCol.b, 0.92f));
         var borderRect = borderGo.GetComponent<RectTransform>();
         borderRect.anchorMin = borderRect.anchorMax = new Vector2(0.5f, 0.5f);
         borderRect.pivot = new Vector2(0.5f, 0.5f);
@@ -330,7 +365,7 @@ public class LevelUpCardSystem : MonoBehaviour
             "CardBg",
             Vector2.zero,
             Vector2.zero,
-            new Color(0.060f, 0.050f, 0.120f, 0.97f)
+            new Color(0.040f, 0.032f, 0.090f, 0.995f)
         );
 
         var cardRect = cardBg.GetComponent<RectTransform>();
@@ -358,55 +393,61 @@ public class LevelUpCardSystem : MonoBehaviour
             "TopStrip",
             new Vector2(0f, 1f),
             new Vector2(1f, 1f),
-            new Color(godCol.r, godCol.g, godCol.b, 0.25f)
+            new Color(godCol.r, godCol.g, godCol.b, 0.34f)
         );
 
         var topRect = topStrip.GetComponent<RectTransform>();
         topRect.anchorMin = new Vector2(0f, 1f);
         topRect.anchorMax = new Vector2(1f, 1f);
         topRect.pivot = new Vector2(0.5f, 1f);
-        topRect.sizeDelta = new Vector2(0f, 108f);
+        topRect.sizeDelta = new Vector2(0f, 92f);
         topRect.anchoredPosition = Vector2.zero;
 
         MakeText(
             topRect,
             "GodIcon",
             card.godIcon,
-            new Vector2(0f, 0.5f),
-            new Vector2(1f, 0.5f),
-            new Vector2(0f, 10f),
-            new Vector2(0f, 64f),
+            Vector2.zero,
+            Vector2.one,
+            Vector2.zero,
+            Vector2.zero,
             54,
             FontStyle.Normal,
             godCol
         ).alignment = TextAnchor.MiddleCenter;
 
-        MakeText(
-            topRect,
+        RectTransform labelRect = MakeTopPanel(
+            cardRect,
+            "LabelArea",
+            98f,
+            30f,
+            18f,
+            new Color(0.018f, 0.014f, 0.050f, 0.64f)
+        );
+
+        var godNameText = MakeText(
+            labelRect,
             "GodName",
             card.godName.ToUpper(),
-            new Vector2(0f, 0f),
-            new Vector2(1f, 0f),
-            new Vector2(0f, 14f),
-            new Vector2(0f, 24f),
-            16,
+            Vector2.zero,
+            new Vector2(0.55f, 1f),
+            Vector2.zero,
+            Vector2.zero,
+            15,
             FontStyle.Bold,
             new Color(godCol.r * 1.3f, godCol.g * 1.3f, godCol.b * 1.3f, 0.9f)
-        ).alignment = TextAnchor.MiddleCenter;
+        );
+        ConfigureCardText(godNameText, TextAnchor.MiddleLeft, 11, 15);
 
         var badgeBg = MakePanel(
-            cardRect,
+            labelRect,
             "Badge",
-            new Vector2(0.5f, 1f),
-            new Vector2(0.5f, 1f),
-            new Color(rarityCol.r * 0.6f, rarityCol.g * 0.6f, rarityCol.b * 0.6f, 0.9f)
+            new Vector2(0.58f, 0f),
+            Vector2.one,
+            new Color(rarityCol.r * 0.38f, rarityCol.g * 0.38f, rarityCol.b * 0.38f, 0.98f)
         );
 
         var badgeRect = badgeBg.GetComponent<RectTransform>();
-        badgeRect.anchorMin = badgeRect.anchorMax = new Vector2(0.5f, 1f);
-        badgeRect.pivot = new Vector2(0.5f, 1f);
-        badgeRect.sizeDelta = new Vector2(88f, 22f);
-        badgeRect.anchoredPosition = new Vector2(0f, -102f);
 
         var badgeText = MakeText(
             badgeRect,
@@ -416,25 +457,26 @@ public class LevelUpCardSystem : MonoBehaviour
             Vector2.one,
             Vector2.zero,
             Vector2.zero,
-            12,
+            13,
             FontStyle.Bold,
-            rarityCol
+            Color.Lerp(Color.white, rarityCol, 0.35f)
         );
-        ConfigureCardText(badgeText, TextAnchor.MiddleCenter, 10, 12);
+        ConfigureCardText(badgeText, TextAnchor.MiddleCenter, 11, 13);
 
+        RectTransform titleRect = MakeTopRegion(cardRect, "TitleArea", 136f, 54f, 22f);
         var titleT = MakeText(
-            cardRect,
+            titleRect,
             "CardTitle",
             card.title,
-            new Vector2(0f, 1f),
-            new Vector2(1f, 1f),
-            new Vector2(0f, -132f),
-            new Vector2(-22f, 56f),
+            Vector2.zero,
+            Vector2.one,
+            Vector2.zero,
+            Vector2.zero,
             24,
             FontStyle.Bold,
             new Color(0.96f, 0.94f, 1.00f, 1f)
         );
-        ConfigureCardText(titleT, TextAnchor.UpperCenter, 16, 24);
+        ConfigureCardText(titleT, TextAnchor.MiddleCenter, 15, 24);
 
         var divPanel = MakePanel(
             cardRect,
@@ -451,34 +493,37 @@ public class LevelUpCardSystem : MonoBehaviour
         divRect.sizeDelta = new Vector2(0f, 1.5f);
         divRect.anchoredPosition = new Vector2(0f, -198f);
 
+        RectTransform descRect = MakeTopRegion(cardRect, "DescArea", 208f, 96f, 26f);
         var descT = MakeText(
-            cardRect,
+            descRect,
             "Desc",
             card.description,
-            new Vector2(0f, 1f),
-            new Vector2(1f, 1f),
-            new Vector2(0f, -210f),
-            new Vector2(-26f, 128f),
+            Vector2.zero,
+            Vector2.one,
+            Vector2.zero,
+            Vector2.zero,
             16,
             FontStyle.Normal,
             new Color(0.72f, 0.70f, 0.85f, 1f)
         );
-        ConfigureCardText(descT, TextAnchor.UpperCenter, 13, 17);
+        ConfigureCardText(descT, TextAnchor.UpperCenter, 13, 16);
 
         var effectBg = MakePanel(
             cardRect,
             "EffectBg",
             new Vector2(0f, 0f),
             new Vector2(1f, 0f),
-            new Color(godCol.r * 0.15f, godCol.g * 0.15f, godCol.b * 0.15f, 0.8f)
+            new Color(godCol.r * 0.22f, godCol.g * 0.22f, godCol.b * 0.22f, 0.95f)
         );
 
         var effectRect = effectBg.GetComponent<RectTransform>();
         effectRect.anchorMin = new Vector2(0.07f, 0f);
         effectRect.anchorMax = new Vector2(0.93f, 0f);
         effectRect.pivot = new Vector2(0.5f, 0f);
-        effectRect.sizeDelta = new Vector2(0f, 56f);
+        effectRect.sizeDelta = new Vector2(0f, 58f);
         effectRect.anchoredPosition = new Vector2(0f, 12f);
+
+        Color effectTextColor = Color.Lerp(new Color(1f, 0.94f, 0.78f, 1f), godCol, 0.35f);
 
         var effectT = MakeText(
             effectRect,
@@ -490,7 +535,7 @@ public class LevelUpCardSystem : MonoBehaviour
             Vector2.zero,
             15,
             FontStyle.Bold,
-            new Color(godCol.r * 2f, godCol.g * 2f, godCol.b * 2f, 1f)
+            effectTextColor
         );
         ConfigureCardText(effectT, TextAnchor.MiddleCenter, 12, 16);
 
@@ -508,6 +553,38 @@ public class LevelUpCardSystem : MonoBehaviour
         );
         ConfigureCardText(numT, TextAnchor.MiddleCenter, 11, 14);
 
+        var hoverPromptGo = MakePanel(
+            glowRect,
+            "HoverPrompt",
+            new Vector2(0.5f, 0f),
+            new Vector2(0.5f, 0f),
+            new Color(0.06f, 0.04f, 0.12f, 0.92f)
+        );
+
+        var hoverPromptRect = hoverPromptGo.GetComponent<RectTransform>();
+        hoverPromptRect.pivot = new Vector2(0.5f, 0.5f);
+        hoverPromptRect.sizeDelta = new Vector2(94f, 26f);
+        hoverPromptRect.anchoredPosition = new Vector2(0f, -2f);
+
+        var hoverPromptGroup = hoverPromptGo.AddComponent<CanvasGroup>();
+        hoverPromptGroup.alpha = 0f;
+        hoverPromptGroup.interactable = false;
+        hoverPromptGroup.blocksRaycasts = false;
+
+        var hoverPromptText = MakeText(
+            hoverPromptRect,
+            "HoverPromptText",
+            "SE\u00C7",
+            Vector2.zero,
+            Vector2.one,
+            Vector2.zero,
+            Vector2.zero,
+            13,
+            FontStyle.Bold,
+            new Color(1f, 0.93f, 0.70f, 1f)
+        );
+        hoverPromptText.alignment = TextAnchor.MiddleCenter;
+
         var widget = glowGo.AddComponent<CardWidget>();
         widget.Init(
             index,
@@ -515,17 +592,23 @@ public class LevelUpCardSystem : MonoBehaviour
             cardBg.GetComponent<Image>(),
             borderGo.GetComponent<Image>(),
             glow2Go.GetComponent<Image>(),
+            hoverHaloGo.GetComponent<Image>(),
+            hoverPromptGroup,
+            hoverPromptGo.GetComponent<Image>(),
             godCol,
             this
         );
 
         glowGo.GetComponent<Image>().raycastTarget = false;
+        hoverHaloGo.GetComponent<Image>().raycastTarget = false;
         glow2Go.GetComponent<Image>().raycastTarget = false;
         borderGo.GetComponent<Image>().raycastTarget = false;
         topStrip.GetComponent<Image>().raycastTarget = false;
+        labelRect.GetComponent<Image>().raycastTarget = false;
         badgeBg.GetComponent<Image>().raycastTarget = false;
         divPanel.GetComponent<Image>().raycastTarget = false;
         effectBg.GetComponent<Image>().raycastTarget = false;
+        hoverPromptGo.GetComponent<Image>().raycastTarget = false;
 
         return widget;
     }
@@ -604,6 +687,8 @@ public class LevelUpCardSystem : MonoBehaviour
         if (!SelectionPending || _inputBlocked)
             return;
 
+        UpdateCardHoverFromMouse();
+
         if (TrySelectCardFromMouseClick())
             return;
 
@@ -616,6 +701,39 @@ public class LevelUpCardSystem : MonoBehaviour
             SelectCard(1);
         else if (Keyboard.current.digit3Key.wasPressedThisFrame || Keyboard.current.numpad3Key.wasPressedThisFrame)
             SelectCard(2);
+    }
+
+    void UpdateCardHoverFromMouse()
+    {
+        int hoveredIndex = -1;
+        int count = Mathf.Min(_cardRects.Count, _currentCards != null ? _currentCards.Count : 0);
+
+        if (Mouse.current != null)
+        {
+            Vector2 mousePos = Mouse.current.position.ReadValue();
+
+            for (int i = 0; i < count; i++)
+            {
+                RectTransform rect = _cardRects[i];
+
+                if (rect == null)
+                    continue;
+
+                if (i < _widgets.Count && _widgets[i] != null && !_widgets[i].Ready)
+                    continue;
+
+                if (RectTransformUtility.RectangleContainsScreenPoint(rect, mousePos, null))
+                    hoveredIndex = i;
+            }
+        }
+
+        for (int i = 0; i < _widgets.Count; i++)
+        {
+            if (_widgets[i] == null)
+                continue;
+
+            _widgets[i].SetHovered(i == hoveredIndex);
+        }
     }
 
     bool TrySelectCardFromMouseClick()
@@ -705,8 +823,8 @@ public class LevelUpCardSystem : MonoBehaviour
 
     void BuildVignette(RectTransform parent)
     {
-        float vigSize = 320f;
-        Color vigCol = new Color(0f, 0f, 0f, 0.55f);
+        float vigSize = 420f;
+        Color vigCol = new Color(0f, 0f, 0f, 0.68f);
 
         var l = MakePanel(parent, "VigL", Vector2.zero, new Vector2(0f, 1f), vigCol);
         SetStretch(l.GetComponent<RectTransform>(), new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(vigSize, 0f));
@@ -721,6 +839,36 @@ public class LevelUpCardSystem : MonoBehaviour
         SetStretch(d.GetComponent<RectTransform>(), new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0f, vigSize));
     }
 
+    void BuildCardFocusBackdrop(RectTransform parent)
+    {
+        var outer = MakePanel(
+            parent,
+            "CardFocusBackdrop",
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            new Color(0.055f, 0.028f, 0.110f, 0.44f)
+        );
+
+        var outerRect = outer.GetComponent<RectTransform>();
+        outerRect.pivot = new Vector2(0.5f, 0.5f);
+        outerRect.sizeDelta = new Vector2(1260f, 520f);
+        outerRect.anchoredPosition = new Vector2(0f, -28f);
+
+        var inner = MakePanel(
+            outerRect,
+            "CardFocusInner",
+            Vector2.zero,
+            Vector2.one,
+            new Color(0.006f, 0.004f, 0.018f, 0.58f)
+        );
+        var innerRect = inner.GetComponent<RectTransform>();
+        innerRect.offsetMin = new Vector2(2f, 2f);
+        innerRect.offsetMax = new Vector2(-2f, -2f);
+
+        outer.GetComponent<Image>().raycastTarget = false;
+        inner.GetComponent<Image>().raycastTarget = false;
+    }
+
     void BuildTitleDivider(RectTransform parent)
     {
         var lineShadow = MakePanel(
@@ -728,30 +876,30 @@ public class LevelUpCardSystem : MonoBehaviour
             "TitleLineShadow",
             new Vector2(0f, 0f),
             new Vector2(1f, 0f),
-            new Color(0f, 0f, 0f, 0.65f)
+            new Color(0f, 0f, 0f, 0.72f)
         );
 
         var lsr = lineShadow.GetComponent<RectTransform>();
-        lsr.anchorMin = new Vector2(0.18f, 0f);
-        lsr.anchorMax = new Vector2(0.82f, 0f);
+        lsr.anchorMin = new Vector2(0.24f, 0f);
+        lsr.anchorMax = new Vector2(0.76f, 0f);
         lsr.pivot = new Vector2(0.5f, 0f);
-        lsr.sizeDelta = new Vector2(0f, 3f);
-        lsr.anchoredPosition = new Vector2(0f, 4f);
+        lsr.sizeDelta = new Vector2(0f, 4f);
+        lsr.anchoredPosition = new Vector2(0f, 7f);
 
         var line = MakePanel(
             parent,
             "TitleLine",
             new Vector2(0f, 0f),
             new Vector2(1f, 0f),
-            new Color(0.988f, 0.816f, 0.000f, 0.75f)
+            new Color(0.988f, 0.816f, 0.000f, 0.88f)
         );
 
         var lr = line.GetComponent<RectTransform>();
-        lr.anchorMin = new Vector2(0.22f, 0f);
-        lr.anchorMax = new Vector2(0.78f, 0f);
+        lr.anchorMin = new Vector2(0.28f, 0f);
+        lr.anchorMax = new Vector2(0.72f, 0f);
         lr.pivot = new Vector2(0.5f, 0f);
         lr.sizeDelta = new Vector2(0f, 2f);
-        lr.anchoredPosition = new Vector2(0f, 6f);
+        lr.anchoredPosition = new Vector2(0f, 9f);
     }
 
     static GameObject MakePanel(
@@ -784,6 +932,42 @@ public class LevelUpCardSystem : MonoBehaviour
         r.anchorMax = amax;
         r.sizeDelta = size;
         r.anchoredPosition = Vector2.zero;
+    }
+
+    static RectTransform MakeTopRegion(
+        RectTransform parent,
+        string name,
+        float topOffset,
+        float height,
+        float horizontalInset)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+
+        var rect = go.AddComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0f, 1f);
+        rect.anchorMax = new Vector2(1f, 1f);
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.sizeDelta = new Vector2(-horizontalInset * 2f, height);
+        rect.anchoredPosition = new Vector2(0f, -topOffset);
+
+        return rect;
+    }
+
+    static RectTransform MakeTopPanel(
+        RectTransform parent,
+        string name,
+        float topOffset,
+        float height,
+        float horizontalInset,
+        Color color)
+    {
+        var panel = MakePanel(parent, name, new Vector2(0f, 1f), new Vector2(1f, 1f), color);
+        var rect = panel.GetComponent<RectTransform>();
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.sizeDelta = new Vector2(-horizontalInset * 2f, height);
+        rect.anchoredPosition = new Vector2(0f, -topOffset);
+        return rect;
     }
 
     static Text MakeText(
@@ -898,6 +1082,9 @@ public class CardWidget : MonoBehaviour,
     Image _cardBg;
     Image _border;
     Image _glow2;
+    Image _hoverHalo;
+    CanvasGroup _hoverPromptGroup;
+    Image _hoverPromptBg;
     Color _godColor;
     LevelUpCardSystem _system;
 
@@ -906,9 +1093,9 @@ public class CardWidget : MonoBehaviour,
 
     Vector2 _basePos;
 
-    const float HOVER_SPEED = 8f;
-    const float WIDGET_SCALE = 1.055f;
-    const float WIDGET_LIFT = 10f;
+    const float HOVER_SPEED = 14f;
+    const float WIDGET_SCALE = 1.085f;
+    const float WIDGET_LIFT = 20f;
 
     public void Init(
         int index,
@@ -916,6 +1103,9 @@ public class CardWidget : MonoBehaviour,
         Image cardBg,
         Image border,
         Image glow2,
+        Image hoverHalo,
+        CanvasGroup hoverPromptGroup,
+        Image hoverPromptBg,
         Color godColor,
         LevelUpCardSystem system)
     {
@@ -924,6 +1114,9 @@ public class CardWidget : MonoBehaviour,
         _cardBg = cardBg;
         _border = border;
         _glow2 = glow2;
+        _hoverHalo = hoverHalo;
+        _hoverPromptGroup = hoverPromptGroup;
+        _hoverPromptBg = hoverPromptBg;
         _godColor = godColor;
         _system = system;
         _basePos = rootRect.anchoredPosition;
@@ -946,33 +1139,60 @@ public class CardWidget : MonoBehaviour,
         if (_border != null)
         {
             Color bc = _godColor;
-            bc.a = Mathf.Lerp(0.70f, 1.00f, _hoverT);
-            _border.color = bc;
+            bc.a = Mathf.Lerp(0.82f, 1.00f, _hoverT);
+            Color accent = Color.Lerp(new Color(1f, 0.92f, 0.62f, 1f), new Color(0.68f, 0.95f, 1f, 1f), 0.38f);
+            _border.color = Color.Lerp(bc, accent, _hoverT * 0.55f);
         }
 
         if (_glow2 != null)
         {
             Color gc = _godColor;
-            gc.a = Mathf.Lerp(0.22f, 0.45f, _hoverT);
+            gc.a = Mathf.Lerp(0.30f, 0.90f, _hoverT);
             _glow2.color = gc;
+        }
+
+        if (_hoverHalo != null)
+        {
+            Color halo = Color.Lerp(_godColor, new Color(0.68f, 0.95f, 1f, 1f), 0.45f);
+            halo.a = Mathf.Lerp(0f, 0.34f, _hoverT);
+            _hoverHalo.color = halo;
+        }
+
+        if (_hoverPromptGroup != null)
+            _hoverPromptGroup.alpha = Mathf.SmoothStep(0f, 1f, _hoverT);
+
+        if (_hoverPromptBg != null)
+        {
+            Color promptColor = Color.Lerp(new Color(0.06f, 0.04f, 0.12f, 0.84f), new Color(0.20f, 0.12f, 0.32f, 0.96f), _hoverT);
+            _hoverPromptBg.color = promptColor;
         }
 
         if (_cardBg != null)
         {
-            float brightAdd = Mathf.Lerp(0f, 0.06f, _hoverT);
-            _cardBg.color = new Color(0.060f + brightAdd, 0.050f + brightAdd, 0.120f + brightAdd, 0.97f);
+            float brightAdd = Mathf.Lerp(0f, 0.12f, _hoverT);
+            _cardBg.color = new Color(0.040f + brightAdd, 0.032f + brightAdd, 0.090f + brightAdd, 0.995f);
         }
+    }
+
+    public void SetHovered(bool hovered)
+    {
+        if (hovered && !Ready)
+            hovered = false;
+
+        if (hovered && !_hovered)
+            RootRect.SetAsLastSibling();
+
+        _hovered = hovered;
     }
 
     public void OnPointerEnter(PointerEventData e)
     {
-        if (Ready)
-            _hovered = true;
+        SetHovered(true);
     }
 
     public void OnPointerExit(PointerEventData e)
     {
-        _hovered = false;
+        SetHovered(false);
     }
 
     public void OnPointerClick(PointerEventData e)
