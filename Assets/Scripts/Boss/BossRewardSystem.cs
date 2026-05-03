@@ -119,7 +119,6 @@ public class BossRewardSystem : MonoBehaviour
 
         if (GameManager.Instance == null || !GameManager.Instance.IsGameOver)
         {
-            Time.timeScale = 1f;
             if (playerHealth != null)
                 playerHealth.GrantInvulnerability(1f);
         }

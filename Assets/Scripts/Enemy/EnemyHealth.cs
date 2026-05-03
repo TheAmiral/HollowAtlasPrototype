@@ -66,6 +66,8 @@ public class EnemyHealth : MonoBehaviour
 
         currentHealth -= amount;
 
+        DamagePopupSystem.ShowDamage(transform.position, amount);
+
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayEnemyHit();
 

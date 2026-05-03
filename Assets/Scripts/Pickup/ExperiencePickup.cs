@@ -33,6 +33,9 @@ public class ExperiencePickup : MonoBehaviour
         else
             levelSystem.AddXP(xpAmount);
 
+        if (xpAmount > 0)
+            DamagePopupSystem.ShowXP(transform.position, xpAmount);
+
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayXpPickup();
 

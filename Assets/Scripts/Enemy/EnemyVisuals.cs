@@ -8,6 +8,10 @@ public class EnemyVisuals : MonoBehaviour
     public Color hitFlashColor = Color.white;
     public float deathDuration = 0.12f;
 
+    [Header("Audio Override")]
+    [SerializeField] AudioClip hitSfxOverride;
+    [SerializeField] AudioClip deathSfxOverride;
+
     private Renderer[] renderers;
     private readonly List<Material> materials = new();
     private readonly List<Color> originalColors = new();
@@ -58,6 +62,9 @@ public class EnemyVisuals : MonoBehaviour
 
     private IEnumerator HitFlashRoutine()
     {
+        if (hitSfxOverride != null && AudioManager.Instance != null)
+            AudioManager.Instance.PlaySfx(hitSfxOverride, 0.75f);
+
         SetAllColors(hitFlashColor);
         yield return new WaitForSeconds(hitFlashDuration);
         RestoreColors();
@@ -66,6 +73,9 @@ public class EnemyVisuals : MonoBehaviour
 
     private IEnumerator DeathRoutine()
     {
+        if (deathSfxOverride != null && AudioManager.Instance != null)
+            AudioManager.Instance.PlaySfx(deathSfxOverride);
+
         SetAllColors(hitFlashColor);
 
         float timer = 0f;

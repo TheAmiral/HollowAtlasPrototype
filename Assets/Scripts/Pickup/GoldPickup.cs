@@ -32,6 +32,8 @@ public class GoldPickup : MonoBehaviour
         if (RunContractSystem.Instance != null)
             RunContractSystem.Instance.RegisterGoldCollected(goldAmount);
 
+        DamagePopupSystem.ShowGold(transform.position, goldAmount);
+
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayGoldPickup();
 
