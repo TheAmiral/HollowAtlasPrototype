@@ -2,8 +2,11 @@ using UnityEngine;
 
 public class PlayerRangeIndicator : MonoBehaviour
 {
+    private const string SHOW_RANGE_PREF_KEY = "HollowAtlas.ShowRangeIndicator";
+
     private AutoAttackAura aura;
     private LineRenderer ring;
+    private bool showRangeIndicator = true;
 
     private float trackedRadius;
     private float pulseTimer;
@@ -16,18 +19,19 @@ public class PlayerRangeIndicator : MonoBehaviour
 
     void Start()
     {
-        aura = GetComponent<AutoAttackAura>();
-        BuildRing();
-
-        if (aura != null)
-        {
-            trackedRadius = aura.radius;
-            UpdatePositions(trackedRadius);
-        }
+        RefreshVisibilityPreference();
     }
 
     void Update()
     {
+        if (!showRangeIndicator)
+        {
+            if (ring != null)
+                ring.enabled = false;
+
+            return;
+        }
+
         bool hide =
             aura == null ||
             (GameManager.Instance != null && GameManager.Instance.IsGameOver) ||
@@ -101,6 +105,34 @@ public class PlayerRangeIndicator : MonoBehaviour
         Color initialColor = new Color(0.65f, 0.30f, 0.90f, 0.20f);
         ring.startColor = initialColor;
         ring.endColor   = initialColor;
+    }
+
+    public void RefreshVisibilityPreference()
+    {
+        showRangeIndicator = PlayerPrefs.GetInt(SHOW_RANGE_PREF_KEY, 1) == 1;
+
+        if (!showRangeIndicator)
+        {
+            if (ring != null)
+                ring.enabled = false;
+
+            return;
+        }
+
+        if (aura == null)
+            aura = GetComponent<AutoAttackAura>();
+
+        if (ring == null)
+            BuildRing();
+
+        if (aura != null)
+        {
+            trackedRadius = aura.radius;
+            UpdatePositions(trackedRadius);
+        }
+
+        if (ring != null)
+            ring.enabled = true;
     }
 
     void UpdatePositions(float radius)
