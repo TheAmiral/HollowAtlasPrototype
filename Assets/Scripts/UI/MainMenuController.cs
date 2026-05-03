@@ -39,9 +39,6 @@ public class MainMenuController : MonoBehaviour
     static readonly Color Cyan = new Color(0.370f, 0.925f, 1.000f, 1f);
     static readonly Color TextPrimary = new Color(0.960f, 0.945f, 0.900f, 1f);
     static readonly Color TextMuted = new Color(0.660f, 0.720f, 0.790f, 1f);
-    static readonly Vector2 BackgroundArtSize = new Vector2(3500f, 2000f);
-    static readonly Vector2 BackgroundArtOffset = new Vector2(-800f, 0f);
-
     GameObject settingsPanel;
     CanvasGroup mainGroup;
     Image menuDimImage;
@@ -149,20 +146,20 @@ public class MainMenuController : MonoBehaviour
 
         if (backgroundSprite != null)
         {
-            Image artImage = MakePanel(parent, "BackgroundArt", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), BackgroundArtOffset, BackgroundArtSize, Color.white).GetComponent<Image>();
+            Image artImage = MakePanel(parent, "BackgroundArt", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Color.white).GetComponent<Image>();
             artImage.sprite = backgroundSprite;
-            artImage.preserveAspect = true;
+            artImage.preserveAspect = false;
             artImage.raycastTarget = false;
         }
 
-        menuDimImage = MakePanel(parent, "MenuDim", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0.010f, 0.006f, 0.020f, 0.42f)).GetComponent<Image>();
+        menuDimImage = MakePanel(parent, "MenuDim", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0.008f, 0.005f, 0.016f, 0.12f)).GetComponent<Image>();
         menuDimImage.raycastTarget = false;
 
-        RectTransform focus = MakePanel(parent, "CenterFocusShade", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 0f), new Vector2(1180f, 720f), new Color(0.018f, 0.010f, 0.040f, 0.24f)).GetComponent<RectTransform>();
+        RectTransform focus = MakePanel(parent, "CenterFocusShade", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 0f), new Vector2(1180f, 720f), new Color(0.010f, 0.006f, 0.020f, 0.04f)).GetComponent<RectTransform>();
         centerFocusImage = focus.GetComponent<Image>();
         centerFocusImage.raycastTarget = false;
 
-        leftVeilImage = MakePanel(parent, "LeftVeil", Vector2.zero, new Vector2(0.58f, 1f), Vector2.zero, Vector2.zero, new Color(0.012f, 0.007f, 0.025f, 0.42f)).GetComponent<Image>();
+        leftVeilImage = MakePanel(parent, "LeftVeil", Vector2.zero, new Vector2(0.60f, 1f), Vector2.zero, Vector2.zero, new Color(0.005f, 0.003f, 0.010f, 0.38f)).GetComponent<Image>();
         leftVeilImage.raycastTarget = false;
 
         ApplyMenuBrightnessVisuals();
@@ -180,17 +177,6 @@ public class MainMenuController : MonoBehaviour
 
         mainGroup = main.AddComponent<CanvasGroup>();
 
-        Image glow = MakePanel(mainRt, "AtlasEnergyGlow", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -20f), new Vector2(650f, 560f), new Color(0.080f, 0.220f, 0.280f, 0.20f)).GetComponent<Image>();
-        glow.raycastTarget = false;
-
-        GameObject frame = MakePanel(mainRt, "MenuFrame", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -4f), new Vector2(640f, 620f), new Color(0.090f, 0.070f, 0.130f, 0.64f));
-        Image frameImage = frame.GetComponent<Image>();
-        frameImage.raycastTarget = false;
-        frame.AddComponent<Outline>().effectColor = new Color(0.94f, 0.72f, 0.38f, 0.42f);
-
-        Image panel = MakePanel(frame.GetComponent<RectTransform>(), "FrameInset", Vector2.zero, Vector2.one, new Vector2(14f, 14f), new Vector2(-14f, -14f), new Color(0.025f, 0.018f, 0.052f, 0.76f)).GetComponent<Image>();
-        panel.raycastTarget = false;
-
         Text title = MakeText(mainRt, "Title", "HOLLOW ATLAS", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 170f), new Vector2(620f, 92f), 58, FontStyle.Bold, TextPrimary);
         title.alignment = TextAnchor.MiddleCenter;
         title.resizeTextForBestFit = true;
@@ -203,9 +189,9 @@ public class MainMenuController : MonoBehaviour
         Image topLine = MakePanel(mainRt, "TitleGoldLine", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 82f), new Vector2(420f, 2f), Gold).GetComponent<Image>();
         topLine.raycastTarget = false;
 
-        Image cyanLine = MakePanel(mainRt, "TitleCyanLine", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 76f), new Vector2(230f, 2f), Cyan).GetComponent<Image>();
-        cyanLine.color = new Color(Cyan.r, Cyan.g, Cyan.b, 0.72f);
-        cyanLine.raycastTarget = false;
+        Image cyanLineImage = MakePanel(mainRt, "TitleCyanLine", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 76f), new Vector2(230f, 2f), Cyan).GetComponent<Image>();
+        cyanLineImage.color = new Color(Cyan.r, Cyan.g, Cyan.b, 0.72f);
+        cyanLineImage.raycastTarget = false;
 
         ResolveMainButtonLayout(out Vector2 enterPos, out Vector2 enterSize, out Vector2 settingsPos, out Vector2 settingsSize, out Vector2 quitPos, out Vector2 quitSize);
         enterButton = BuildMenuButton(mainRt, "EnterButton", "ATLAS'A GİR", enterPos, enterSize, LoadGameScene, true);
@@ -214,6 +200,8 @@ public class MainMenuController : MonoBehaviour
         settingsVisual = settingsButton.GetComponent<MainMenuButtonVisual>();
         quitButton = BuildMenuButton(mainRt, "QuitButton", "OYUNDAN ÇIK", quitPos, quitSize, QuitGame, false);
         quitVisual = quitButton.GetComponent<MainMenuButtonVisual>();
+
+        main.AddComponent<MenuAtmosphereAnimator>().Configure(cyanLineImage);
     }
 
     void ResolveMainButtonLayout(out Vector2 enterPos, out Vector2 enterSize, out Vector2 settingsPos, out Vector2 settingsSize, out Vector2 quitPos, out Vector2 quitSize)
@@ -249,7 +237,7 @@ public class MainMenuController : MonoBehaviour
         Image border = MakePanel(rt, "Border", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, primary ? new Color(Gold.r, Gold.g, Gold.b, 0.78f) : new Color(Cyan.r, Cyan.g, Cyan.b, 0.55f)).GetComponent<Image>();
         border.raycastTarget = false;
 
-        Image bg = MakePanel(rt, "ButtonBg", Vector2.zero, Vector2.one, new Vector2(2f, 2f), new Vector2(-2f, -2f), primary ? new Color(0.115f, 0.072f, 0.110f, 0.94f) : new Color(0.045f, 0.048f, 0.095f, 0.92f)).GetComponent<Image>();
+        Image bg = MakePanel(rt, "ButtonBg", Vector2.zero, Vector2.one, new Vector2(2f, 2f), new Vector2(-2f, -2f), primary ? new Color(0.080f, 0.040f, 0.095f, 0.25f) : new Color(0.025f, 0.028f, 0.065f, 0.20f)).GetComponent<Image>();
         bg.raycastTarget = false;
 
         Text text = MakeText(rt, "Label", label, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, 22, FontStyle.Bold, primary ? PaleGold : TextPrimary);
@@ -538,13 +526,13 @@ public class MainMenuController : MonoBehaviour
         float darker = Mathf.InverseLerp(1f, BrightnessMin, brightness);
 
         if (menuDimImage != null)
-            menuDimImage.color = new Color(0.010f, 0.006f, 0.020f, Mathf.Clamp01(Mathf.Lerp(0.42f, 0.30f, brighter) + darker * 0.08f));
+            menuDimImage.color = new Color(0.008f, 0.005f, 0.016f, Mathf.Clamp01(Mathf.Lerp(0.12f, 0.06f, brighter) + darker * 0.05f));
 
         if (centerFocusImage != null)
-            centerFocusImage.color = new Color(0.018f, 0.010f, 0.040f, Mathf.Clamp01(Mathf.Lerp(0.24f, 0.18f, brighter) + darker * 0.06f));
+            centerFocusImage.color = new Color(0.010f, 0.006f, 0.020f, Mathf.Clamp01(Mathf.Lerp(0.04f, 0.02f, brighter) + darker * 0.02f));
 
         if (leftVeilImage != null)
-            leftVeilImage.color = new Color(0.012f, 0.007f, 0.025f, Mathf.Clamp01(Mathf.Lerp(0.42f, 0.32f, brighter) + darker * 0.08f));
+            leftVeilImage.color = new Color(0.005f, 0.003f, 0.010f, Mathf.Clamp01(Mathf.Lerp(0.38f, 0.26f, brighter) + darker * 0.07f));
     }
 
     void SyncSettingsControls()
@@ -742,8 +730,8 @@ class MainMenuButtonVisual : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         primary = isPrimary;
         basePosition = root.anchoredPosition;
 
-        normalBg = primary ? new Color(0.115f, 0.072f, 0.110f, 0.94f) : new Color(0.045f, 0.048f, 0.095f, 0.92f);
-        hoverBg = primary ? new Color(0.185f, 0.114f, 0.155f, 0.98f) : new Color(0.082f, 0.092f, 0.150f, 0.98f);
+        normalBg = primary ? new Color(0.080f, 0.040f, 0.095f, 0.25f) : new Color(0.025f, 0.028f, 0.065f, 0.20f);
+        hoverBg = primary ? new Color(0.185f, 0.100f, 0.150f, 0.88f) : new Color(0.065f, 0.078f, 0.145f, 0.82f);
         normalBorder = primary ? new Color(1.000f, 0.780f, 0.360f, 0.78f) : new Color(0.370f, 0.925f, 1.000f, 0.55f);
         hoverBorder = Color.Lerp(new Color(1.000f, 0.925f, 0.650f, 1f), new Color(0.370f, 0.925f, 1.000f, 1f), primary ? 0.30f : 0.58f);
         normalText = primary ? new Color(1.000f, 0.925f, 0.650f, 1f) : new Color(0.960f, 0.945f, 0.900f, 1f);
@@ -842,5 +830,26 @@ class MainMenuButtonVisual : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
             return false;
 
         return RectTransformUtility.RectangleContainsScreenPoint(root, Mouse.current.position.ReadValue(), null);
+    }
+}
+
+class MenuAtmosphereAnimator : MonoBehaviour
+{
+    Image cyanLine;
+
+    public void Configure(Image cyanLineImg)
+    {
+        cyanLine = cyanLineImg;
+    }
+
+    void Update()
+    {
+        if (cyanLine == null)
+            return;
+
+        float t = Time.unscaledTime;
+        Color c = cyanLine.color;
+        c.a = Mathf.Lerp(0.38f, 1.00f, Mathf.Sin(t * 0.55f + 2.10f) * 0.5f + 0.5f);
+        cyanLine.color = c;
     }
 }

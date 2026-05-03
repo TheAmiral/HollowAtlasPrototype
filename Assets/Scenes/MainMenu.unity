@@ -300,11 +300,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4f5e6a7b8d9e0f1a2b3c4d5e6f7a8b9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  backgroundSprite: {fileID: 21300000, guid: ea052eb0b9f6bb849bf683e1c7753ffc, type: 3}
+  backgroundSprite: {fileID: 21300000, guid: 7daa5edee4e35b243bd85bdafc642372, type: 3}
   enterButtonPosition: {x: -575, y: -205}
   enterButtonSize: {x: 660, y: 85}
   settingsButtonPosition: {x: -575, y: -305}
   settingsButtonSize: {x: 660, y: 85}
+  quitButtonPosition: {x: 0, y: -260}
+  quitButtonSize: {x: 520, y: 66}
   gameSceneName: Prototype_01
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
