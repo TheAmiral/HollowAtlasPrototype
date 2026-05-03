@@ -4,6 +4,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
+using TMPro;
 using UnityEngine.Events;
 
 public class MainMenuController : MonoBehaviour
@@ -72,6 +73,7 @@ public class MainMenuController : MonoBehaviour
     bool showRangeIndicator;
 
     static Font cachedFont;
+    static TMP_FontAsset cachedTMPFont;
 
     static Font UiFont
     {
@@ -82,6 +84,24 @@ public class MainMenuController : MonoBehaviour
 
             return cachedFont;
         }
+    }
+
+    static TMP_FontAsset GetOrCreateTMPFont()
+    {
+        if (cachedTMPFont != null)
+            return cachedTMPFont;
+
+        // DynamicOS: glyphs from system Arial at runtime — full Turkish/Unicode support
+        cachedTMPFont = TMP_FontAsset.CreateFontAsset("Arial", "Regular");
+        if (cachedTMPFont != null)
+            return cachedTMPFont;
+
+        // Fallback: dynamic atlas from Unity's built-in font (also Arial on Windows)
+        Font builtinFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        if (builtinFont != null)
+            cachedTMPFont = TMP_FontAsset.CreateFontAsset(builtinFont);
+
+        return cachedTMPFont;
     }
 
     void Start()
@@ -177,14 +197,13 @@ public class MainMenuController : MonoBehaviour
 
         mainGroup = main.AddComponent<CanvasGroup>();
 
-        Text title = MakeText(mainRt, "Title", "HOLLOW ATLAS", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 170f), new Vector2(620f, 92f), 58, FontStyle.Bold, TextPrimary);
-        title.alignment = TextAnchor.MiddleCenter;
-        title.resizeTextForBestFit = true;
-        title.resizeTextMinSize = 34;
-        title.resizeTextMaxSize = 58;
+        TextMeshProUGUI title = MakeTMPText(mainRt, "Title", "HOLLOW ATLAS", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 185f), new Vector2(620f, 100f), 68f, FontStyles.Bold, TextPrimary);
+        title.outlineWidth = 0.20f;
+        title.outlineColor = new Color32(12, 6, 25, 210);
+        title.characterSpacing = 6f;
 
-        Text subtitle = MakeText(mainRt, "Subtitle", "KAYIP HARITANIN DERINLIKLERI", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 110f), new Vector2(560f, 34f), 18, FontStyle.Bold, TextMuted);
-        subtitle.alignment = TextAnchor.MiddleCenter;
+        TextMeshProUGUI subtitle = MakeTMPText(mainRt, "Subtitle", "KAYIP HARITANIN DERİNLİKLERİ", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 120f), new Vector2(580f, 28f), 14f, FontStyles.Normal, TextMuted);
+        subtitle.characterSpacing = 5f;
 
         Image topLine = MakePanel(mainRt, "TitleGoldLine", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 82f), new Vector2(420f, 2f), Gold).GetComponent<Image>();
         topLine.raycastTarget = false;
@@ -234,10 +253,10 @@ public class MainMenuController : MonoBehaviour
         Image glow = MakePanel(rt, "Glow", Vector2.zero, Vector2.one, new Vector2(-10f, -10f), new Vector2(10f, 10f), new Color(Cyan.r, Cyan.g, Cyan.b, 0.0f)).GetComponent<Image>();
         glow.raycastTarget = false;
 
-        Image border = MakePanel(rt, "Border", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, primary ? new Color(Gold.r, Gold.g, Gold.b, 0.78f) : new Color(Cyan.r, Cyan.g, Cyan.b, 0.55f)).GetComponent<Image>();
+        Image border = MakePanel(rt, "Border", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, primary ? new Color(Gold.r, Gold.g, Gold.b, 0.82f) : new Color(Cyan.r, Cyan.g, Cyan.b, 0.70f)).GetComponent<Image>();
         border.raycastTarget = false;
 
-        Image bg = MakePanel(rt, "ButtonBg", Vector2.zero, Vector2.one, new Vector2(2f, 2f), new Vector2(-2f, -2f), primary ? new Color(0.080f, 0.040f, 0.095f, 0.25f) : new Color(0.025f, 0.028f, 0.065f, 0.20f)).GetComponent<Image>();
+        Image bg = MakePanel(rt, "ButtonBg", Vector2.zero, Vector2.one, new Vector2(2f, 2f), new Vector2(-2f, -2f), primary ? new Color(0.070f, 0.035f, 0.088f, 0.15f) : new Color(0.020f, 0.022f, 0.055f, 0.12f)).GetComponent<Image>();
         bg.raycastTarget = false;
 
         Text text = MakeText(rt, "Label", label, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, 22, FontStyle.Bold, primary ? PaleGold : TextPrimary);
@@ -691,6 +710,43 @@ public class MainMenuController : MonoBehaviour
 
         return label;
     }
+
+    static TextMeshProUGUI MakeTMPText(RectTransform parent, string name, string text, Vector2 anchorMin, Vector2 anchorMax, Vector2 positionOrOffsetMin, Vector2 sizeOrOffsetMax, float fontSize, FontStyles style, Color color)
+    {
+        GameObject go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+
+        RectTransform rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = anchorMin;
+        rt.anchorMax = anchorMax;
+
+        if (anchorMin == anchorMax)
+        {
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = positionOrOffsetMin;
+            rt.sizeDelta = sizeOrOffsetMax;
+        }
+        else
+        {
+            rt.offsetMin = positionOrOffsetMin;
+            rt.offsetMax = sizeOrOffsetMax;
+        }
+
+        TextMeshProUGUI label = go.AddComponent<TextMeshProUGUI>();
+        label.text = text;
+        label.fontSize = fontSize;
+        label.fontStyle = style;
+        label.color = color;
+        label.alignment = TextAlignmentOptions.Center;
+        label.textWrappingMode = TextWrappingModes.NoWrap;
+        label.raycastTarget = false;
+
+        TMP_FontAsset tmpFont = GetOrCreateTMPFont();
+        if (tmpFont != null)
+            label.font = tmpFont;
+
+        return label;
+    }
 }
 
 class MainMenuButtonVisual : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler, ISelectHandler, IDeselectHandler
@@ -730,8 +786,8 @@ class MainMenuButtonVisual : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         primary = isPrimary;
         basePosition = root.anchoredPosition;
 
-        normalBg = primary ? new Color(0.080f, 0.040f, 0.095f, 0.25f) : new Color(0.025f, 0.028f, 0.065f, 0.20f);
-        hoverBg = primary ? new Color(0.185f, 0.100f, 0.150f, 0.88f) : new Color(0.065f, 0.078f, 0.145f, 0.82f);
+        normalBg = primary ? new Color(0.070f, 0.035f, 0.088f, 0.15f) : new Color(0.020f, 0.022f, 0.055f, 0.12f);
+        hoverBg = primary ? new Color(0.190f, 0.100f, 0.155f, 0.90f) : new Color(0.060f, 0.075f, 0.150f, 0.86f);
         normalBorder = primary ? new Color(1.000f, 0.780f, 0.360f, 0.78f) : new Color(0.370f, 0.925f, 1.000f, 0.55f);
         hoverBorder = Color.Lerp(new Color(1.000f, 0.925f, 0.650f, 1f), new Color(0.370f, 0.925f, 1.000f, 1f), primary ? 0.30f : 0.58f);
         normalText = primary ? new Color(1.000f, 0.925f, 0.650f, 1f) : new Color(0.960f, 0.945f, 0.900f, 1f);
