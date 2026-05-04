@@ -72,20 +72,20 @@ public static class CardPool
     public static Color RarityColor(CardRarity r) => r switch
     {
         CardRarity.Common => new Color(0.45f, 0.44f, 0.52f, 1f),
-        CardRarity.Rare => new Color(0.260f, 0.520f, 1.000f, 1f),
-        CardRarity.Epic => new Color(0.671f, 0.278f, 0.737f, 1f),
-        CardRarity.Legendary => new Color(0.988f, 0.816f, 0.000f, 1f),
+        CardRarity.Rare => new Color(0.220f, 0.690f, 1.000f, 1f),
+        CardRarity.Epic => new Color(0.665f, 0.300f, 0.930f, 1f),
+        CardRarity.Legendary => new Color(1.000f, 0.610f, 0.120f, 1f),
         CardRarity.Cursed => new Color(0.900f, 0.100f, 0.100f, 1f),
         _ => Color.white
     };
 
     public static string RarityLabel(CardRarity r) => r switch
     {
-        CardRarity.Common => "COMMON",
-        CardRarity.Rare => "RARE",
-        CardRarity.Epic => "EPIC",
-        CardRarity.Legendary => "LEGENDARY",
-        CardRarity.Cursed => "CURSED",
+        CardRarity.Common => "YAYGIN",
+        CardRarity.Rare => "NADİR",
+        CardRarity.Epic => "ENDER",
+        CardRarity.Legendary => "DESTANSI",
+        CardRarity.Cursed => "LANETLİ",
         _ => ""
     };
 
@@ -104,7 +104,7 @@ public static class CardPool
                 "☽",
                 "Nyx",
                 CardGod.Nyx,
-                CardRarity.Common,
+                CardRarity.Epic,
                 player =>
                 {
                     var mv = player.GetComponent<PlayerMovement>();
@@ -178,7 +178,7 @@ public static class CardPool
                 "∞",
                 "Khaos",
                 CardGod.Khaos,
-                CardRarity.Common,
+                CardRarity.Rare,
                 player =>
                 {
                     var aura = player.GetComponent<AutoAttackAura>();
@@ -415,7 +415,7 @@ public static class CardPool
                 "⚔",
                 "Thanatos",
                 CardGod.Thanatos,
-                CardRarity.Legendary,
+                CardRarity.Epic,
                 player =>
                 {
                     var aura = player.GetComponent<AutoAttackAura>();
@@ -501,7 +501,7 @@ public static class CardPool
                 "◈",
                 "Atlas",
                 CardGod.Atlas,
-                CardRarity.Legendary,
+                CardRarity.Epic,
                 player =>
                 {
                     var aura = player.GetComponent<AutoAttackAura>();
@@ -600,7 +600,7 @@ public static class CardPool
                 "⚡",
                 "Hermes",
                 CardGod.Hermes,
-                CardRarity.Common,
+                CardRarity.Rare,
                 player =>
                 {
                     var mv = player.GetComponent<PlayerMovement>();

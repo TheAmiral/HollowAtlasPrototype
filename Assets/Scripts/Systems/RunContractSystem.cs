@@ -90,8 +90,8 @@ public class RunContractSystem : MonoBehaviour
                 currentContractType = ContractType.CollectGold;
                 targetValue = 60;
                 rewardGold = 30;
-                contractTitle = "Ganimet Kontratı";
-                contractDescription = "60 gold topla";
+                contractTitle = "Hazine Kontratı";
+                contractDescription = "60 Gold topla";
                 break;
 
             case 2:
