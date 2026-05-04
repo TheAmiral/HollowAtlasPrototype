@@ -57,7 +57,7 @@ public class RunContractUIController : MonoBehaviour
         }
 
         if (rewardText != null)
-            rewardText.text = $"Ödül: {sys.rewardGold} Gold";
+            rewardText.text = $"Ödül: {sys.rewardGold} Altın";
     }
 
     void BuildUI()
@@ -254,10 +254,10 @@ public class RunContractUIController : MonoBehaviour
                 return $"Kalan: {remaining:0.0} sn";
 
             case RunContractSystem.ContractType.CollectGold:
-                return $"{current} / {target} Gold";
+                return $"{current} / {target} Altın";
 
             case RunContractSystem.ContractType.KillEnemies:
-                return $"{current} / {target}";
+                return $"{current} / {target} düşman";
 
             default:
                 return target > 0 ? $"{current} / {target}" : FallbackDescription(sys);

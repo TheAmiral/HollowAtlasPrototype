@@ -75,6 +75,7 @@ public class LevelUpCardSystem : MonoBehaviour
 
         _player = GameObject.FindGameObjectWithTag("Player");
         _currentCards = CardPool.PickRandom(3, playerLevel);
+        LogGeneratedCards(_currentCards);
         _currentPlayerLevel = playerLevel;
         _overrideTitle = null;
         _overrideSubtitle = null;
@@ -103,6 +104,8 @@ public class LevelUpCardSystem : MonoBehaviour
 
         if (_currentCards.Count == 0)
             return false;
+
+        LogGeneratedCards(_currentCards);
 
         _overrideTitle = title;
         _overrideSubtitle = subtitle;
@@ -649,6 +652,24 @@ public class LevelUpCardSystem : MonoBehaviour
         return runtimeCards;
     }
 
+    static void LogGeneratedCards(List<LevelUpCard> cards)
+    {
+        if (cards == null)
+            return;
+
+        foreach (var card in cards)
+        {
+            if (card == null)
+            {
+                Debug.LogWarning("[LevelUpCard] Missing card data in generated offer.");
+                continue;
+            }
+
+            CardRarity rarity = card.GetResolvedRarity();
+            Debug.Log($"[LevelUpCard] Card={card.title}, Source={card.god}, Rarity={rarity}");
+        }
+    }
+
     IEnumerator AnimateIn(int level)
     {
         yield return StartCoroutine(Fade(_overlayGroup, 0f, 1f, 0.28f));
@@ -1009,6 +1030,7 @@ public class LevelUpCardSystem : MonoBehaviour
         yield return new WaitForSecondsRealtime(0.20f);
 
         _currentCards = CardPool.PickRandom(3, _currentPlayerLevel);
+        LogGeneratedCards(_currentCards);
         RebuildCardWidgets();
         RefreshRerollUI(svc);
 

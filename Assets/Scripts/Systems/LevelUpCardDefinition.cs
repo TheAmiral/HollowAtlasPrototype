@@ -71,12 +71,7 @@ public class LevelUpCard
         this.Apply = apply;
 
         if (!CardPool.IsValidRarity(rarity))
-        {
-            Debug.LogWarning(
-                $"LevelUpCard '{title}' ({id}) was created with missing or invalid rarity '{rarity}'. " +
-                "Assign an explicit CardRarity in the card definition."
-            );
-        }
+            Debug.LogWarning($"[LevelUpCard] Missing rarity for card: {title}");
     }
 
     public CardRarity GetResolvedRarity()
@@ -84,11 +79,8 @@ public class LevelUpCard
         if (CardPool.IsValidRarity(rarity))
             return rarity;
 
-        Debug.LogWarning(
-            $"LevelUpCard '{title}' ({id}) has missing or invalid rarity '{rarity}' at runtime. " +
-            "Using Common only as a visible fallback; fix the card definition."
-        );
-        return CardRarity.Common;
+        Debug.LogWarning($"[LevelUpCard] Missing rarity for card: {title}");
+        return CardRarity.Unknown;
     }
 
     public LevelUpCard CreateRuntimeCopy()
@@ -130,8 +122,12 @@ public static class CardPool
     {
         if (!IsValidRarity(r))
         {
-            Debug.LogWarning($"Invalid card rarity '{r}' requested for presentation. Using Common fallback.");
-            r = CardRarity.Common;
+            Debug.LogWarning($"[LevelUpCard] Missing rarity presentation for rarity: {r}");
+            return new CardRarityPresentation(
+                "BİLİNMİYOR",
+                new Color(0.20f, 0.18f, 0.22f, 0.98f),
+                new Color(1.00f, 0.60f, 0.60f, 1f)
+            );
         }
 
         switch (r)
@@ -175,10 +171,6 @@ public static class CardPool
                 throw new ArgumentOutOfRangeException(nameof(r), r, "Unknown card rarity.");
         }
     }
-
-    public static Color RarityColor(CardRarity r) => GetRarityPresentation(r).BadgeColor;
-
-    public static string RarityLabel(CardRarity r) => GetRarityPresentation(r).Label;
 
     private static List<LevelUpCard> _all;
     public static List<LevelUpCard> All => _all ??= BuildPool();
@@ -461,7 +453,7 @@ public static class CardPool
                 "◈",
                 "Atlas",
                 CardGod.Atlas,
-                CardRarity.Epic,
+                CardRarity.Legendary,
                 player =>
                 {
                     var hp = player.GetComponent<PlayerHealth>();
@@ -731,7 +723,7 @@ public static class CardPool
                 "⚔",
                 "Thanatos",
                 CardGod.Thanatos,
-                CardRarity.Rare,
+                CardRarity.Epic,
                 player =>
                 {
                     var aura = player.GetComponent<AutoAttackAura>();
@@ -959,10 +951,7 @@ public static class CardPool
 
             if (!IsValidRarity(card.rarity))
             {
-                Debug.LogWarning(
-                    $"LevelUpCard '{card.title}' ({card.id}) has invalid rarity '{card.rarity}'. " +
-                    "It will not be silently treated as Common."
-                );
+                Debug.LogWarning($"[LevelUpCard] Missing rarity for card: {card.title}");
             }
         }
     }
