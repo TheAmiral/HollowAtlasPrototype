@@ -145,7 +145,11 @@ public class BossRewardSystem : MonoBehaviour
                 "Atlas",
                 CardGod.Atlas,
                 CardRarity.Epic,
-                _ => ApplyReward(1)
+                _ => ApplyReward(1),
+                64,
+                CardEffectTag.AuraDamage | CardEffectTag.AuraRange | CardEffectTag.Gold,
+                false,
+                true
             ),
 
             new LevelUpCard(
@@ -157,7 +161,11 @@ public class BossRewardSystem : MonoBehaviour
                 "Hermes",
                 CardGod.Hermes,
                 CardRarity.Epic,
-                _ => ApplyReward(2)
+                _ => ApplyReward(2),
+                64,
+                CardEffectTag.Movement | CardEffectTag.DashMobility,
+                false,
+                true
             ),
 
             new LevelUpCard(
@@ -169,7 +177,11 @@ public class BossRewardSystem : MonoBehaviour
                 "Atlas",
                 CardGod.Atlas,
                 CardRarity.Legendary,
-                _ => ApplyReward(3)
+                _ => ApplyReward(3),
+                78,
+                CardEffectTag.Health | CardEffectTag.Heal | CardEffectTag.Gold,
+                false,
+                true
             ),
         };
     }

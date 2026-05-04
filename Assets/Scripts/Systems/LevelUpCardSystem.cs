@@ -642,7 +642,7 @@ public class LevelUpCardSystem : MonoBehaviour
         {
             if (card == null)
             {
-                Debug.LogWarning("LevelUpCardSystem received a null custom card.");
+                CardRarityResolver.LogWarning("LevelUpCardSystem received a null custom card.");
                 continue;
             }
 
@@ -654,6 +654,9 @@ public class LevelUpCardSystem : MonoBehaviour
 
     static void LogGeneratedCards(List<LevelUpCard> cards)
     {
+        if (!CardRarityResolver.DiagnosticsEnabled)
+            return;
+
         if (cards == null)
             return;
 
@@ -661,12 +664,15 @@ public class LevelUpCardSystem : MonoBehaviour
         {
             if (card == null)
             {
-                Debug.LogWarning("[LevelUpCard] Missing card data in generated offer.");
+                CardRarityResolver.LogWarning("[LevelUpCard] Missing card data in generated offer.");
                 continue;
             }
 
-            CardRarity rarity = card.GetResolvedRarity();
-            Debug.Log($"[LevelUpCard] Card={card.title}, Source={card.god}, Rarity={rarity}");
+            CardRarity expectedRarity = card.GetExpectedRarity();
+            CardRarity resolvedRarity = card.GetResolvedRarity();
+            CardRarityResolver.Log(
+                $"[LevelUpCard] Card={card.title} Source={card.god} RawRarity={card.rarity} ExpectedRarity={expectedRarity} ResolvedRarity={resolvedRarity} Score={card.powerScore}"
+            );
         }
     }
 

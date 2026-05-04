@@ -21,6 +21,23 @@ public enum CardGod
     Khaos
 }
 
+[Flags]
+public enum CardEffectTag
+{
+    None = 0,
+    AuraDamage = 1 << 0,
+    AuraRange = 1 << 1,
+    AuraSpeed = 1 << 2,
+    DashDamage = 1 << 3,
+    DashMobility = 1 << 4,
+    Movement = 1 << 5,
+    Health = 1 << 6,
+    Heal = 1 << 7,
+    Random = 1 << 8,
+    Gold = 1 << 9,
+    Cursed = 1 << 10
+}
+
 public struct CardRarityPresentation
 {
     public string Label { get; private set; }
@@ -35,6 +52,26 @@ public struct CardRarityPresentation
     }
 }
 
+public struct CardRarityProfile
+{
+    public int PowerScore { get; private set; }
+    public CardEffectTag Tags { get; private set; }
+    public bool HasTradeoff { get; private set; }
+    public bool IsBuildDefining { get; private set; }
+
+    public CardRarityProfile(
+        int powerScore,
+        CardEffectTag tags,
+        bool hasTradeoff = false,
+        bool isBuildDefining = false)
+    {
+        PowerScore = powerScore;
+        Tags = tags;
+        HasTradeoff = hasTradeoff;
+        IsBuildDefining = isBuildDefining;
+    }
+}
+
 [Serializable]
 public class LevelUpCard
 {
@@ -46,6 +83,10 @@ public class LevelUpCard
     public string godName;
     public CardGod god;
     public CardRarity rarity { get; private set; }
+    public int powerScore { get; private set; }
+    public CardEffectTag effectTags { get; private set; }
+    public bool hasTradeoff { get; private set; }
+    public bool isBuildDefining { get; private set; }
 
     public Action<GameObject> Apply;
 
@@ -58,7 +99,11 @@ public class LevelUpCard
         string godName,
         CardGod god,
         CardRarity rarity,
-        Action<GameObject> apply)
+        Action<GameObject> apply,
+        int powerScore = -1,
+        CardEffectTag effectTags = CardEffectTag.None,
+        bool hasTradeoff = false,
+        bool isBuildDefining = false)
     {
         this.id = id;
         this.title = title;
@@ -69,19 +114,26 @@ public class LevelUpCard
         this.god = god;
         this.rarity = rarity;
         this.Apply = apply;
+        this.powerScore = powerScore;
+        this.effectTags = effectTags;
+        this.hasTradeoff = hasTradeoff;
+        this.isBuildDefining = isBuildDefining;
 
         if (!CardPool.IsValidRarity(rarity))
-            Debug.LogWarning($"[LevelUpCard] Missing rarity for card: {title}");
+            CardRarityResolver.LogWarning($"[LevelUpCard] Missing rarity for card: {title}");
     }
 
-    public CardRarity GetResolvedRarity()
+    public void SetRarityProfile(CardRarityProfile profile)
     {
-        if (CardPool.IsValidRarity(rarity))
-            return rarity;
-
-        Debug.LogWarning($"[LevelUpCard] Missing rarity for card: {title}");
-        return CardRarity.Unknown;
+        powerScore = profile.PowerScore;
+        effectTags = profile.Tags;
+        hasTradeoff = profile.HasTradeoff;
+        isBuildDefining = profile.IsBuildDefining;
     }
+
+    public CardRarity GetExpectedRarity() => CardRarityResolver.GetExpectedRarity(this);
+
+    public CardRarity GetResolvedRarity() => CardRarityResolver.GetResolvedRarity(this);
 
     public LevelUpCard CreateRuntimeCopy()
     {
@@ -93,9 +145,96 @@ public class LevelUpCard
             godIcon,
             godName,
             god,
-            GetResolvedRarity(),
-            Apply
+            rarity,
+            Apply,
+            powerScore,
+            effectTags,
+            hasTradeoff,
+            isBuildDefining
         );
+    }
+}
+
+public static class CardRarityResolver
+{
+    public static bool DiagnosticsEnabled
+    {
+        get
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            return true;
+#else
+            return false;
+#endif
+        }
+    }
+
+    public static void LogWarning(string message)
+    {
+        if (DiagnosticsEnabled)
+            Debug.LogWarning(message);
+    }
+
+    public static void Log(string message)
+    {
+        if (DiagnosticsEnabled)
+            Debug.Log(message);
+    }
+
+    public static CardRarity GetExpectedRarity(LevelUpCard card)
+    {
+        if (card == null)
+            return CardRarity.Unknown;
+
+        if (card.powerScore < 0)
+        {
+            LogWarning($"[LevelUpCard] Missing powerScore for card: {card.title}");
+            return CardRarity.Unknown;
+        }
+
+        if ((card.effectTags & CardEffectTag.Cursed) != 0)
+            return CardRarity.Cursed;
+
+        int score = Mathf.Clamp(card.powerScore, 0, 100);
+        CardRarity expected;
+
+        if (score >= 75)
+            expected = CardRarity.Legendary;
+        else if (score >= 50)
+            expected = CardRarity.Epic;
+        else if (score >= 25)
+            expected = CardRarity.Rare;
+        else
+            expected = CardRarity.Common;
+
+        if ((card.hasTradeoff || card.isBuildDefining) && (int)expected < (int)CardRarity.Epic)
+            expected = CardRarity.Epic;
+
+        return expected;
+    }
+
+    public static CardRarity GetResolvedRarity(LevelUpCard card)
+    {
+        if (card == null)
+            return CardRarity.Unknown;
+
+        if (!CardPool.IsValidRarity(card.rarity))
+        {
+            LogWarning($"[LevelUpCard] Missing rarity for card: {card.title}");
+            return CardRarity.Unknown;
+        }
+
+        CardRarity expected = GetExpectedRarity(card);
+
+        if (CardPool.IsValidRarity(expected) && card.rarity != expected)
+        {
+            LogWarning(
+                $"[LevelUpCard][RARITY MISMATCH] Card={card.title} Raw={card.rarity} Expected={expected} Score={card.powerScore}"
+            );
+            return expected;
+        }
+
+        return card.rarity;
     }
 }
 
@@ -122,7 +261,7 @@ public static class CardPool
     {
         if (!IsValidRarity(r))
         {
-            Debug.LogWarning($"[LevelUpCard] Missing rarity presentation for rarity: {r}");
+            CardRarityResolver.LogWarning($"[LevelUpCard] Missing rarity presentation for rarity: {r}");
             return new CardRarityPresentation(
                 "BİLİNMİYOR",
                 new Color(0.20f, 0.18f, 0.22f, 0.98f),
@@ -888,8 +1027,72 @@ public static class CardPool
             )
         };
 
+        ApplyRarityProfiles(pool);
         AuditPool(pool);
         return pool;
+    }
+
+    static void ApplyRarityProfiles(List<LevelUpCard> cards)
+    {
+        Dictionary<string, CardRarityProfile> profiles = BuildRarityProfiles();
+
+        foreach (var card in cards)
+        {
+            if (card == null)
+                continue;
+
+            if (profiles.TryGetValue(card.id, out CardRarityProfile profile))
+                card.SetRarityProfile(profile);
+            else
+                CardRarityResolver.LogWarning($"[LevelUpCard] Missing rarity profile for card: {card.title}");
+        }
+    }
+
+    static Dictionary<string, CardRarityProfile> BuildRarityProfiles()
+    {
+        return new Dictionary<string, CardRarityProfile>
+        {
+            { "nyx_veil", Profile(35, CardEffectTag.DashDamage | CardEffectTag.DashMobility) },
+            { "than_harvest", Profile(28, CardEffectTag.AuraDamage) },
+            { "atlas_iron", Profile(20, CardEffectTag.Health | CardEffectTag.Heal) },
+            { "hermes_wind", Profile(12, CardEffectTag.Movement) },
+            { "khaos_balance", Profile(36, CardEffectTag.AuraDamage | CardEffectTag.AuraRange | CardEffectTag.Movement | CardEffectTag.Health | CardEffectTag.Heal) },
+            { "nyx_shadow_surge", Profile(34, CardEffectTag.AuraDamage | CardEffectTag.AuraRange) },
+            { "than_final", Profile(38, CardEffectTag.DashDamage) },
+            { "atlas_bulwark", Profile(35, CardEffectTag.Health | CardEffectTag.Heal) },
+            { "hermes_ghost", Profile(42, CardEffectTag.DashMobility) },
+            { "atlas_echo", Profile(58, CardEffectTag.AuraDamage | CardEffectTag.AuraRange) },
+            { "red_cut", Profile(60, CardEffectTag.AuraDamage | CardEffectTag.AuraSpeed) },
+            { "shadow_dash", Profile(62, CardEffectTag.DashDamage | CardEffectTag.DashMobility) },
+            { "broken_time", Profile(58, CardEffectTag.Movement | CardEffectTag.DashMobility) },
+            { "atlas_colossus", Profile(78, CardEffectTag.Health | CardEffectTag.Heal, true, true) },
+            { "nyx_eclipse", Profile(82, CardEffectTag.AuraDamage | CardEffectTag.AuraRange | CardEffectTag.AuraSpeed, false, true) },
+            { "than_frenzy", Profile(80, CardEffectTag.AuraDamage | CardEffectTag.DashDamage, false, true) },
+            { "hermes_quicksilver", Profile(80, CardEffectTag.Movement | CardEffectTag.DashMobility, false, true) },
+            { "khaos_wild", Profile(86, CardEffectTag.Random | CardEffectTag.AuraDamage | CardEffectTag.AuraRange | CardEffectTag.Health | CardEffectTag.Heal | CardEffectTag.Movement | CardEffectTag.DashMobility, false, true) },
+            { "atlas_curse", Profile(78, CardEffectTag.AuraDamage | CardEffectTag.AuraRange | CardEffectTag.DashDamage, false, true) },
+            { "cursed_power", Profile(85, CardEffectTag.Cursed | CardEffectTag.AuraDamage | CardEffectTag.DashDamage | CardEffectTag.Health, true, true) },
+            { "cursed_titan_weight", Profile(70, CardEffectTag.Cursed | CardEffectTag.Health | CardEffectTag.Heal | CardEffectTag.AuraDamage | CardEffectTag.Movement, true) },
+            { "nyx_whisper", Profile(16, CardEffectTag.AuraDamage | CardEffectTag.AuraRange) },
+            { "hermes_stride", Profile(32, CardEffectTag.DashMobility) },
+            { "atlas_ward", Profile(30, CardEffectTag.Health | CardEffectTag.Heal) },
+            { "than_bleed", Profile(55, CardEffectTag.AuraDamage | CardEffectTag.AuraSpeed) },
+            { "khaos_drift", Profile(40, CardEffectTag.AuraDamage | CardEffectTag.AuraRange | CardEffectTag.Movement) },
+            { "nyx_umbra", Profile(58, CardEffectTag.AuraDamage | CardEffectTag.AuraRange) },
+            { "hermes_slipstream", Profile(66, CardEffectTag.Movement | CardEffectTag.DashMobility) },
+            { "khaos_mirror", Profile(82, CardEffectTag.Random | CardEffectTag.AuraDamage | CardEffectTag.AuraRange | CardEffectTag.DashDamage | CardEffectTag.Movement | CardEffectTag.DashMobility | CardEffectTag.Health | CardEffectTag.Heal, false, true) },
+            { "than_reaper", Profile(84, CardEffectTag.AuraDamage | CardEffectTag.AuraSpeed | CardEffectTag.DashDamage, false, true) },
+            { "cursed_frailty", Profile(92, CardEffectTag.Cursed | CardEffectTag.AuraDamage | CardEffectTag.DashDamage | CardEffectTag.Health, true, true) }
+        };
+    }
+
+    static CardRarityProfile Profile(
+        int powerScore,
+        CardEffectTag tags,
+        bool hasTradeoff = false,
+        bool isBuildDefining = false)
+    {
+        return new CardRarityProfile(powerScore, tags, hasTradeoff, isBuildDefining);
     }
 
     public static List<LevelUpCard> PickRandom(int count, int playerLevel)
@@ -940,18 +1143,27 @@ public static class CardPool
         {
             if (card == null)
             {
-                Debug.LogWarning("CardPool contains a null card definition.");
+                CardRarityResolver.LogWarning("CardPool contains a null card definition.");
                 continue;
             }
 
             if (string.IsNullOrWhiteSpace(card.id))
-                Debug.LogWarning($"LevelUpCard '{card.title}' has an empty id.");
+                CardRarityResolver.LogWarning($"LevelUpCard '{card.title}' has an empty id.");
             else if (!ids.Add(card.id))
-                Debug.LogWarning($"Duplicate LevelUpCard id detected: '{card.id}'.");
+                CardRarityResolver.LogWarning($"Duplicate LevelUpCard id detected: '{card.id}'.");
 
             if (!IsValidRarity(card.rarity))
             {
-                Debug.LogWarning($"[LevelUpCard] Missing rarity for card: {card.title}");
+                CardRarityResolver.LogWarning($"[LevelUpCard] Missing rarity for card: {card.title}");
+                continue;
+            }
+
+            CardRarity expected = card.GetExpectedRarity();
+            if (IsValidRarity(expected) && expected != card.rarity)
+            {
+                CardRarityResolver.LogWarning(
+                    $"[LevelUpCard][RARITY MISMATCH] Card={card.title} Raw={card.rarity} Expected={expected} Score={card.powerScore}"
+                );
             }
         }
     }
