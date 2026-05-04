@@ -48,6 +48,15 @@ public class LevelUpCardSystem : MonoBehaviour
     string _overrideSubtitle;
     Action _onSelectionComplete;
 
+    RectTransform _cardAreaRect;
+    CanvasGroup _rerollFooterGroup;
+    Text _rerollCostText;
+    Text _rerollCountText;
+    RectTransform _rerollButtonBorderRect;
+    Image _rerollButtonBg;
+    bool _rerollHovered;
+    int _currentPlayerLevel;
+
     void Awake()
     {
         if (Instance != null)
@@ -66,6 +75,7 @@ public class LevelUpCardSystem : MonoBehaviour
 
         _player = GameObject.FindGameObjectWithTag("Player");
         _currentCards = CardPool.PickRandom(3, playerLevel);
+        _currentPlayerLevel = playerLevel;
         _overrideTitle = null;
         _overrideSubtitle = null;
         _onSelectionComplete = null;
@@ -233,6 +243,7 @@ public class LevelUpCardSystem : MonoBehaviour
         float totalW = _currentCards.Count * CARD_W + (_currentCards.Count - 1) * CARD_GAP;
         cardAreaRect.sizeDelta = new Vector2(totalW, CARD_H);
         cardAreaRect.anchoredPosition = new Vector2(0f, -24f);
+        _cardAreaRect = cardAreaRect;
 
         for (int i = 0; i < _currentCards.Count; i++)
         {
@@ -286,6 +297,8 @@ public class LevelUpCardSystem : MonoBehaviour
         _hintText.alignment = TextAnchor.MiddleCenter;
         hintBorder.GetComponent<Image>().raycastTarget = false;
         hintBg.GetComponent<Image>().raycastTarget = false;
+
+        BuildRerollFooter();
     }
 
     CardWidget BuildCard(RectTransform parent, LevelUpCard card, float xPos, int index)
@@ -618,11 +631,11 @@ public class LevelUpCardSystem : MonoBehaviour
         yield return StartCoroutine(Fade(_overlayGroup, 0f, 1f, 0.28f));
 
         string title = string.IsNullOrWhiteSpace(_overrideTitle)
-            ? $"SEVİYE {level}"
+            ? "ATLAS LÜTUFLARI"
             : _overrideTitle;
 
         string subtitle = string.IsNullOrWhiteSpace(_overrideSubtitle)
-            ? "Bir lütuf seç"
+            ? "Atlas bir lütuf seçmeni istiyor."
             : _overrideSubtitle;
 
         _titleText.text = title;
@@ -642,6 +655,9 @@ public class LevelUpCardSystem : MonoBehaviour
 
         yield return new WaitForSecondsRealtime(stagger * (_widgets.Count - 1) + 0.35f);
         yield return StartCoroutine(Fade(_hintGroup, 0f, 1f, 0.20f));
+
+        if (_rerollFooterGroup != null)
+            StartCoroutine(Fade(_rerollFooterGroup, 0f, 1f, 0.20f));
 
         _inputBlocked = false;
     }
@@ -691,6 +707,9 @@ public class LevelUpCardSystem : MonoBehaviour
 
         if (TrySelectCardFromMouseClick())
             return;
+
+        UpdateRerollHover();
+        TryRerollFromMouseClick();
 
         if (Keyboard.current == null)
             return;
@@ -776,6 +795,7 @@ public class LevelUpCardSystem : MonoBehaviour
         if (index < 0 || index >= _currentCards.Count)
             return;
 
+        AudioManager.Instance?.PlayCardSelect();
         _inputBlocked = true;
 
         if (_player != null)
@@ -819,6 +839,231 @@ public class LevelUpCardSystem : MonoBehaviour
         _onSelectionComplete = null;
         _overrideTitle = null;
         _overrideSubtitle = null;
+    }
+
+    void BuildRerollFooter()
+    {
+        // Boss reward ekranında reroll gösterme
+        if (!string.IsNullOrWhiteSpace(_overrideTitle))
+            return;
+
+        var svc = BiomeRerollService.EnsureInstance();
+
+        var footerRoot = new GameObject("RerollFooter");
+        footerRoot.transform.SetParent(_root.transform, false);
+
+        var footerRect = footerRoot.AddComponent<RectTransform>();
+        footerRect.anchorMin = footerRect.anchorMax = new Vector2(0.5f, 0f);
+        footerRect.pivot = new Vector2(0.5f, 0f);
+        footerRect.sizeDelta = new Vector2(780f, 48f);
+        footerRect.anchoredPosition = new Vector2(0f, 90f);
+
+        _rerollFooterGroup = footerRoot.AddComponent<CanvasGroup>();
+        _rerollFooterGroup.alpha = 0f;
+
+        // Sol panel — reroll sayacı
+        var countBg = MakePanel(footerRect, "CountBg",
+            new Vector2(0f, 0f), new Vector2(0.42f, 1f),
+            new Color(0.04f, 0.03f, 0.08f, 0.80f));
+        countBg.GetComponent<Image>().raycastTarget = false;
+
+        _rerollCountText = MakeText(countBg.GetComponent<RectTransform>(), "RerollCountText",
+            GetRerollCountText(svc),
+            Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
+            17, FontStyle.Bold, new Color(0.70f, 0.65f, 0.88f, 1f));
+        _rerollCountText.alignment = TextAnchor.MiddleCenter;
+        _rerollCountText.horizontalOverflow = HorizontalWrapMode.Wrap;
+        _rerollCountText.verticalOverflow = VerticalWrapMode.Overflow;
+        _rerollCountText.raycastTarget = false;
+
+        // Sağ panel — yenile butonu
+        bool canReroll = svc.CanReroll();
+        Color borderCol = canReroll
+            ? new Color(0.90f, 0.68f, 0.15f, 0.75f)
+            : new Color(0.30f, 0.25f, 0.40f, 0.60f);
+
+        var btnBorder = MakePanel(footerRect, "RerollBtnBorder",
+            new Vector2(0.44f, 0f), new Vector2(1f, 1f), borderCol);
+        _rerollButtonBorderRect = btnBorder.GetComponent<RectTransform>();
+        btnBorder.GetComponent<Image>().raycastTarget = false;
+
+        Color btnBgCol = canReroll
+            ? new Color(0.28f, 0.18f, 0.06f, 0.92f)
+            : new Color(0.12f, 0.10f, 0.16f, 0.88f);
+
+        var btnBgGo = MakePanel(_rerollButtonBorderRect, "RerollBtnBg",
+            Vector2.zero, Vector2.one, btnBgCol);
+        _rerollButtonBg = btnBgGo.GetComponent<Image>();
+        _rerollButtonBg.raycastTarget = false;
+        var btnBgRect = btnBgGo.GetComponent<RectTransform>();
+        btnBgRect.offsetMin = new Vector2(1.5f, 1.5f);
+        btnBgRect.offsetMax = new Vector2(-1.5f, -1.5f);
+
+        int cost = svc.GetCurrentRerollCost();
+        string costStr = canReroll
+            ? $"YENİLE  —  {cost} Gold"
+            : "YENİLE  (hak kalmadı)";
+        Color costCol = canReroll
+            ? new Color(0.98f, 0.82f, 0.40f, 1f)
+            : new Color(0.45f, 0.42f, 0.55f, 1f);
+
+        _rerollCostText = MakeText(_rerollButtonBorderRect, "RerollCostText", costStr,
+            Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
+            18, FontStyle.Bold, costCol);
+        _rerollCostText.alignment = TextAnchor.MiddleCenter;
+        _rerollCostText.horizontalOverflow = HorizontalWrapMode.Wrap;
+        _rerollCostText.verticalOverflow = VerticalWrapMode.Overflow;
+        _rerollCostText.raycastTarget = false;
+    }
+
+    static string GetRerollCountText(BiomeRerollService svc) =>
+        $"Kalan Reroll: {svc.RerollsRemaining}/{BiomeRerollService.MaxRerolls}";
+
+    void UpdateRerollHover()
+    {
+        if (_rerollButtonBorderRect == null || _rerollButtonBg == null)
+            return;
+
+        var svc = BiomeRerollService.EnsureInstance();
+        if (!svc.CanReroll())
+            return;
+
+        bool isHovered = false;
+        if (Mouse.current != null)
+        {
+            Vector2 mp = Mouse.current.position.ReadValue();
+            isHovered = RectTransformUtility.RectangleContainsScreenPoint(_rerollButtonBorderRect, mp, null);
+        }
+
+        _rerollHovered = isHovered;
+
+        Color target = _rerollHovered
+            ? new Color(0.40f, 0.26f, 0.09f, 0.96f)
+            : new Color(0.28f, 0.18f, 0.06f, 0.92f);
+        _rerollButtonBg.color = Color.Lerp(_rerollButtonBg.color, target, Time.unscaledDeltaTime * 12f);
+    }
+
+    void TryRerollFromMouseClick()
+    {
+        if (Mouse.current == null || !Mouse.current.leftButton.wasPressedThisFrame)
+            return;
+        if (_rerollButtonBorderRect == null)
+            return;
+
+        Vector2 mp = Mouse.current.position.ReadValue();
+        if (RectTransformUtility.RectangleContainsScreenPoint(_rerollButtonBorderRect, mp, null))
+            StartCoroutine(DoReroll());
+    }
+
+    IEnumerator DoReroll()
+    {
+        var svc = BiomeRerollService.EnsureInstance();
+        if (!svc.CanReroll())
+            yield break;
+
+        int cost = svc.GetCurrentRerollCost();
+
+        var wallet = FindFirstObjectByType<GoldWallet>();
+        if (wallet != null && wallet.RunGold < cost)
+        {
+            if (_rerollCostText != null)
+                StartCoroutine(FlashText(_rerollCostText, new Color(0.9f, 0.2f, 0.2f, 1f), 0.6f));
+            yield break;
+        }
+
+        wallet?.SpendGold(cost);
+        svc.TrySpendReroll();
+
+        _inputBlocked = true;
+
+        for (int i = 0; i < _widgets.Count; i++)
+        {
+            var g = _widgets[i].GetComponent<CanvasGroup>() ??
+                    _widgets[i].gameObject.AddComponent<CanvasGroup>();
+            StartCoroutine(Fade(g, 1f, 0f, 0.15f));
+        }
+        yield return new WaitForSecondsRealtime(0.20f);
+
+        _currentCards = CardPool.PickRandom(3, _currentPlayerLevel);
+        RebuildCardWidgets();
+        RefreshRerollUI(svc);
+
+        float stagger = 0.08f;
+        for (int i = 0; i < _widgets.Count; i++)
+        {
+            int idx = i;
+            StartCoroutine(AnimateCardIn(_widgets[idx], stagger * i));
+        }
+        yield return new WaitForSecondsRealtime(stagger * (_widgets.Count - 1) + 0.30f);
+
+        _inputBlocked = false;
+    }
+
+    void RebuildCardWidgets()
+    {
+        if (_cardAreaRect == null)
+            return;
+
+        for (int i = _cardAreaRect.childCount - 1; i >= 0; i--)
+            Destroy(_cardAreaRect.GetChild(i).gameObject);
+
+        _widgets.Clear();
+        _cardRects.Clear();
+
+        float totalW = _currentCards.Count * CARD_W + (_currentCards.Count - 1) * CARD_GAP;
+        _cardAreaRect.sizeDelta = new Vector2(totalW, CARD_H);
+
+        for (int i = 0; i < _currentCards.Count; i++)
+        {
+            float xPos = -totalW * 0.5f + i * (CARD_W + CARD_GAP) + CARD_W * 0.5f;
+            var widget = BuildCard(_cardAreaRect, _currentCards[i], xPos, i);
+            _widgets.Add(widget);
+        }
+    }
+
+    void RefreshRerollUI(BiomeRerollService svc)
+    {
+        if (svc == null)
+            return;
+
+        if (_rerollCountText != null)
+            _rerollCountText.text = GetRerollCountText(svc);
+
+        bool canReroll = svc.CanReroll();
+        int cost = svc.GetCurrentRerollCost();
+
+        if (_rerollCostText != null)
+        {
+            _rerollCostText.text = canReroll
+                ? $"YENİLE  —  {cost} Gold"
+                : "YENİLE  (hak kalmadı)";
+            _rerollCostText.color = canReroll
+                ? new Color(0.98f, 0.82f, 0.40f, 1f)
+                : new Color(0.45f, 0.42f, 0.55f, 1f);
+        }
+
+        if (_rerollButtonBorderRect != null)
+        {
+            var borderImg = _rerollButtonBorderRect.GetComponent<Image>();
+            if (borderImg != null)
+                borderImg.color = canReroll
+                    ? new Color(0.90f, 0.68f, 0.15f, 0.75f)
+                    : new Color(0.30f, 0.25f, 0.40f, 0.60f);
+        }
+
+        if (_rerollButtonBg != null)
+            _rerollButtonBg.color = canReroll
+                ? new Color(0.28f, 0.18f, 0.06f, 0.92f)
+                : new Color(0.12f, 0.10f, 0.16f, 0.88f);
+    }
+
+    IEnumerator FlashText(Text t, Color flashCol, float dur)
+    {
+        if (t == null) yield break;
+        Color orig = t.color;
+        t.color = flashCol;
+        yield return new WaitForSecondsRealtime(dur);
+        if (t != null) t.color = orig;
     }
 
     void BuildVignette(RectTransform parent)
@@ -1180,7 +1425,10 @@ public class CardWidget : MonoBehaviour,
             hovered = false;
 
         if (hovered && !_hovered)
+        {
             RootRect.SetAsLastSibling();
+            AudioManager.Instance?.PlayCardHover();
+        }
 
         _hovered = hovered;
     }

@@ -44,6 +44,14 @@ public class GoldWallet : MonoBehaviour
         Debug.Log($"+{amount} gold | Run Gold: {runGold}");
     }
 
+    public bool SpendGold(int amount)
+    {
+        if (amount <= 0 || runGold < amount)
+            return false;
+        runGold -= amount;
+        return true;
+    }
+
     public void BankRunGold()
     {
         if (runGold <= 0)
