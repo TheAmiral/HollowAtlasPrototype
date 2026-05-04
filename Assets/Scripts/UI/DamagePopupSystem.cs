@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using TMPro;
 
 public class DamagePopupSystem : MonoBehaviour
@@ -10,7 +11,9 @@ public class DamagePopupSystem : MonoBehaviour
     const int PoolSize = 24;
     const float Duration = 0.90f;
     const float RisePixels = 62f;
+    const string MainMenuScene = "MainMenu";
 
+    Canvas popupCanvas;
     RectTransform canvasRt;
     readonly PopupItem[] pool = new PopupItem[PoolSize];
     int nextIndex;
@@ -56,14 +59,49 @@ public class DamagePopupSystem : MonoBehaviour
         BuildPool();
     }
 
+    void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        ClearAllPopups();
+        bool isMenu = scene.name == MainMenuScene;
+        if (popupCanvas != null)
+            popupCanvas.enabled = !isMenu;
+    }
+
+    public void ClearAllPopups()
+    {
+        for (int i = 0; i < PoolSize; i++)
+        {
+            if (pool[i] == null) continue;
+            if (pool[i].routine != null)
+            {
+                StopCoroutine(pool[i].routine);
+                pool[i].routine = null;
+            }
+            pool[i].busy = false;
+            if (pool[i].go != null)
+                pool[i].go.SetActive(false);
+        }
+        nextIndex = 0;
+    }
+
     void BuildCanvas()
     {
         GameObject cgo = new GameObject("Canvas");
         cgo.transform.SetParent(transform, false);
 
-        Canvas canvas = cgo.AddComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 150;
+        popupCanvas = cgo.AddComponent<Canvas>();
+        popupCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        popupCanvas.sortingOrder = 150;
 
         CanvasScaler scaler = cgo.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -102,6 +140,9 @@ public class DamagePopupSystem : MonoBehaviour
     void Spawn(Vector3 worldPos, string text, Color color)
     {
         if (Camera.main == null || canvasRt == null)
+            return;
+
+        if (popupCanvas == null || !popupCanvas.enabled)
             return;
 
         Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos + Vector3.up * 0.6f);
