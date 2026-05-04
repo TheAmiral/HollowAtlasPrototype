@@ -3,19 +3,23 @@ using UnityEngine.UI;
 
 public class RunContractUIController : MonoBehaviour
 {
-    private static readonly Color BorderColor       = new Color32(0xB4, 0x82, 0xDC, 0x90);
-    private static readonly Color PanelBgColor      = new Color32(0x10, 0x08, 0x1E, 0xD8);
-    private static readonly Color TitleColor        = new Color32(0xFF, 0xE5, 0xA0, 0xFF);
-    private static readonly Color DescColor         = new Color32(0xC0, 0x98, 0xF0, 0xCC);
-    private static readonly Color ProgressColor     = new Color32(0xF5, 0xE0, 0xFF, 0xFF);
-    private static readonly Color ProgressDoneColor = new Color32(0x5F, 0xD8, 0x80, 0xFF);
-    private static readonly Color RewardColor       = new Color32(0xFF, 0xE0, 0x90, 0xCC);
+    private static readonly Color BorderColor         = new Color32(0xB4, 0x82, 0xDC, 0x90);
+    private static readonly Color PanelBgColor        = new Color32(0x10, 0x08, 0x1E, 0xD8);
+    private static readonly Color TitleColor          = new Color32(0xFF, 0xE5, 0xA0, 0xFF);
+    private static readonly Color DescColor           = new Color32(0xC0, 0x98, 0xF0, 0xCC);
+    private static readonly Color ProgressColor       = new Color32(0xF5, 0xE0, 0xFF, 0xFF);
+    private static readonly Color ProgressDoneColor   = new Color32(0x5F, 0xD8, 0x80, 0xFF);
+    private static readonly Color RewardColor         = new Color32(0xFF, 0xE0, 0x90, 0xCC);
+    private static readonly Color BarTrackColor       = new Color32(0x28, 0x14, 0x3A, 0xFF);
+    private static readonly Color BarFillColor        = new Color32(0x8C, 0x50, 0xC8, 0xFF);
+    private static readonly Color BarFillDoneColor    = new Color32(0x5F, 0xD8, 0x80, 0xFF);
 
     private CanvasGroup panelGroup;
     private Text        titleText;
     private Text        descText;
     private Text        progressText;
     private Text        rewardText;
+    private Image       progressFill;
 
     void Awake()
     {
@@ -47,6 +51,15 @@ public class RunContractUIController : MonoBehaviour
             progressText.color = done ? ProgressDoneColor : ProgressColor;
         }
 
+        if (progressFill != null && sys.targetValue > 0)
+        {
+            bool done = sys.IsCompleted;
+            float ratio = Mathf.Clamp01((float)sys.currentValue / sys.targetValue);
+            RectTransform rt = progressFill.rectTransform;
+            rt.anchorMax = new Vector2(ratio, 1f);
+            progressFill.color = done ? BarFillDoneColor : BarFillColor;
+        }
+
         if (rewardText != null)
             rewardText.text = $"Ödül: {sys.rewardGold} Gold";
     }
@@ -76,7 +89,7 @@ public class RunContractUIController : MonoBehaviour
         panelRect.anchorMax        = new Vector2(1f, 0f);
         panelRect.pivot            = new Vector2(1f, 0f);
         panelRect.anchoredPosition = new Vector2(-20f, 20f);
-        panelRect.sizeDelta        = new Vector2(250f, 115f);
+        panelRect.sizeDelta        = new Vector2(250f, 122f);
 
         panelGO.GetComponent<Image>().color = BorderColor;
 
@@ -96,7 +109,28 @@ public class RunContractUIController : MonoBehaviour
         titleText    = MakeTextRow(panelRect, "TitleText",    "—",     10f, 22f, TitleColor,    13, FontStyle.Bold,   font);
         descText     = MakeTextRow(panelRect, "DescText",     "",      36f, 18f, DescColor,     10, FontStyle.Normal, font);
         progressText = MakeTextRow(panelRect, "ProgressText", "0 / 0", 58f, 20f, ProgressColor, 12, FontStyle.Bold,   font);
-        rewardText   = MakeTextRow(panelRect, "RewardText",   "",      82f, 18f, RewardColor,   10, FontStyle.Normal, font);
+
+        // Progress fill bar
+        GameObject barTrack = MakeChild(panelRect, "BarTrack", BarTrackColor);
+        RectTransform barTrackRect = barTrack.GetComponent<RectTransform>();
+        barTrackRect.anchorMin        = new Vector2(0f, 1f);
+        barTrackRect.anchorMax        = new Vector2(1f, 1f);
+        barTrackRect.pivot            = new Vector2(0.5f, 1f);
+        barTrackRect.anchoredPosition = new Vector2(0f, -82f);
+        barTrackRect.sizeDelta        = new Vector2(-16f, 5f);
+
+        GameObject barFillGo = MakeChild(barTrackRect, "BarFill", BarFillColor);
+        RectTransform barFillRect = barFillGo.GetComponent<RectTransform>();
+        barFillRect.anchorMin = Vector2.zero;
+        barFillRect.anchorMax = new Vector2(0f, 1f);
+        barFillRect.pivot     = new Vector2(0f, 0.5f);
+        barFillRect.offsetMin = Vector2.zero;
+        barFillRect.offsetMax = Vector2.zero;
+        barFillRect.sizeDelta = Vector2.zero;
+        progressFill = barFillGo.GetComponent<Image>();
+        progressFill.type = Image.Type.Simple;
+
+        rewardText   = MakeTextRow(panelRect, "RewardText",   "",      92f, 18f, RewardColor,   10, FontStyle.Normal, font);
     }
 
     static GameObject MakeChild(RectTransform parent, string name, Color color)

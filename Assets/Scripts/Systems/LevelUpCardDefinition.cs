@@ -71,7 +71,7 @@ public static class CardPool
 
     public static Color RarityColor(CardRarity r) => r switch
     {
-        CardRarity.Common => new Color(0.608f, 0.757f, 0.922f, 1f),
+        CardRarity.Common => new Color(0.45f, 0.44f, 0.52f, 1f),
         CardRarity.Rare => new Color(0.260f, 0.520f, 1.000f, 1f),
         CardRarity.Epic => new Color(0.671f, 0.278f, 0.737f, 1f),
         CardRarity.Legendary => new Color(0.988f, 0.816f, 0.000f, 1f),

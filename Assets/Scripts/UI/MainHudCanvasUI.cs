@@ -365,6 +365,7 @@ public class MainHudCanvasUI : MonoBehaviour
     private bool _xpPulsing;
     private bool _goldPopping;
     private bool _levelBursting;
+    private bool _hudBuilt;
 
     // ── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -732,8 +733,15 @@ public class MainHudCanvasUI : MonoBehaviour
 
     private void EnsureRuntimeHud()
     {
-        // If key refs are already set (e.g. via Inspector), skip build
-        if (hpOrbFill != null && xpBarFill != null && hpNumberText != null) return;
+        if (_hudBuilt) return;
+        _hudBuilt = true;
+
+        // Destroy editor-placed children so the programmatic build starts clean.
+        for (int i = transform.childCount - 1; i >= 0; i--)
+            Destroy(transform.GetChild(i).gameObject);
+        hpOrbFill    = null;
+        xpBarFill    = null;
+        hpNumberText = null;
 
         Canvas canvas = GetComponent<Canvas>();
         if (canvas == null) canvas = gameObject.AddComponent<Canvas>();
@@ -756,7 +764,6 @@ public class MainHudCanvasUI : MonoBehaviour
         RectTransform root = canvas.GetComponent<RectTransform>();
 
         BuildPremiumHud(root, font);
-        BuildMinimapPlaceholder(root, font);
     }
 
     // ── Premium HUD hierarchy builder ────────────────────────────────────────

@@ -348,7 +348,7 @@ public class LevelUpCardSystem : MonoBehaviour
             "Glow2",
             Vector2.zero,
             Vector2.zero,
-            new Color(godCol.r, godCol.g, godCol.b, 0.34f)
+            new Color(rarityCol.r, rarityCol.g, rarityCol.b, 0.32f)
         );
 
         var glow2Rect = glow2Go.GetComponent<RectTransform>();
@@ -457,7 +457,7 @@ public class LevelUpCardSystem : MonoBehaviour
             "Badge",
             new Vector2(0.58f, 0f),
             Vector2.one,
-            new Color(rarityCol.r * 0.38f, rarityCol.g * 0.38f, rarityCol.b * 0.38f, 0.98f)
+            new Color(rarityCol.r * 0.60f, rarityCol.g * 0.60f, rarityCol.b * 0.60f, 0.98f)
         );
 
         var badgeRect = badgeBg.GetComponent<RectTransform>();
@@ -472,7 +472,7 @@ public class LevelUpCardSystem : MonoBehaviour
             Vector2.zero,
             13,
             FontStyle.Bold,
-            Color.Lerp(Color.white, rarityCol, 0.35f)
+            Color.Lerp(Color.white, rarityCol, 0.15f)
         );
         ConfigureCardText(badgeText, TextAnchor.MiddleCenter, 11, 13);
 
