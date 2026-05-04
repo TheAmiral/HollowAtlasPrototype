@@ -434,75 +434,44 @@ public class LevelUpCardSystem : MonoBehaviour
         topRect.sizeDelta = new Vector2(0f, 92f);
         topRect.anchoredPosition = Vector2.zero;
 
+        RectTransform godIconRect = MakeTopRegion(cardRect, "GodIconArea", 38f, 54f, 0f);
         MakeText(
-            topRect,
+            godIconRect,
             "GodIcon",
             card.godIcon,
             Vector2.zero,
             Vector2.one,
             Vector2.zero,
             Vector2.zero,
-            54,
+            50,
             FontStyle.Normal,
             godCol
         ).alignment = TextAnchor.MiddleCenter;
 
-        RectTransform labelRect = MakeTopPanel(
-            cardRect,
-            "LabelArea",
-            98f,
-            36f,
-            16f,
-            new Color(0.018f, 0.014f, 0.050f, 0.64f)
-        );
-
-        var sourceBadge = MakePanel(
-            labelRect,
-            "SourceBadge",
-            Vector2.zero,
-            new Vector2(0.45f, 1f),
-            new Color(godCol.r, godCol.g, godCol.b, 0.18f)
-        );
-
-        var godNameText = MakeText(
-            sourceBadge.GetComponent<RectTransform>(),
-            "GodName",
-            card.godName.ToUpper(),
-            Vector2.zero,
-            Vector2.one,
-            Vector2.zero,
-            Vector2.zero,
-            15,
-            FontStyle.Bold,
-            new Color(godCol.r * 1.3f, godCol.g * 1.3f, godCol.b * 1.3f, 0.9f)
-        );
-        ConfigureCardText(godNameText, TextAnchor.MiddleLeft, 11, 15);
-        godNameText.rectTransform.offsetMin = new Vector2(8f, 0f);
-        godNameText.rectTransform.offsetMax = new Vector2(-4f, 0f);
-
         var badgeFrame = MakePanel(
-            labelRect,
+            cardRect,
             "RarityBadgeFrame",
-            new Vector2(0.48f, 0f),
-            Vector2.one,
-            WithAlpha(rarityGlowColor, 0.86f)
+            new Vector2(0.5f, 1f),
+            new Vector2(0.5f, 1f),
+            new Color(0.48f, 0.46f, 0.56f, 0.84f)
         );
 
         var badgeFrameRect = badgeFrame.GetComponent<RectTransform>();
-        badgeFrameRect.offsetMin = new Vector2(0f, 1f);
-        badgeFrameRect.offsetMax = new Vector2(0f, -1f);
+        badgeFrameRect.pivot = new Vector2(0.5f, 1f);
+        badgeFrameRect.sizeDelta = new Vector2(142f, 26f);
+        badgeFrameRect.anchoredPosition = new Vector2(0f, -12f);
 
         var badgeBg = MakePanel(
             badgeFrameRect,
             "Badge",
             Vector2.zero,
             Vector2.one,
-            rarityPresentation.BadgeColor
+            new Color(0.030f, 0.027f, 0.043f, 0.96f)
         );
 
         var badgeRect = badgeBg.GetComponent<RectTransform>();
-        badgeRect.offsetMin = new Vector2(1.5f, 1.5f);
-        badgeRect.offsetMax = new Vector2(-1.5f, -1.5f);
+        badgeRect.offsetMin = new Vector2(1.3f, 1.3f);
+        badgeRect.offsetMax = new Vector2(-1.3f, -1.3f);
 
         var badgeText = MakeText(
             badgeRect,
@@ -514,9 +483,36 @@ public class LevelUpCardSystem : MonoBehaviour
             Vector2.zero,
             13,
             FontStyle.Bold,
-            rarityPresentation.TextColor
+            new Color(0.93f, 0.91f, 1.00f, 1f)
         );
-        ConfigureCardText(badgeText, TextAnchor.MiddleCenter, 12, 15);
+        ConfigureCardText(badgeText, TextAnchor.MiddleCenter, 12, 14);
+
+        var sourceBadge = MakePanel(
+            cardRect,
+            "SourceBadge",
+            new Vector2(0.5f, 1f),
+            new Vector2(0.5f, 1f),
+            new Color(godCol.r, godCol.g, godCol.b, 0.20f)
+        );
+
+        var sourceBadgeRect = sourceBadge.GetComponent<RectTransform>();
+        sourceBadgeRect.pivot = new Vector2(0.5f, 1f);
+        sourceBadgeRect.sizeDelta = new Vector2(188f, 30f);
+        sourceBadgeRect.anchoredPosition = new Vector2(0f, -98f);
+
+        var godNameText = MakeText(
+            sourceBadgeRect,
+            "GodName",
+            card.godName.ToUpper(),
+            Vector2.zero,
+            Vector2.one,
+            Vector2.zero,
+            Vector2.zero,
+            15,
+            FontStyle.Bold,
+            new Color(godCol.r * 1.3f, godCol.g * 1.3f, godCol.b * 1.3f, 0.9f)
+        );
+        ConfigureCardText(godNameText, TextAnchor.MiddleCenter, 11, 15);
 
         BuildRarityFlare(cardRect, displayRarity, rarityGlowColor, rarityPresentation.TextColor);
 
@@ -665,7 +661,6 @@ public class LevelUpCardSystem : MonoBehaviour
         rarityRimGo.GetComponent<Image>().raycastTarget = false;
         borderGo.GetComponent<Image>().raycastTarget = false;
         topStrip.GetComponent<Image>().raycastTarget = false;
-        labelRect.GetComponent<Image>().raycastTarget = false;
         sourceBadge.GetComponent<Image>().raycastTarget = false;
         badgeFrame.GetComponent<Image>().raycastTarget = false;
         badgeBg.GetComponent<Image>().raycastTarget = false;
