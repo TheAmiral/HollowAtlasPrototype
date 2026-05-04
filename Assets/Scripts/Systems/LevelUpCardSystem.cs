@@ -313,13 +313,16 @@ public class LevelUpCardSystem : MonoBehaviour
         Color godCol = CardPool.GodColor(card.god);
         CardRarity displayRarity = card.GetDisplayRarity();
         CardRarityPresentation rarityPresentation = CardPool.GetRarityPresentation(displayRarity);
+        Color rarityGlowColor = GetRarityGlowColor(displayRarity);
+        Color rarityAuraColor = WithAlpha(rarityGlowColor, GetRarityAuraAlpha(displayRarity));
+        Color rarityRimColor = WithAlpha(rarityGlowColor, GetRarityRimAlpha(displayRarity));
 
         var glowGo = MakePanel(
             parent,
             $"Glow_{index}",
             Vector2.zero,
             Vector2.zero,
-            new Color(godCol.r, godCol.g, godCol.b, 0.24f)
+            rarityAuraColor
         );
 
         var glowRect = glowGo.GetComponent<RectTransform>();
@@ -374,7 +377,14 @@ public class LevelUpCardSystem : MonoBehaviour
         glow2Rect.sizeDelta = new Vector2(CARD_W + 18f, CARD_H + 18f);
         glow2Rect.anchoredPosition = Vector2.zero;
 
-        var borderGo = MakePanel(glow2Rect, "Border", Vector2.zero, Vector2.zero, new Color(godCol.r, godCol.g, godCol.b, 0.92f));
+        var rarityRimGo = MakePanel(glow2Rect, "RarityRim", Vector2.zero, Vector2.zero, rarityRimColor);
+        var rarityRimRect = rarityRimGo.GetComponent<RectTransform>();
+        rarityRimRect.anchorMin = rarityRimRect.anchorMax = new Vector2(0.5f, 0.5f);
+        rarityRimRect.pivot = new Vector2(0.5f, 0.5f);
+        rarityRimRect.sizeDelta = new Vector2(CARD_W + 10f, CARD_H + 10f);
+        rarityRimRect.anchoredPosition = Vector2.zero;
+
+        var borderGo = MakePanel(rarityRimRect, "Border", Vector2.zero, Vector2.zero, new Color(godCol.r, godCol.g, godCol.b, 0.92f));
         var borderRect = borderGo.GetComponent<RectTransform>();
         borderRect.anchorMin = borderRect.anchorMax = new Vector2(0.5f, 0.5f);
         borderRect.pivot = new Vector2(0.5f, 0.5f);
@@ -441,17 +451,25 @@ public class LevelUpCardSystem : MonoBehaviour
             cardRect,
             "LabelArea",
             98f,
-            30f,
-            18f,
+            36f,
+            16f,
             new Color(0.018f, 0.014f, 0.050f, 0.64f)
         );
 
-        var godNameText = MakeText(
+        var sourceBadge = MakePanel(
             labelRect,
+            "SourceBadge",
+            Vector2.zero,
+            new Vector2(0.45f, 1f),
+            new Color(godCol.r, godCol.g, godCol.b, 0.18f)
+        );
+
+        var godNameText = MakeText(
+            sourceBadge.GetComponent<RectTransform>(),
             "GodName",
             card.godName.ToUpper(),
             Vector2.zero,
-            new Vector2(0.55f, 1f),
+            Vector2.one,
             Vector2.zero,
             Vector2.zero,
             15,
@@ -459,16 +477,32 @@ public class LevelUpCardSystem : MonoBehaviour
             new Color(godCol.r * 1.3f, godCol.g * 1.3f, godCol.b * 1.3f, 0.9f)
         );
         ConfigureCardText(godNameText, TextAnchor.MiddleLeft, 11, 15);
+        godNameText.rectTransform.offsetMin = new Vector2(8f, 0f);
+        godNameText.rectTransform.offsetMax = new Vector2(-4f, 0f);
+
+        var badgeFrame = MakePanel(
+            labelRect,
+            "RarityBadgeFrame",
+            new Vector2(0.48f, 0f),
+            Vector2.one,
+            WithAlpha(rarityGlowColor, 0.86f)
+        );
+
+        var badgeFrameRect = badgeFrame.GetComponent<RectTransform>();
+        badgeFrameRect.offsetMin = new Vector2(0f, 1f);
+        badgeFrameRect.offsetMax = new Vector2(0f, -1f);
 
         var badgeBg = MakePanel(
-            labelRect,
+            badgeFrameRect,
             "Badge",
-            new Vector2(0.58f, 0f),
+            Vector2.zero,
             Vector2.one,
             rarityPresentation.BadgeColor
         );
 
         var badgeRect = badgeBg.GetComponent<RectTransform>();
+        badgeRect.offsetMin = new Vector2(1.5f, 1.5f);
+        badgeRect.offsetMax = new Vector2(-1.5f, -1.5f);
 
         var badgeText = MakeText(
             badgeRect,
@@ -482,7 +516,9 @@ public class LevelUpCardSystem : MonoBehaviour
             FontStyle.Bold,
             rarityPresentation.TextColor
         );
-        ConfigureCardText(badgeText, TextAnchor.MiddleCenter, 11, 13);
+        ConfigureCardText(badgeText, TextAnchor.MiddleCenter, 12, 15);
+
+        BuildRarityFlare(cardRect, displayRarity, rarityGlowColor, rarityPresentation.TextColor);
 
         RectTransform titleRect = MakeTopRegion(cardRect, "TitleArea", 136f, 54f, 22f);
         var titleT = MakeText(
@@ -612,10 +648,13 @@ public class LevelUpCardSystem : MonoBehaviour
             glowRect,
             cardBg.GetComponent<Image>(),
             borderGo.GetComponent<Image>(),
+            glowGo.GetComponent<Image>(),
+            rarityRimGo.GetComponent<Image>(),
             glow2Go.GetComponent<Image>(),
             hoverHaloGo.GetComponent<Image>(),
             hoverPromptGroup,
             hoverPromptGo.GetComponent<Image>(),
+            displayRarity,
             godCol,
             this
         );
@@ -623,15 +662,143 @@ public class LevelUpCardSystem : MonoBehaviour
         glowGo.GetComponent<Image>().raycastTarget = false;
         hoverHaloGo.GetComponent<Image>().raycastTarget = false;
         glow2Go.GetComponent<Image>().raycastTarget = false;
+        rarityRimGo.GetComponent<Image>().raycastTarget = false;
         borderGo.GetComponent<Image>().raycastTarget = false;
         topStrip.GetComponent<Image>().raycastTarget = false;
         labelRect.GetComponent<Image>().raycastTarget = false;
+        sourceBadge.GetComponent<Image>().raycastTarget = false;
+        badgeFrame.GetComponent<Image>().raycastTarget = false;
         badgeBg.GetComponent<Image>().raycastTarget = false;
         divPanel.GetComponent<Image>().raycastTarget = false;
         effectBg.GetComponent<Image>().raycastTarget = false;
         hoverPromptGo.GetComponent<Image>().raycastTarget = false;
 
         return widget;
+    }
+
+    public static Color GetRarityGlowColor(CardRarity rarity) => rarity switch
+    {
+        CardRarity.Common => new Color(0.78f, 0.74f, 0.92f, 1f),
+        CardRarity.Rare => new Color(0.18f, 0.72f, 1.00f, 1f),
+        CardRarity.Epic => new Color(0.74f, 0.36f, 1.00f, 1f),
+        CardRarity.Legendary => new Color(1.00f, 0.68f, 0.12f, 1f),
+        CardRarity.Cursed => new Color(1.00f, 0.10f, 0.14f, 1f),
+        _ => new Color(0.80f, 0.78f, 0.92f, 1f)
+    };
+
+    public static float GetRarityAuraAlpha(CardRarity rarity) => rarity switch
+    {
+        CardRarity.Common => 0.08f,
+        CardRarity.Rare => 0.18f,
+        CardRarity.Epic => 0.26f,
+        CardRarity.Legendary => 0.34f,
+        CardRarity.Cursed => 0.28f,
+        _ => 0.10f
+    };
+
+    public static float GetRarityHoverAuraAlpha(CardRarity rarity) => rarity switch
+    {
+        CardRarity.Common => 0.18f,
+        CardRarity.Rare => 0.38f,
+        CardRarity.Epic => 0.50f,
+        CardRarity.Legendary => 0.58f,
+        CardRarity.Cursed => 0.54f,
+        _ => 0.20f
+    };
+
+    public static float GetRarityRimAlpha(CardRarity rarity) => rarity switch
+    {
+        CardRarity.Common => 0.14f,
+        CardRarity.Rare => 0.46f,
+        CardRarity.Epic => 0.58f,
+        CardRarity.Legendary => 0.72f,
+        CardRarity.Cursed => 0.62f,
+        _ => 0.18f
+    };
+
+    public static float GetRarityHoverRimAlpha(CardRarity rarity) => rarity switch
+    {
+        CardRarity.Common => 0.34f,
+        CardRarity.Rare => 0.78f,
+        CardRarity.Epic => 0.90f,
+        CardRarity.Legendary => 1.00f,
+        CardRarity.Cursed => 0.96f,
+        _ => 0.40f
+    };
+
+    public static Color WithAlpha(Color color, float alpha)
+    {
+        color.a = alpha;
+        return color;
+    }
+
+    static void BuildRarityFlare(RectTransform parent, CardRarity rarity, Color glowColor, Color coreColor)
+    {
+        if (rarity == CardRarity.Common || rarity == CardRarity.Unknown)
+            return;
+
+        float size = rarity switch
+        {
+            CardRarity.Rare => 22f,
+            CardRarity.Epic => 28f,
+            CardRarity.Legendary => 34f,
+            CardRarity.Cursed => 30f,
+            _ => 22f
+        };
+
+        float alpha = rarity switch
+        {
+            CardRarity.Rare => 0.70f,
+            CardRarity.Epic => 0.82f,
+            CardRarity.Legendary => 0.92f,
+            CardRarity.Cursed => 0.86f,
+            _ => 0.70f
+        };
+
+        var flareGo = MakePanel(
+            parent,
+            "RarityFlare",
+            new Vector2(1f, 1f),
+            new Vector2(1f, 1f),
+            WithAlpha(glowColor, alpha)
+        );
+
+        var flareRect = flareGo.GetComponent<RectTransform>();
+        flareRect.pivot = new Vector2(0.5f, 0.5f);
+        flareRect.sizeDelta = new Vector2(size, size);
+        flareRect.anchoredPosition = new Vector2(-18f, -18f);
+        flareRect.localRotation = Quaternion.Euler(0f, 0f, 45f);
+
+        var flareCore = MakePanel(
+            flareRect,
+            "RarityFlareCore",
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            WithAlpha(coreColor, 0.94f)
+        );
+
+        var coreRect = flareCore.GetComponent<RectTransform>();
+        coreRect.pivot = new Vector2(0.5f, 0.5f);
+        coreRect.sizeDelta = new Vector2(size * 0.38f, size * 0.38f);
+        coreRect.anchoredPosition = Vector2.zero;
+
+        var rayGo = MakePanel(
+            parent,
+            "RarityFlareRay",
+            new Vector2(1f, 1f),
+            new Vector2(1f, 1f),
+            WithAlpha(glowColor, alpha * 0.50f)
+        );
+
+        var rayRect = rayGo.GetComponent<RectTransform>();
+        rayRect.pivot = new Vector2(0.5f, 0.5f);
+        rayRect.sizeDelta = new Vector2(size * 1.75f, 2.5f);
+        rayRect.anchoredPosition = new Vector2(-18f, -18f);
+        rayRect.localRotation = Quaternion.Euler(0f, 0f, -38f);
+
+        flareGo.GetComponent<Image>().raycastTarget = false;
+        flareCore.GetComponent<Image>().raycastTarget = false;
+        rayGo.GetComponent<Image>().raycastTarget = false;
     }
 
     static List<LevelUpCard> CreateRuntimeOfferCards(List<LevelUpCard> sourceCards)
@@ -1406,11 +1573,15 @@ public class CardWidget : MonoBehaviour,
     int _index;
     Image _cardBg;
     Image _border;
+    Image _rarityAura;
+    Image _rarityRim;
     Image _glow2;
     Image _hoverHalo;
     CanvasGroup _hoverPromptGroup;
     Image _hoverPromptBg;
+    CardRarity _rarity;
     Color _godColor;
+    Color _rarityColor;
     LevelUpCardSystem _system;
 
     bool _hovered;
@@ -1427,10 +1598,13 @@ public class CardWidget : MonoBehaviour,
         RectTransform rootRect,
         Image cardBg,
         Image border,
+        Image rarityAura,
+        Image rarityRim,
         Image glow2,
         Image hoverHalo,
         CanvasGroup hoverPromptGroup,
         Image hoverPromptBg,
+        CardRarity rarity,
         Color godColor,
         LevelUpCardSystem system)
     {
@@ -1438,11 +1612,15 @@ public class CardWidget : MonoBehaviour,
         RootRect = rootRect;
         _cardBg = cardBg;
         _border = border;
+        _rarityAura = rarityAura;
+        _rarityRim = rarityRim;
         _glow2 = glow2;
         _hoverHalo = hoverHalo;
         _hoverPromptGroup = hoverPromptGroup;
         _hoverPromptBg = hoverPromptBg;
+        _rarity = rarity;
         _godColor = godColor;
+        _rarityColor = LevelUpCardSystem.GetRarityGlowColor(rarity);
         _system = system;
         _basePos = rootRect.anchoredPosition;
     }
@@ -1461,12 +1639,50 @@ public class CardWidget : MonoBehaviour,
         float lift = Mathf.Lerp(0f, WIDGET_LIFT, _hoverT);
         RootRect.anchoredPosition = _basePos + Vector2.up * lift;
 
+        float pulse = _rarity == CardRarity.Cursed
+            ? Mathf.PingPong(Time.unscaledTime * 4.5f, 1f)
+            : 0f;
+        Color rarityAccent = _rarity == CardRarity.Cursed
+            ? Color.Lerp(new Color(0.02f, 0.00f, 0.01f, 1f), _rarityColor, 0.60f + pulse * 0.40f)
+            : _rarityColor;
+
+        if (_rarityAura != null)
+        {
+            Color aura = rarityAccent;
+            aura.a = Mathf.Lerp(
+                LevelUpCardSystem.GetRarityAuraAlpha(_rarity),
+                LevelUpCardSystem.GetRarityHoverAuraAlpha(_rarity),
+                _hoverT
+            );
+
+            if (_rarity == CardRarity.Cursed)
+                aura.a += pulse * 0.08f * _hoverT;
+
+            _rarityAura.color = aura;
+        }
+
+        if (_rarityRim != null)
+        {
+            Color rim = rarityAccent;
+            rim.a = Mathf.Lerp(
+                LevelUpCardSystem.GetRarityRimAlpha(_rarity),
+                LevelUpCardSystem.GetRarityHoverRimAlpha(_rarity),
+                _hoverT
+            );
+
+            if (_rarity == CardRarity.Cursed)
+                rim.a = Mathf.Clamp01(rim.a + pulse * 0.08f * _hoverT);
+
+            _rarityRim.color = rim;
+        }
+
         if (_border != null)
         {
             Color bc = _godColor;
             bc.a = Mathf.Lerp(0.82f, 1.00f, _hoverT);
-            Color accent = Color.Lerp(new Color(1f, 0.92f, 0.62f, 1f), new Color(0.68f, 0.95f, 1f, 1f), 0.38f);
-            _border.color = Color.Lerp(bc, accent, _hoverT * 0.55f);
+            Color accent = Color.Lerp(_godColor, rarityAccent, 0.82f);
+            accent.a = 1f;
+            _border.color = Color.Lerp(bc, accent, _hoverT * 0.78f);
         }
 
         if (_glow2 != null)
@@ -1478,8 +1694,9 @@ public class CardWidget : MonoBehaviour,
 
         if (_hoverHalo != null)
         {
-            Color halo = Color.Lerp(_godColor, new Color(0.68f, 0.95f, 1f, 1f), 0.45f);
-            halo.a = Mathf.Lerp(0f, 0.34f, _hoverT);
+            float whiteBlend = _rarity == CardRarity.Common ? 0.28f : 0.14f;
+            Color halo = Color.Lerp(rarityAccent, Color.white, whiteBlend);
+            halo.a = Mathf.Lerp(0f, LevelUpCardSystem.GetRarityHoverAuraAlpha(_rarity) * 0.82f, _hoverT);
             _hoverHalo.color = halo;
         }
 
@@ -1541,7 +1758,21 @@ public class CardWidget : MonoBehaviour,
             RootRect.localScale = Vector3.one * s;
 
             if (_border != null)
-                _border.color = Color.Lerp(_godColor, Color.white, t / dur);
+                _border.color = Color.Lerp(_godColor, _rarityColor, t / dur);
+
+            if (_rarityAura != null)
+            {
+                Color aura = _rarityColor;
+                aura.a = LevelUpCardSystem.GetRarityHoverAuraAlpha(_rarity);
+                _rarityAura.color = aura;
+            }
+
+            if (_rarityRim != null)
+            {
+                Color rim = _rarityColor;
+                rim.a = LevelUpCardSystem.GetRarityHoverRimAlpha(_rarity);
+                _rarityRim.color = rim;
+            }
 
             yield return null;
         }
