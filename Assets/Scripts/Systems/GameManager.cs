@@ -90,6 +90,17 @@ public class GameManager : MonoBehaviour
 
     void EnsureMainHudCanvas()
     {
+        // Ana menü sahnesinde HUD oluşturma; varsa yok et.
+        if (SceneManager.GetActiveScene().name == MainMenuSceneName)
+        {
+            if (cachedHud != null)
+            {
+                Destroy(cachedHud.gameObject);
+                cachedHud = null;
+            }
+            return;
+        }
+
         if (cachedHud != null && cachedHud.gameObject.activeSelf && cachedHud.enabled)
             return;
 
