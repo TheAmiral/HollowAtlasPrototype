@@ -350,6 +350,22 @@ public class MainHudCanvasUI : MonoBehaviour
     private GoldWallet        goldWallet;
     private CanvasGroup       hudCanvasGroup;
 
+    // Feedback UI refs (cached during runtime build)
+    private Image     _xpFrameImage;
+    private Transform _levelRowTransform;
+    private Transform _goldPipTransform;
+
+    // Feedback state
+    private int  _prevHp;
+    private int  _prevXp;
+    private int  _prevGold;
+    private int  _prevLevel;
+    private bool _feedbackInitialized;
+    private bool _hpFlashing;
+    private bool _xpPulsing;
+    private bool _goldPopping;
+    private bool _levelBursting;
+
     // ── Lifecycle ────────────────────────────────────────────────────────────
 
     void Awake()
@@ -383,6 +399,7 @@ public class MainHudCanvasUI : MonoBehaviour
         UpdateLabels();
         HandleCriticalHP();
         ForceVisibleHudState();
+        DetectAndTriggerFeedback();
     }
 
     // ── Bar updates ─────────────────────────────────────────────────────────
@@ -503,6 +520,203 @@ public class MainHudCanvasUI : MonoBehaviour
         if (playerHealth    == null) playerHealth    = FindFirstObjectByType<PlayerHealth>();
         if (playerLevelSystem == null) playerLevelSystem = FindFirstObjectByType<PlayerLevelSystem>();
         if (goldWallet      == null) goldWallet      = FindFirstObjectByType<GoldWallet>();
+    }
+
+    // ── HUD reactive feedback ────────────────────────────────────────────────
+
+    private void DetectAndTriggerFeedback()
+    {
+        // First frame: establish baseline without triggering effects.
+        if (!_feedbackInitialized)
+        {
+            _prevHp    = playerHealth?.CurrentHealth ?? 0;
+            _prevXp    = playerLevelSystem?.CurrentXP ?? 0;
+            _prevGold  = goldWallet?.RunGold ?? 0;
+            _prevLevel = playerLevelSystem?.Level ?? 1;
+            _feedbackInitialized = true;
+            return;
+        }
+
+        if (playerHealth != null)
+        {
+            int hp = playerHealth.CurrentHealth;
+            if (!_hpFlashing)
+            {
+                if (hp < _prevHp) StartCoroutine(HpDamageFlash());
+                else if (hp > _prevHp) StartCoroutine(HealFlash());
+            }
+            _prevHp = hp;
+        }
+
+        if (playerLevelSystem != null)
+        {
+            int lvl = playerLevelSystem.Level;
+            int xp  = playerLevelSystem.CurrentXP;
+
+            if (lvl > _prevLevel && !_levelBursting)
+                StartCoroutine(LevelUpBurst());
+            else if (xp != _prevXp && lvl == _prevLevel && !_xpPulsing)
+                StartCoroutine(XpPulse());
+
+            _prevLevel = lvl;
+            _prevXp    = xp;
+        }
+
+        if (goldWallet != null)
+        {
+            int gold = goldWallet.RunGold;
+            if (gold > _prevGold && !_goldPopping)
+                StartCoroutine(GoldPop());
+            _prevGold = gold;
+        }
+    }
+
+    private IEnumerator HpDamageFlash()
+    {
+        _hpFlashing = true;
+        if (hpOrbFill == null) { _hpFlashing = false; yield break; }
+
+        Color orig  = hpOrbFill.color;
+        Color flash = new Color(1f, 0.18f, 0.14f, 1f);
+        float dur   = 0.25f;
+        float t     = 0f;
+
+        while (t < dur)
+        {
+            t += Time.unscaledDeltaTime;
+            if (hpOrbFill != null)
+                hpOrbFill.color = Color.Lerp(flash, orig, Mathf.Clamp01(t / dur));
+            yield return null;
+        }
+
+        if (hpOrbFill != null) hpOrbFill.color = orig;
+        _hpFlashing = false;
+    }
+
+    private IEnumerator HealFlash()
+    {
+        _hpFlashing = true;
+        if (hpOrbFill == null) { _hpFlashing = false; yield break; }
+
+        Color orig  = hpOrbFill.color;
+        Color flash = new Color(0.38f, 1f, 0.65f, 1f);
+        float half  = 0.14f;
+        float t     = 0f;
+
+        while (t < half)
+        {
+            t += Time.unscaledDeltaTime;
+            if (hpOrbFill != null)
+                hpOrbFill.color = Color.Lerp(orig, flash, Mathf.Clamp01(t / half));
+            yield return null;
+        }
+        t = 0f;
+        while (t < half)
+        {
+            t += Time.unscaledDeltaTime;
+            if (hpOrbFill != null)
+                hpOrbFill.color = Color.Lerp(flash, orig, Mathf.Clamp01(t / half));
+            yield return null;
+        }
+
+        if (hpOrbFill != null) hpOrbFill.color = orig;
+        _hpFlashing = false;
+    }
+
+    private IEnumerator XpPulse()
+    {
+        _xpPulsing = true;
+        if (_xpFrameImage == null) { _xpPulsing = false; yield break; }
+
+        Color orig  = _xpFrameImage.color;
+        Color flash = new Color(0.52f, 0.95f, 1.00f, 1f);
+        float half  = 0.18f;
+        float t     = 0f;
+
+        while (t < half)
+        {
+            t += Time.unscaledDeltaTime;
+            if (_xpFrameImage != null)
+                _xpFrameImage.color = Color.Lerp(orig, flash, Mathf.Clamp01(t / half));
+            yield return null;
+        }
+        t = 0f;
+        while (t < half)
+        {
+            t += Time.unscaledDeltaTime;
+            if (_xpFrameImage != null)
+                _xpFrameImage.color = Color.Lerp(flash, orig, Mathf.Clamp01(t / half));
+            yield return null;
+        }
+
+        if (_xpFrameImage != null) _xpFrameImage.color = orig;
+        _xpPulsing = false;
+    }
+
+    private IEnumerator GoldPop()
+    {
+        _goldPopping = true;
+        if (_goldPipTransform == null) { _goldPopping = false; yield break; }
+
+        Vector3 baseScale = Vector3.one;
+        Vector3 peak      = Vector3.one * 1.24f;
+        float   half      = 0.09f;
+        float   t         = 0f;
+
+        while (t < half)
+        {
+            t += Time.unscaledDeltaTime;
+            if (_goldPipTransform != null)
+                _goldPipTransform.localScale = Vector3.Lerp(baseScale, peak, Mathf.Clamp01(t / half));
+            yield return null;
+        }
+        t = 0f;
+        while (t < half)
+        {
+            t += Time.unscaledDeltaTime;
+            if (_goldPipTransform != null)
+                _goldPipTransform.localScale = Vector3.Lerp(peak, baseScale, Mathf.Clamp01(t / half));
+            yield return null;
+        }
+
+        if (_goldPipTransform != null) _goldPipTransform.localScale = baseScale;
+        _goldPopping = false;
+    }
+
+    private IEnumerator LevelUpBurst()
+    {
+        _levelBursting = true;
+        if (_levelRowTransform == null) { _levelBursting = false; yield break; }
+
+        Vector3 baseScale  = Vector3.one;
+        Vector3 peak       = Vector3.one * 1.30f;
+        Color   origText   = levelRomanText != null ? levelRomanText.color : Color.white;
+        Color   burstColor = new Color(1f, 0.88f, 0.28f, 1f);
+        float   riseT      = 0.12f;
+        float   fallT      = 0.22f;
+        float   t          = 0f;
+
+        while (t < riseT)
+        {
+            t += Time.unscaledDeltaTime;
+            float p = Mathf.Clamp01(t / riseT);
+            if (_levelRowTransform != null) _levelRowTransform.localScale = Vector3.Lerp(baseScale, peak, p);
+            if (levelRomanText != null)     levelRomanText.color          = Color.Lerp(origText, burstColor, p);
+            yield return null;
+        }
+        t = 0f;
+        while (t < fallT)
+        {
+            t += Time.unscaledDeltaTime;
+            float p = Mathf.Clamp01(t / fallT);
+            if (_levelRowTransform != null) _levelRowTransform.localScale = Vector3.Lerp(peak, baseScale, p);
+            if (levelRomanText != null)     levelRomanText.color          = Color.Lerp(burstColor, origText, p);
+            yield return null;
+        }
+
+        if (_levelRowTransform != null) _levelRowTransform.localScale = baseScale;
+        if (levelRomanText != null)     levelRomanText.color          = origText;
+        _levelBursting = false;
     }
 
     // ── Roman numeral helper ─────────────────────────────────────────────────
@@ -690,6 +904,7 @@ public class MainHudCanvasUI : MonoBehaviour
         rowRect.pivot            = new Vector2(0f, 1f);
         rowRect.anchoredPosition = new Vector2(0f, 0f);
         rowRect.sizeDelta        = new Vector2(260f, 36f);
+        _levelRowTransform       = row.transform;
 
         // Level badge background
         GameObject levelBadge = new GameObject("Level_Symbol_Bg", typeof(RectTransform), typeof(Image));
@@ -769,6 +984,7 @@ public class MainHudCanvasUI : MonoBehaviour
         Image frameImage = frame.GetComponent<Image>();
         frameImage.sprite = GetRoundedBarSprite();
         frameImage.color  = XpFrameColor;
+        _xpFrameImage     = frameImage;
 
         // Background
         GameObject bg = new GameObject("XP_Bar_Background", typeof(RectTransform), typeof(Image));
@@ -843,6 +1059,7 @@ public class MainHudCanvasUI : MonoBehaviour
         pipRect.pivot            = new Vector2(0f, 1f);
         pipRect.anchoredPosition = new Vector2(0f, -108f);
         pipRect.sizeDelta        = new Vector2(180f, 28f);
+        _goldPipTransform        = pip.transform;
 
         // Coin image (circle)
         GameObject coin = new GameObject("Coin_Image", typeof(RectTransform), typeof(Image));

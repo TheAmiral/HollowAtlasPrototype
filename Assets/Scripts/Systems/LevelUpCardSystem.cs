@@ -973,6 +973,7 @@ public class LevelUpCardSystem : MonoBehaviour
 
         wallet?.SpendGold(cost);
         svc.TrySpendReroll();
+        StartCoroutine(FlashRerollButton());
 
         _inputBlocked = true;
 
@@ -1064,6 +1065,33 @@ public class LevelUpCardSystem : MonoBehaviour
         t.color = flashCol;
         yield return new WaitForSecondsRealtime(dur);
         if (t != null) t.color = orig;
+    }
+
+    IEnumerator FlashRerollButton()
+    {
+        if (_rerollButtonBorderRect == null) yield break;
+        var img = _rerollButtonBorderRect.GetComponent<Image>();
+        if (img == null) yield break;
+
+        Color orig  = img.color;
+        Color flash = new Color(0.45f, 0.92f, 1.00f, 0.95f);
+        float half  = 0.10f;
+        float t     = 0f;
+
+        while (t < half)
+        {
+            t += Time.unscaledDeltaTime;
+            if (img != null) img.color = Color.Lerp(orig, flash, Mathf.Clamp01(t / half));
+            yield return null;
+        }
+        t = 0f;
+        while (t < half)
+        {
+            t += Time.unscaledDeltaTime;
+            if (img != null) img.color = Color.Lerp(flash, orig, Mathf.Clamp01(t / half));
+            yield return null;
+        }
+        if (img != null) img.color = orig;
     }
 
     void BuildVignette(RectTransform parent)
