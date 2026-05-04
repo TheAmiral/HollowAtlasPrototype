@@ -79,6 +79,7 @@ public class BossRewardSystem : MonoBehaviour
         {
             rewardPending = true;
             rewardUiOpened = true;
+            AudioManager.Instance?.PlayBossReward();
         }
     }
 

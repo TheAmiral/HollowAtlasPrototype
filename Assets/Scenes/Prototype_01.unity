@@ -956,8 +956,8 @@ MonoBehaviour:
   targetValue: 0
   currentValue: 0
   rewardGold: 25
-  contractTitle:
-  contractDescription:
+  contractTitle: 
+  contractDescription: 
   showLegacyOnGUI: 0
 --- !u!4 &1106685177
 Transform:

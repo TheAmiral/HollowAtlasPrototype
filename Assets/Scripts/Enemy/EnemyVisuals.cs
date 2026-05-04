@@ -6,7 +6,7 @@ public class EnemyVisuals : MonoBehaviour
 {
     public float hitFlashDuration = 0.08f;
     public Color hitFlashColor = Color.white;
-    public float deathDuration = 0.12f;
+    public float deathDuration = 0.25f;
 
     [Header("Audio Override")]
     [SerializeField] AudioClip hitSfxOverride;
@@ -78,13 +78,24 @@ public class EnemyVisuals : MonoBehaviour
 
         SetAllColors(hitFlashColor);
 
-        float timer = 0f;
+        // Brief scale-up pop before shrinking
+        const float bounceDur = 0.06f;
+        float bounceTimer = 0f;
+        Vector3 bouncePeak = originalScale * 1.12f;
+        while (bounceTimer < bounceDur)
+        {
+            bounceTimer += Time.deltaTime;
+            float t = bounceTimer / bounceDur;
+            transform.localScale = Vector3.Lerp(originalScale, bouncePeak, t);
+            yield return null;
+        }
 
+        float timer = 0f;
         while (timer < deathDuration)
         {
             timer += Time.deltaTime;
             float t = timer / deathDuration;
-            transform.localScale = Vector3.Lerp(originalScale, Vector3.zero, t);
+            transform.localScale = Vector3.Lerp(bouncePeak, Vector3.zero, t);
             yield return null;
         }
 
