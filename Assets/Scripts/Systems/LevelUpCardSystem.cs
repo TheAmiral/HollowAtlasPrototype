@@ -311,8 +311,8 @@ public class LevelUpCardSystem : MonoBehaviour
     CardWidget BuildCard(RectTransform parent, LevelUpCard card, float xPos, int index)
     {
         Color godCol = CardPool.GodColor(card.god);
-        CardRarity resolvedRarity = card.GetResolvedRarity();
-        CardRarityPresentation rarityPresentation = CardPool.GetRarityPresentation(resolvedRarity);
+        CardRarity displayRarity = card.GetDisplayRarity();
+        CardRarityPresentation rarityPresentation = CardPool.GetRarityPresentation(displayRarity);
 
         var glowGo = MakePanel(
             parent,
@@ -660,18 +660,19 @@ public class LevelUpCardSystem : MonoBehaviour
         if (cards == null)
             return;
 
-        foreach (var card in cards)
+        for (int i = 0; i < cards.Count; i++)
         {
+            var card = cards[i];
             if (card == null)
             {
-                CardRarityResolver.LogWarning("[LevelUpCard] Missing card data in generated offer.");
+                CardRarityResolver.LogWarning($"[LevelUpCard] OfferSlot={i + 1} Missing card data in generated offer.");
                 continue;
             }
 
-            CardRarity expectedRarity = card.GetExpectedRarity();
-            CardRarity resolvedRarity = card.GetResolvedRarity();
+            CardRarity auditExpected = card.GetExpectedRarity();
+            CardRarity displayRarity = card.GetDisplayRarity();
             CardRarityResolver.Log(
-                $"[LevelUpCard] Card={card.title} Source={card.god} RawRarity={card.rarity} ExpectedRarity={expectedRarity} ResolvedRarity={resolvedRarity} Score={card.powerScore}"
+                $"[LevelUpCard] OfferSlot={i + 1} Id={card.id} Title={card.title} Source={card.god} DisplayRarity={displayRarity} AuditExpected={auditExpected} Score={card.powerScore}"
             );
         }
     }

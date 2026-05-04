@@ -83,6 +83,7 @@ public class LevelUpCard
     public string godName;
     public CardGod god;
     public CardRarity rarity { get; private set; }
+    public CardRarity DesignRarity => rarity;
     public int powerScore { get; private set; }
     public CardEffectTag effectTags { get; private set; }
     public bool hasTradeoff { get; private set; }
@@ -133,7 +134,9 @@ public class LevelUpCard
 
     public CardRarity GetExpectedRarity() => CardRarityResolver.GetExpectedRarity(this);
 
-    public CardRarity GetResolvedRarity() => CardRarityResolver.GetResolvedRarity(this);
+    public CardRarity GetDisplayRarity() => CardRarityResolver.GetDisplayRarity(this);
+
+    public CardRarity GetResolvedRarity() => GetDisplayRarity();
 
     public LevelUpCard CreateRuntimeCopy()
     {
@@ -213,12 +216,25 @@ public static class CardRarityResolver
         return expected;
     }
 
-    public static CardRarity GetResolvedRarity(LevelUpCard card)
+    public static void LogRarityAuditWarning(LevelUpCard card, CardRarity expected, string reason)
+    {
+        if (card == null)
+        {
+            LogWarning($"[LevelUpCard][RARITY AUDIT WARNING] Missing card data. Expected={expected} Reason={reason}");
+            return;
+        }
+
+        LogWarning(
+            $"[LevelUpCard][RARITY AUDIT WARNING] Id={card.id} Title={card.title} Assigned={card.DesignRarity} Expected={expected} Score={card.powerScore} Reason={reason}"
+        );
+    }
+
+    public static CardRarity GetDisplayRarity(LevelUpCard card)
     {
         if (card == null)
             return CardRarity.Unknown;
 
-        if (!CardPool.IsValidRarity(card.rarity))
+        if (!CardPool.IsValidRarity(card.DesignRarity))
         {
             LogWarning($"[LevelUpCard] Missing rarity for card: {card.title}");
             return CardRarity.Unknown;
@@ -226,16 +242,15 @@ public static class CardRarityResolver
 
         CardRarity expected = GetExpectedRarity(card);
 
-        if (CardPool.IsValidRarity(expected) && card.rarity != expected)
+        if (CardPool.IsValidRarity(expected) && card.DesignRarity != expected)
         {
-            LogWarning(
-                $"[LevelUpCard][RARITY MISMATCH] Card={card.title} Raw={card.rarity} Expected={expected} Score={card.powerScore}"
-            );
-            return expected;
+            LogRarityAuditWarning(card, expected, "Assigned rarity differs from audit profile.");
         }
 
-        return card.rarity;
+        return card.DesignRarity;
     }
+
+    public static CardRarity GetResolvedRarity(LevelUpCard card) => GetDisplayRarity(card);
 }
 
 public static class CardPool
@@ -363,7 +378,7 @@ public static class CardPool
                 "◈",
                 "Atlas",
                 CardGod.Atlas,
-                CardRarity.Common,
+                CardRarity.Rare,
                 player =>
                 {
                     var hp = player.GetComponent<PlayerHealth>();
@@ -1054,7 +1069,7 @@ public static class CardPool
         {
             { "nyx_veil", Profile(35, CardEffectTag.DashDamage | CardEffectTag.DashMobility) },
             { "than_harvest", Profile(28, CardEffectTag.AuraDamage) },
-            { "atlas_iron", Profile(20, CardEffectTag.Health | CardEffectTag.Heal) },
+            { "atlas_iron", Profile(30, CardEffectTag.Health | CardEffectTag.Heal) },
             { "hermes_wind", Profile(12, CardEffectTag.Movement) },
             { "khaos_balance", Profile(36, CardEffectTag.AuraDamage | CardEffectTag.AuraRange | CardEffectTag.Movement | CardEffectTag.Health | CardEffectTag.Heal) },
             { "nyx_shadow_surge", Profile(34, CardEffectTag.AuraDamage | CardEffectTag.AuraRange) },
@@ -1119,7 +1134,7 @@ public static class CardPool
                 cursedChance
             );
 
-            var candidates = All.FindAll(card => card.GetResolvedRarity() == target && !usedIds.Contains(card.id));
+            var candidates = All.FindAll(card => card.GetDisplayRarity() == target && !usedIds.Contains(card.id));
 
             if (candidates.Count == 0)
                 candidates = All.FindAll(card => !usedIds.Contains(card.id));
@@ -1159,11 +1174,9 @@ public static class CardPool
             }
 
             CardRarity expected = card.GetExpectedRarity();
-            if (IsValidRarity(expected) && expected != card.rarity)
+            if (IsValidRarity(expected) && expected != card.DesignRarity)
             {
-                CardRarityResolver.LogWarning(
-                    $"[LevelUpCard][RARITY MISMATCH] Card={card.title} Raw={card.rarity} Expected={expected} Score={card.powerScore}"
-                );
+                CardRarityResolver.LogRarityAuditWarning(card, expected, "Pool audit mismatch.");
             }
         }
     }
@@ -1176,31 +1189,31 @@ public static class CardPool
         out float legendary,
         out float cursed)
     {
-        if (playerLevel <= 3)
+        if (playerLevel <= 2)
         {
-            common = 0.75f;
-            rare = 0.25f;
+            common = 0.80f;
+            rare = 0.20f;
             epic = 0f;
             legendary = 0f;
             cursed = 0f;
             return;
         }
 
-        if (playerLevel <= 7)
+        if (playerLevel <= 5)
         {
-            common = 0.55f;
-            rare = 0.35f;
-            epic = 0.10f;
+            common = 0.65f;
+            rare = 0.30f;
+            epic = 0.05f;
             legendary = 0f;
             cursed = 0f;
             return;
         }
 
-        common = 0.40f;
-        rare = 0.35f;
-        epic = 0.18f;
-        legendary = 0.05f;
-        cursed = 0.02f;
+        common = 0.45f;
+        rare = 0.40f;
+        epic = 0.13f;
+        legendary = 0.02f;
+        cursed = 0f;
     }
 
     static CardRarity RollRarity(
