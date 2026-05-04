@@ -99,7 +99,11 @@ public class LevelUpCardSystem : MonoBehaviour
             return false;
 
         _player = GameObject.FindGameObjectWithTag("Player");
-        _currentCards = cards;
+        _currentCards = CreateRuntimeOfferCards(cards);
+
+        if (_currentCards.Count == 0)
+            return false;
+
         _overrideTitle = title;
         _overrideSubtitle = subtitle;
         _onSelectionComplete = onComplete;
@@ -304,7 +308,8 @@ public class LevelUpCardSystem : MonoBehaviour
     CardWidget BuildCard(RectTransform parent, LevelUpCard card, float xPos, int index)
     {
         Color godCol = CardPool.GodColor(card.god);
-        CardRarityPresentation rarityPresentation = CardPool.GetRarityPresentation(card.rarity);
+        CardRarity resolvedRarity = card.GetResolvedRarity();
+        CardRarityPresentation rarityPresentation = CardPool.GetRarityPresentation(resolvedRarity);
 
         var glowGo = MakePanel(
             parent,
@@ -624,6 +629,24 @@ public class LevelUpCardSystem : MonoBehaviour
         hoverPromptGo.GetComponent<Image>().raycastTarget = false;
 
         return widget;
+    }
+
+    static List<LevelUpCard> CreateRuntimeOfferCards(List<LevelUpCard> sourceCards)
+    {
+        var runtimeCards = new List<LevelUpCard>(sourceCards.Count);
+
+        foreach (var card in sourceCards)
+        {
+            if (card == null)
+            {
+                Debug.LogWarning("LevelUpCardSystem received a null custom card.");
+                continue;
+            }
+
+            runtimeCards.Add(card.CreateRuntimeCopy());
+        }
+
+        return runtimeCards;
     }
 
     IEnumerator AnimateIn(int level)

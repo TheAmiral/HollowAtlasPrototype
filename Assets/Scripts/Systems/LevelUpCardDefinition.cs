@@ -4,11 +4,12 @@ using UnityEngine;
 
 public enum CardRarity
 {
-    Common,
-    Rare,
-    Epic,
-    Legendary,
-    Cursed
+    Unknown = 0,
+    Common = 1,
+    Rare = 2,
+    Epic = 3,
+    Legendary = 4,
+    Cursed = 5
 }
 
 public enum CardGod
@@ -44,7 +45,7 @@ public class LevelUpCard
     public string godIcon;
     public string godName;
     public CardGod god;
-    public CardRarity rarity;
+    public CardRarity rarity { get; private set; }
 
     public Action<GameObject> Apply;
 
@@ -68,6 +69,41 @@ public class LevelUpCard
         this.god = god;
         this.rarity = rarity;
         this.Apply = apply;
+
+        if (!CardPool.IsValidRarity(rarity))
+        {
+            Debug.LogWarning(
+                $"LevelUpCard '{title}' ({id}) was created with missing or invalid rarity '{rarity}'. " +
+                "Assign an explicit CardRarity in the card definition."
+            );
+        }
+    }
+
+    public CardRarity GetResolvedRarity()
+    {
+        if (CardPool.IsValidRarity(rarity))
+            return rarity;
+
+        Debug.LogWarning(
+            $"LevelUpCard '{title}' ({id}) has missing or invalid rarity '{rarity}' at runtime. " +
+            "Using Common only as a visible fallback; fix the card definition."
+        );
+        return CardRarity.Common;
+    }
+
+    public LevelUpCard CreateRuntimeCopy()
+    {
+        return new LevelUpCard(
+            id,
+            title,
+            description,
+            effectPreview,
+            godIcon,
+            godName,
+            god,
+            GetResolvedRarity(),
+            Apply
+        );
     }
 }
 
@@ -83,8 +119,21 @@ public static class CardPool
         _ => Color.white
     };
 
+    public static bool IsValidRarity(CardRarity r) =>
+        r == CardRarity.Common ||
+        r == CardRarity.Rare ||
+        r == CardRarity.Epic ||
+        r == CardRarity.Legendary ||
+        r == CardRarity.Cursed;
+
     public static CardRarityPresentation GetRarityPresentation(CardRarity r)
     {
+        if (!IsValidRarity(r))
+        {
+            Debug.LogWarning($"Invalid card rarity '{r}' requested for presentation. Using Common fallback.");
+            r = CardRarity.Common;
+        }
+
         switch (r)
         {
             case CardRarity.Common:
@@ -136,7 +185,7 @@ public static class CardPool
 
     static List<LevelUpCard> BuildPool()
     {
-        return new List<LevelUpCard>
+        var pool = new List<LevelUpCard>
         {
             new LevelUpCard(
                 "nyx_veil",
@@ -146,7 +195,7 @@ public static class CardPool
                 "☽",
                 "Nyx",
                 CardGod.Nyx,
-                CardRarity.Epic,
+                CardRarity.Rare,
                 player =>
                 {
                     var mv = player.GetComponent<PlayerMovement>();
@@ -166,7 +215,7 @@ public static class CardPool
                 "⚔",
                 "Thanatos",
                 CardGod.Thanatos,
-                CardRarity.Common,
+                CardRarity.Rare,
                 player =>
                 {
                     var aura = player.GetComponent<AutoAttackAura>();
@@ -351,7 +400,7 @@ public static class CardPool
                 "⚔",
                 "Thanatos",
                 CardGod.Thanatos,
-                CardRarity.Legendary,
+                CardRarity.Epic,
                 player =>
                 {
                     var aura = player.GetComponent<AutoAttackAura>();
@@ -457,7 +506,7 @@ public static class CardPool
                 "⚔",
                 "Thanatos",
                 CardGod.Thanatos,
-                CardRarity.Epic,
+                CardRarity.Legendary,
                 player =>
                 {
                     var aura = player.GetComponent<AutoAttackAura>();
@@ -767,7 +816,7 @@ public static class CardPool
                 "∞",
                 "Khaos",
                 CardGod.Khaos,
-                CardRarity.Epic,
+                CardRarity.Legendary,
                 player =>
                 {
                     var aura = player.GetComponent<AutoAttackAura>();
@@ -846,6 +895,9 @@ public static class CardPool
                 }
             )
         };
+
+        AuditPool(pool);
+        return pool;
     }
 
     public static List<LevelUpCard> PickRandom(int count, int playerLevel)
@@ -872,7 +924,7 @@ public static class CardPool
                 cursedChance
             );
 
-            var candidates = All.FindAll(card => card.rarity == target && !usedIds.Contains(card.id));
+            var candidates = All.FindAll(card => card.GetResolvedRarity() == target && !usedIds.Contains(card.id));
 
             if (candidates.Count == 0)
                 candidates = All.FindAll(card => !usedIds.Contains(card.id));
@@ -880,12 +932,39 @@ public static class CardPool
             if (candidates.Count == 0)
                 break;
 
-            LevelUpCard pick = candidates[UnityEngine.Random.Range(0, candidates.Count)];
+            LevelUpCard pick = candidates[UnityEngine.Random.Range(0, candidates.Count)].CreateRuntimeCopy();
             result.Add(pick);
             usedIds.Add(pick.id);
         }
 
         return result;
+    }
+
+    static void AuditPool(List<LevelUpCard> cards)
+    {
+        var ids = new HashSet<string>();
+
+        foreach (var card in cards)
+        {
+            if (card == null)
+            {
+                Debug.LogWarning("CardPool contains a null card definition.");
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(card.id))
+                Debug.LogWarning($"LevelUpCard '{card.title}' has an empty id.");
+            else if (!ids.Add(card.id))
+                Debug.LogWarning($"Duplicate LevelUpCard id detected: '{card.id}'.");
+
+            if (!IsValidRarity(card.rarity))
+            {
+                Debug.LogWarning(
+                    $"LevelUpCard '{card.title}' ({card.id}) has invalid rarity '{card.rarity}'. " +
+                    "It will not be silently treated as Common."
+                );
+            }
+        }
     }
 
     static void GetRarityChances(
