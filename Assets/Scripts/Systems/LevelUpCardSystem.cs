@@ -304,7 +304,7 @@ public class LevelUpCardSystem : MonoBehaviour
     CardWidget BuildCard(RectTransform parent, LevelUpCard card, float xPos, int index)
     {
         Color godCol = CardPool.GodColor(card.god);
-        Color rarityCol = CardPool.RarityColor(card.rarity);
+        CardRarityPresentation rarityPresentation = CardPool.GetRarityPresentation(card.rarity);
 
         var glowGo = MakePanel(
             parent,
@@ -452,24 +452,12 @@ public class LevelUpCardSystem : MonoBehaviour
         );
         ConfigureCardText(godNameText, TextAnchor.MiddleLeft, 11, 15);
 
-        Color badgeBgColor = Color.Lerp(
-            new Color(0.040f, 0.038f, 0.052f, 0.98f),
-            rarityCol,
-            card.rarity == CardRarity.Common ? 0.35f : 0.72f
-        );
-
-        Color badgeTextColor = Color.Lerp(
-            Color.white,
-            rarityCol,
-            card.rarity == CardRarity.Common ? 0.05f : 0.18f
-        );
-
         var badgeBg = MakePanel(
             labelRect,
             "Badge",
             new Vector2(0.58f, 0f),
             Vector2.one,
-            badgeBgColor
+            rarityPresentation.BadgeColor
         );
 
         var badgeRect = badgeBg.GetComponent<RectTransform>();
@@ -477,14 +465,14 @@ public class LevelUpCardSystem : MonoBehaviour
         var badgeText = MakeText(
             badgeRect,
             "BadgeText",
-            CardPool.RarityLabel(card.rarity),
+            rarityPresentation.Label,
             Vector2.zero,
             Vector2.one,
             Vector2.zero,
             Vector2.zero,
             13,
             FontStyle.Bold,
-            badgeTextColor
+            rarityPresentation.TextColor
         );
         ConfigureCardText(badgeText, TextAnchor.MiddleCenter, 11, 13);
 

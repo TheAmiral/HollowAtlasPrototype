@@ -165,9 +165,9 @@ public class BossRewardSystem : MonoBehaviour
                 "Atlas Çekirdeği",
                 "Atlas enerjisi bedenini güçlendirir. Maksimum canın artar, iyileşirsin ve yüksek altın kazanırsın.",
                 "+45 Maks. Can  +45 İyileşme  +60 Gold",
-                "☽",
-                "Nyx",
-                CardGod.Nyx,
+                "◈",
+                "Atlas",
+                CardGod.Atlas,
                 CardRarity.Legendary,
                 _ => ApplyReward(3)
             ),

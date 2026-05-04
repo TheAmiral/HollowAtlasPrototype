@@ -20,6 +20,20 @@ public enum CardGod
     Khaos
 }
 
+public struct CardRarityPresentation
+{
+    public string Label { get; private set; }
+    public Color BadgeColor { get; private set; }
+    public Color TextColor { get; private set; }
+
+    public CardRarityPresentation(string label, Color badgeColor, Color textColor)
+    {
+        Label = label;
+        BadgeColor = badgeColor;
+        TextColor = textColor;
+    }
+}
+
 [Serializable]
 public class LevelUpCard
 {
@@ -69,25 +83,53 @@ public static class CardPool
         _ => Color.white
     };
 
-    public static Color RarityColor(CardRarity r) => r switch
+    public static CardRarityPresentation GetRarityPresentation(CardRarity r)
     {
-        CardRarity.Common => new Color(0.45f, 0.44f, 0.52f, 1f),
-        CardRarity.Rare => new Color(0.220f, 0.690f, 1.000f, 1f),
-        CardRarity.Epic => new Color(0.665f, 0.300f, 0.930f, 1f),
-        CardRarity.Legendary => new Color(1.000f, 0.610f, 0.120f, 1f),
-        CardRarity.Cursed => new Color(0.900f, 0.100f, 0.100f, 1f),
-        _ => Color.white
-    };
+        switch (r)
+        {
+            case CardRarity.Common:
+                return new CardRarityPresentation(
+                    "YAYGIN",
+                    new Color(0.21f, 0.21f, 0.27f, 0.98f),
+                    new Color(0.86f, 0.86f, 0.92f, 1f)
+                );
 
-    public static string RarityLabel(CardRarity r) => r switch
-    {
-        CardRarity.Common => "YAYGIN",
-        CardRarity.Rare => "NADİR",
-        CardRarity.Epic => "ENDER",
-        CardRarity.Legendary => "DESTANSI",
-        CardRarity.Cursed => "LANETLİ",
-        _ => ""
-    };
+            case CardRarity.Rare:
+                return new CardRarityPresentation(
+                    "NADİR",
+                    new Color(0.05f, 0.34f, 0.58f, 0.98f),
+                    new Color(0.74f, 0.94f, 1.00f, 1f)
+                );
+
+            case CardRarity.Epic:
+                return new CardRarityPresentation(
+                    "ENDER",
+                    new Color(0.34f, 0.14f, 0.56f, 0.98f),
+                    new Color(0.90f, 0.78f, 1.00f, 1f)
+                );
+
+            case CardRarity.Legendary:
+                return new CardRarityPresentation(
+                    "DESTANSI",
+                    new Color(0.62f, 0.34f, 0.04f, 0.98f),
+                    new Color(1.00f, 0.90f, 0.48f, 1f)
+                );
+
+            case CardRarity.Cursed:
+                return new CardRarityPresentation(
+                    "LANETLİ",
+                    new Color(0.54f, 0.05f, 0.08f, 0.98f),
+                    new Color(1.00f, 0.72f, 0.72f, 1f)
+                );
+
+            default:
+                throw new ArgumentOutOfRangeException(nameof(r), r, "Unknown card rarity.");
+        }
+    }
+
+    public static Color RarityColor(CardRarity r) => GetRarityPresentation(r).BadgeColor;
+
+    public static string RarityLabel(CardRarity r) => GetRarityPresentation(r).Label;
 
     private static List<LevelUpCard> _all;
     public static List<LevelUpCard> All => _all ??= BuildPool();
@@ -309,7 +351,7 @@ public static class CardPool
                 "⚔",
                 "Thanatos",
                 CardGod.Thanatos,
-                CardRarity.Epic,
+                CardRarity.Legendary,
                 player =>
                 {
                     var aura = player.GetComponent<AutoAttackAura>();
@@ -501,7 +543,7 @@ public static class CardPool
                 "◈",
                 "Atlas",
                 CardGod.Atlas,
-                CardRarity.Epic,
+                CardRarity.Legendary,
                 player =>
                 {
                     var aura = player.GetComponent<AutoAttackAura>();
@@ -522,8 +564,8 @@ public static class CardPool
                 "Lanetli Güç",
                 "Hasarın ciddi şekilde artar ama maksimum canın düşer.",
                 "+14 Aura Hasar  +10 Dash Hasar  -20 Maks. Can",
-                "✖",
-                "Lanet",
+                "⚔",
+                "Thanatos",
                 CardGod.Thanatos,
                 CardRarity.Cursed,
                 player =>
@@ -547,8 +589,8 @@ public static class CardPool
                 "Titan Yükü",
                 "Canın ve aura gücün artar ama hareket hızın azalır.",
                 "+35 Maks. Can  +7 Aura Hasar  -0.8 Hız",
-                "✖",
-                "Lanet",
+                "◈",
+                "Atlas",
                 CardGod.Atlas,
                 CardRarity.Cursed,
                 player =>
@@ -784,8 +826,8 @@ public static class CardPool
                 "Kırılganlık Lütfu",
                 "Muazzam saldırı gücü kazanırsın ama bedenin zayıflar.",
                 "+18 Aura Hasar  +14 Dash Hasar  -30 Maks. Can",
-                "✖",
-                "Lanet",
+                "∞",
+                "Khaos",
                 CardGod.Khaos,
                 CardRarity.Cursed,
                 player =>

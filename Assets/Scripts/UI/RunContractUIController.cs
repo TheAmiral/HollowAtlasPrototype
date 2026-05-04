@@ -11,6 +11,12 @@ public class RunContractUIController : MonoBehaviour
     private static readonly Color ProgressDoneColor   = new Color32(0x64, 0xF1, 0xE6, 0xFF);
     private static readonly Color RewardColor         = new Color32(0xFF, 0xE0, 0x90, 0xCC);
 
+    private const float PanelWidth = 250f;
+    private const float PanelMinHeight = 117f;
+    private const float PanelSpacing = 8f;
+    private const float RightMargin = 20f;
+    private const float BottomMargin = 20f;
+
     private CanvasGroup panelGroup;
     private Text        titleText;
     private Text        descText;
@@ -70,24 +76,66 @@ public class RunContractUIController : MonoBehaviour
         RectTransform root = GetComponent<RectTransform>();
         Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
-        // Panel outer (Image = border colour, visible as 1px frame around inner bg)
-        GameObject panelGO = new GameObject("ContractPanel", typeof(RectTransform), typeof(Image));
-        panelGO.transform.SetParent(root, false);
+        GameObject stackGO = new GameObject(
+            "ContractStack",
+            typeof(RectTransform),
+            typeof(VerticalLayoutGroup),
+            typeof(ContentSizeFitter)
+        );
+        stackGO.transform.SetParent(root, false);
 
-        RectTransform panelRect = panelGO.GetComponent<RectTransform>();
-        panelRect.anchorMin        = new Vector2(1f, 0f);
-        panelRect.anchorMax        = new Vector2(1f, 0f);
-        panelRect.pivot            = new Vector2(1f, 0f);
-        panelRect.anchoredPosition = new Vector2(-20f, 20f);
-        panelRect.sizeDelta        = new Vector2(270f, 112f);
+        RectTransform stackRect = stackGO.GetComponent<RectTransform>();
+        stackRect.anchorMin        = new Vector2(1f, 0f);
+        stackRect.anchorMax        = new Vector2(1f, 0f);
+        stackRect.pivot            = new Vector2(1f, 0f);
+        stackRect.anchoredPosition = new Vector2(-RightMargin, BottomMargin);
+        stackRect.sizeDelta        = new Vector2(PanelWidth, 0f);
 
-        panelGO.GetComponent<Image>().color = BorderColor;
+        VerticalLayoutGroup stackLayout = stackGO.GetComponent<VerticalLayoutGroup>();
+        stackLayout.padding                = new RectOffset(0, 0, 0, 0);
+        stackLayout.spacing                = PanelSpacing;
+        stackLayout.childAlignment         = TextAnchor.LowerRight;
+        stackLayout.childControlWidth      = true;
+        stackLayout.childControlHeight     = true;
+        stackLayout.childForceExpandWidth  = true;
+        stackLayout.childForceExpandHeight = false;
 
-        panelGroup                = panelGO.AddComponent<CanvasGroup>();
+        ContentSizeFitter stackFitter = stackGO.GetComponent<ContentSizeFitter>();
+        stackFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        stackFitter.verticalFit   = ContentSizeFitter.FitMode.PreferredSize;
+
+        panelGroup                = stackGO.AddComponent<CanvasGroup>();
         panelGroup.interactable   = false;
         panelGroup.blocksRaycasts = false;
 
-        // Inner background — 1 px inset so border colour shows as frame
+        BuildContractPanel(stackRect, font);
+    }
+
+    void BuildContractPanel(RectTransform parent, Font font)
+    {
+        GameObject panelGO = new GameObject(
+            "ContractPanel",
+            typeof(RectTransform),
+            typeof(Image),
+            typeof(LayoutElement)
+        );
+        panelGO.transform.SetParent(parent, false);
+
+        RectTransform panelRect = panelGO.GetComponent<RectTransform>();
+        panelRect.sizeDelta = new Vector2(PanelWidth, PanelMinHeight);
+
+        Image panelImage = panelGO.GetComponent<Image>();
+        panelImage.color = BorderColor;
+        panelImage.raycastTarget = false;
+
+        LayoutElement panelLayout = panelGO.GetComponent<LayoutElement>();
+        panelLayout.minWidth        = PanelWidth;
+        panelLayout.preferredWidth  = PanelWidth;
+        panelLayout.minHeight       = PanelMinHeight;
+        panelLayout.preferredHeight = PanelMinHeight;
+        panelLayout.flexibleWidth   = 0f;
+        panelLayout.flexibleHeight  = 0f;
+
         GameObject bgGO = MakeChild(panelRect, "Background", PanelBgColor);
         RectTransform bgRect = bgGO.GetComponent<RectTransform>();
         bgRect.anchorMin = Vector2.zero;
@@ -95,33 +143,56 @@ public class RunContractUIController : MonoBehaviour
         bgRect.offsetMin = new Vector2( 1f,  1f);
         bgRect.offsetMax = new Vector2(-1f, -1f);
 
-        // Text rows (anchored to top of panel, padding via sizeDelta.x = -20)
-        titleText    = MakeTextRow(panelRect, "TitleText",    "—",     10f, 22f, TitleColor,    13, FontStyle.Bold,   font);
-        descText     = MakeTextRow(panelRect, "DescText",     "",      34f, 20f, DescColor,     11, FontStyle.Normal, font);
-        progressText = MakeTextRow(panelRect, "ProgressText", "0 / 0", 58f, 24f, ProgressColor, 13, FontStyle.Bold,   font);
-        rewardText   = MakeTextRow(panelRect, "RewardText",   "",      88f, 18f, RewardColor,   10, FontStyle.Normal, font);
+        GameObject contentGO = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup));
+        contentGO.transform.SetParent(panelRect, false);
+
+        RectTransform contentRect = contentGO.GetComponent<RectTransform>();
+        contentRect.anchorMin = Vector2.zero;
+        contentRect.anchorMax = Vector2.one;
+        contentRect.offsetMin = new Vector2(12f, 8f);
+        contentRect.offsetMax = new Vector2(-12f, -8f);
+
+        VerticalLayoutGroup contentLayout = contentGO.GetComponent<VerticalLayoutGroup>();
+        contentLayout.padding                = new RectOffset(0, 0, 0, 0);
+        contentLayout.spacing                = 2f;
+        contentLayout.childAlignment         = TextAnchor.UpperLeft;
+        contentLayout.childControlWidth      = true;
+        contentLayout.childControlHeight     = true;
+        contentLayout.childForceExpandWidth  = true;
+        contentLayout.childForceExpandHeight = false;
+
+        titleText    = MakeTextRow(contentRect, "TitleText",    "—",     22f, TitleColor,    13, FontStyle.Bold,   font);
+        descText     = MakeTextRow(contentRect, "DescText",     "",      20f, DescColor,     11, FontStyle.Normal, font);
+        progressText = MakeTextRow(contentRect, "ProgressText", "0 / 0", 24f, ProgressColor, 13, FontStyle.Bold,   font);
+        rewardText   = MakeTextRow(contentRect, "RewardText",   "",      18f, RewardColor,   10, FontStyle.Normal, font);
     }
 
     static GameObject MakeChild(RectTransform parent, string name, Color color)
     {
         GameObject go = new GameObject(name, typeof(RectTransform), typeof(Image));
         go.transform.SetParent(parent, false);
-        go.GetComponent<Image>().color = color;
+        Image image = go.GetComponent<Image>();
+        image.color = color;
+        image.raycastTarget = false;
         return go;
     }
 
     static Text MakeTextRow(RectTransform parent, string name, string content,
-        float yFromTop, float height, Color color, int fontSize, FontStyle style, Font font)
+        float height, Color color, int fontSize, FontStyle style, Font font)
     {
-        GameObject go = new GameObject(name, typeof(RectTransform), typeof(Text));
+        GameObject go = new GameObject(name, typeof(RectTransform), typeof(Text), typeof(LayoutElement));
         go.transform.SetParent(parent, false);
 
         RectTransform rect = go.GetComponent<RectTransform>();
-        rect.anchorMin        = new Vector2(0f, 1f);
-        rect.anchorMax        = new Vector2(1f, 1f);
-        rect.pivot            = new Vector2(0.5f, 1f);
-        rect.anchoredPosition = new Vector2(0f, -yFromTop);
-        rect.sizeDelta        = new Vector2(-20f, height);
+        rect.anchorMin = new Vector2(0f, 1f);
+        rect.anchorMax = new Vector2(1f, 1f);
+        rect.pivot     = new Vector2(0.5f, 1f);
+        rect.sizeDelta = new Vector2(0f, height);
+
+        LayoutElement layout = go.GetComponent<LayoutElement>();
+        layout.minHeight       = height;
+        layout.preferredHeight = height;
+        layout.flexibleHeight  = 0f;
 
         Text text = go.GetComponent<Text>();
         text.font               = font;
@@ -131,7 +202,10 @@ public class RunContractUIController : MonoBehaviour
         text.color              = color;
         text.alignment          = TextAnchor.MiddleLeft;
         text.horizontalOverflow = HorizontalWrapMode.Wrap;
-        text.verticalOverflow   = VerticalWrapMode.Overflow;
+        text.verticalOverflow   = VerticalWrapMode.Truncate;
+        text.resizeTextForBestFit = true;
+        text.resizeTextMinSize    = Mathf.Max(8, fontSize - 3);
+        text.resizeTextMaxSize    = fontSize;
         text.raycastTarget      = false;
         return text;
     }
