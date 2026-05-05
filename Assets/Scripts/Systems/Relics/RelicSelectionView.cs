@@ -227,15 +227,15 @@ public class RelicSelectionView : MonoBehaviour
         bandRect.anchorMin = new Vector2(0f, 1f);
         bandRect.anchorMax = new Vector2(1f, 1f);
         bandRect.pivot     = new Vector2(0.5f, 1f);
-        bandRect.sizeDelta = new Vector2(0f, 80f);
+        bandRect.sizeDelta = new Vector2(0f, 75f);
         bandRect.anchoredPosition = Vector2.zero;
         bandGo.GetComponent<Image>().raycastTarget = false;
 
         // Category icon
-        var iconRect = MakeRegion(bodyRect, "IconArea", 32f, 50f, 0f);
+        var iconRect = MakeRegion(bodyRect, "IconArea", 28f, 46f, 0f);
         var iconT    = MakeText(iconRect, "Icon", GetCategoryIcon(relic.category),
             Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-            40, FontStyle.Normal, CardThemeLibrary.WithAlpha(theme.text, 0.72f));
+            36, FontStyle.Normal, CardThemeLibrary.WithAlpha(theme.text, 0.72f));
         iconT.alignment = TextAnchor.MiddleCenter;
 
         // Category label badge
@@ -243,8 +243,8 @@ public class RelicSelectionView : MonoBehaviour
             CardThemeLibrary.WithAlpha(theme.main, 0.20f));
         var catRect = catGo.GetComponent<RectTransform>();
         catRect.pivot     = new Vector2(0.5f, 1f);
-        catRect.sizeDelta = new Vector2(188f, 26f);
-        catRect.anchoredPosition = new Vector2(0f, -86f);
+        catRect.sizeDelta = new Vector2(170f, 26f);
+        catRect.anchoredPosition = new Vector2(0f, -82f);
         catGo.GetComponent<Image>().raycastTarget = false;
         var catT = MakeText(catRect, "CatText", GetCategoryName(relic.category).ToUpper(),
             Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
@@ -259,11 +259,11 @@ public class RelicSelectionView : MonoBehaviour
             BuildCornerFlare(bodyRect, theme.main);
 
         // Title
-        var titleRect = MakeRegion(bodyRect, "TitleArea", 122f, 52f, 16f);
+        var titleRect = MakeRegion(bodyRect, "TitleArea", 116f, 52f, 16f);
         var titleT    = MakeText(titleRect, "RelicTitle", relic.title,
             Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-            23, FontStyle.Bold, theme.text);
-        ConfigText(titleT, TextAnchor.MiddleCenter, 14, 23);
+            21, FontStyle.Bold, theme.text);
+        ConfigText(titleT, TextAnchor.MiddleCenter, 13, 21);
 
         // Divider
         var divGo   = MakePanel(bodyRect, "Divider", Vector2.zero, Vector2.zero,
@@ -273,15 +273,15 @@ public class RelicSelectionView : MonoBehaviour
         divRect.anchorMax = new Vector2(0.9f, 1f);
         divRect.pivot     = new Vector2(0.5f, 1f);
         divRect.sizeDelta = new Vector2(0f, 1.5f);
-        divRect.anchoredPosition = new Vector2(0f, -183f);
+        divRect.anchoredPosition = new Vector2(0f, -177f);
         divGo.GetComponent<Image>().raycastTarget = false;
 
         // Description
-        var descRect = MakeRegion(bodyRect, "DescArea", 194f, 120f, 18f);
+        var descRect = MakeRegion(bodyRect, "DescArea", 188f, 132f, 18f);
         var descT    = MakeText(descRect, "Desc", relic.description,
             Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-            15, FontStyle.Normal, new Color(theme.text.r, theme.text.g, theme.text.b, 0.78f));
-        ConfigText(descT, TextAnchor.UpperCenter, 11, 15);
+            14, FontStyle.Normal, new Color(theme.text.r, theme.text.g, theme.text.b, 0.78f));
+        ConfigText(descT, TextAnchor.UpperCenter, 10, 14);
 
         // Index number
         var numT = MakeText(bodyRect, "IndexNum", $"[ {index + 1} ]",
