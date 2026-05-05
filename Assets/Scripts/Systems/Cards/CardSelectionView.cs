@@ -62,7 +62,7 @@ public class CardSelectionView : MonoBehaviour
 
         for (int i = 0; i < _views.Count; i++)
         {
-            var g = _views[i].GetComponent<CanvasGroup>() ?? _views[i].gameObject.AddComponent<CanvasGroup>();
+            var g = GetOrAddCanvasGroup(_views[i].gameObject);
             StartCoroutine(Fade(g, 1f, 0f, i == selectedIndex ? 0.30f : 0.20f));
         }
 
@@ -261,7 +261,7 @@ public class CardSelectionView : MonoBehaviour
         auraRect.pivot     = new Vector2(0.5f, 0.5f);
         auraRect.sizeDelta = new Vector2(CARD_W + 48f, CARD_H + 48f);
         auraRect.anchoredPosition = new Vector2(xPos, 0f);
-        var auraGroup = auraGo.GetComponent<CanvasGroup>() ?? auraGo.AddComponent<CanvasGroup>();
+        var auraGroup = GetOrAddCanvasGroup(auraGo);
         auraGroup.interactable = false; auraGroup.blocksRaycasts = false;
 
         // Hover halo
@@ -279,7 +279,7 @@ public class CardSelectionView : MonoBehaviour
         glow2Rect.pivot     = new Vector2(0.5f, 0.5f);
         glow2Rect.sizeDelta = new Vector2(CARD_W + 20f, CARD_H + 20f);
         glow2Rect.anchoredPosition = Vector2.zero;
-        var glow2Group = glow2Go.AddComponent<CanvasGroup>();
+        var glow2Group = GetOrAddCanvasGroup(glow2Go);
         glow2Group.interactable = false; glow2Group.blocksRaycasts = false;
 
         // Rarity rim
@@ -581,7 +581,7 @@ public class CardSelectionView : MonoBehaviour
 
         for (int i = 0; i < _views.Count; i++)
         {
-            var g = _views[i].GetComponent<CanvasGroup>() ?? _views[i].gameObject.AddComponent<CanvasGroup>();
+            var g = GetOrAddCanvasGroup(_views[i].gameObject);
             StartCoroutine(Fade(g, 1f, 0f, 0.15f));
         }
         yield return new WaitForSecondsRealtime(0.20f);
@@ -661,7 +661,7 @@ public class CardSelectionView : MonoBehaviour
         float dur = 0.38f, t = 0f;
         Vector2 startPos  = rect.anchoredPosition + Vector2.down * ENTER_OFFSET;
         Vector2 endPos    = rect.anchoredPosition;
-        var group = w.GetComponent<CanvasGroup>() ?? w.gameObject.AddComponent<CanvasGroup>();
+        var group = GetOrAddCanvasGroup(w.gameObject);
         group.alpha = 0f;
         while (t < dur)
         {
@@ -873,6 +873,15 @@ public class CardSelectionView : MonoBehaviour
         if (standalone != null) Destroy(standalone);
         if (es.GetComponent<InputSystemUIInputModule>() == null)
             es.gameObject.AddComponent<InputSystemUIInputModule>();
+    }
+
+    static CanvasGroup GetOrAddCanvasGroup(GameObject go)
+    {
+        if (go == null) return null;
+        CanvasGroup group = go.GetComponent<CanvasGroup>();
+        if (group == null)
+            group = go.AddComponent<CanvasGroup>();
+        return group;
     }
 
     static GameObject MakePanel(RectTransform parent, string name, Vector2 amin, Vector2 amax, Color color)

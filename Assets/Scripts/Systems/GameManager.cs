@@ -50,8 +50,15 @@ public class GameManager : MonoBehaviour
         whiteTexture.Apply();
 
         EnsureAudioManager();
+        EnsureRelicSelectionSystem();
         EnsureMainHudCanvas();
         EnsureGameOverUI();
+    }
+
+    void EnsureRelicSelectionSystem()
+    {
+        if (RelicSelectionSystem.Instance != null) return;
+        new GameObject("RelicSelectionSystem").AddComponent<RelicSelectionSystem>();
     }
 
     void EnsureAudioManager()
@@ -79,7 +86,8 @@ public class GameManager : MonoBehaviour
             && Keyboard.current != null
             && Keyboard.current.escapeKey.wasPressedThisFrame
             && (LevelUpCardSystem.Instance == null || !LevelUpCardSystem.Instance.SelectionPending)
-            && (BossRewardSystem.Instance == null || !BossRewardSystem.Instance.RewardPending))
+            && (BossRewardSystem.Instance == null || !BossRewardSystem.Instance.RewardPending)
+            && (RelicSelectionSystem.Instance == null || !RelicSelectionSystem.Instance.SelectionPending))
         {
             if (IsPaused && pauseSettingsOpen)
                 pauseSettingsOpen = false;
@@ -237,6 +245,8 @@ public class GameManager : MonoBehaviour
 
     public void RestartGame()
     {
+        RelicInventory.Instance?.Reset();
+        RelicSelectionSystem.Instance?.ForceClose();
         IsPaused = false;
         pauseSettingsOpen = false;
         Time.timeScale = 1f;
@@ -245,6 +255,8 @@ public class GameManager : MonoBehaviour
 
     public void ReturnToMainMenu()
     {
+        RelicInventory.Instance?.Reset();
+        RelicSelectionSystem.Instance?.ForceClose();
         IsPaused = false;
         IsGameOver = false;
         pauseSettingsOpen = false;

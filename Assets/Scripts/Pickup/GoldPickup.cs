@@ -27,12 +27,14 @@ public class GoldPickup : MonoBehaviour
 
         collected = true;
 
-        wallet.AddGold(goldAmount);
+        float multiplier = RelicInventory.Instance != null ? RelicInventory.Instance.GoldMultiplier : 1f;
+        int   finalGold  = Mathf.RoundToInt(goldAmount * multiplier);
+        wallet.AddGold(finalGold);
 
         if (RunContractSystem.Instance != null)
-            RunContractSystem.Instance.RegisterGoldCollected(goldAmount);
+            RunContractSystem.Instance.RegisterGoldCollected(finalGold);
 
-        DamagePopupSystem.ShowGold(transform.position, goldAmount);
+        DamagePopupSystem.ShowGold(transform.position, finalGold);
 
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayGoldPickup();
