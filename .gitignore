@@ -40,3 +40,6 @@ Assets/Context.meta
 # Claude / AI context
 .claude/
 _Briefs/
+
+# VFX source packs — large binary assets; only Runtime/ textures are committed
+Assets/Art/VFX/Source/

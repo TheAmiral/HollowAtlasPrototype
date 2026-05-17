@@ -12,9 +12,10 @@ using UnityEditor;
 /// </summary>
 public static class HollowAtlasVFXPackBuilder
 {
-    const string PrefabPath   = "Assets/Art/VFX/Prefabs";
-    const string MaterialPath = "Assets/Art/VFX/Materials";
-    const string SourcePath   = "Assets/Art/VFX/Source";
+    const string PrefabPath    = "Assets/Art/VFX/Prefabs";
+    const string MaterialPath  = "Assets/Art/VFX/Materials";
+    const string TexturesPath  = "Assets/Art/VFX/Textures/Runtime"; // committed runtime textures
+    const string SourcePath    = "Assets/Art/VFX/Source";           // local-only source pack (gitignored)
 
     // ── Create VFX Pack 01 ────────────────────────────────────────────────────
 
@@ -140,13 +141,18 @@ public static class HollowAtlasVFXPackBuilder
 
     static Texture2D FindTexture(string preferred, string fallbackPrefix)
     {
-        var guids = AssetDatabase.FindAssets($"t:Texture2D {preferred}", new[] { SourcePath });
+        // Search committed Runtime textures first; fall back to local-only Source pack.
+        string[] searchPaths = AssetDatabase.IsValidFolder(TexturesPath)
+            ? new[] { TexturesPath, SourcePath }
+            : new[] { SourcePath };
+
+        var guids = AssetDatabase.FindAssets($"t:Texture2D {preferred}", searchPaths);
         if (guids.Length > 0)
             return AssetDatabase.LoadAssetAtPath<Texture2D>(AssetDatabase.GUIDToAssetPath(guids[0]));
 
         if (!string.IsNullOrEmpty(fallbackPrefix))
         {
-            guids = AssetDatabase.FindAssets($"t:Texture2D {fallbackPrefix}", new[] { SourcePath });
+            guids = AssetDatabase.FindAssets($"t:Texture2D {fallbackPrefix}", searchPaths);
             if (guids.Length > 0)
                 return AssetDatabase.LoadAssetAtPath<Texture2D>(AssetDatabase.GUIDToAssetPath(guids[0]));
         }
