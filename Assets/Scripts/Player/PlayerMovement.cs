@@ -36,6 +36,9 @@ public class PlayerMovement : MonoBehaviour
     public Vector3 CurrentMoveDirection => currentMoveDirection;
     public bool IsDashing => isDashing;
     public float VerticalVelocity => verticalVelocity;
+    public float DashCooldownNormalized => dashCooldown > 0f
+        ? Mathf.Clamp01(1f - (dashCooldownTimer / dashCooldown))
+        : 1f;
     public bool StableGrounded => stableGrounded;
     public bool ShouldPlayFallAnimation =>
         airborneAnimationSuppressTimer <= 0f &&
@@ -294,8 +297,8 @@ public class PlayerMovement : MonoBehaviour
         gradient.SetKeys(
             new GradientColorKey[]
             {
-                new GradientColorKey(new Color(1f, 0.95f, 0.6f), 0f),
-                new GradientColorKey(new Color(1f, 0.55f, 0.15f), 1f)
+                new GradientColorKey(new Color(0.15f, 0.90f, 1.00f), 0f),
+                new GradientColorKey(new Color(0.55f, 0.20f, 1.00f), 1f)
             },
             new GradientAlphaKey[]
             {
@@ -321,7 +324,7 @@ public class PlayerMovement : MonoBehaviour
         if (shader != null)
         {
             Material trailMaterial = new Material(shader);
-            trailMaterial.color = new Color(1f, 0.8f, 0.25f, 1f);
+            trailMaterial.color = new Color(0.15f, 0.90f, 1f, 1f);
             dashTrail.material = trailMaterial;
         }
     }

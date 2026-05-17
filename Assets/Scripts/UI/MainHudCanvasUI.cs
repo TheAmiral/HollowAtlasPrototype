@@ -348,10 +348,12 @@ public class MainHudCanvasUI : MonoBehaviour
     private PlayerHealth      playerHealth;
     private PlayerLevelSystem playerLevelSystem;
     private GoldWallet        goldWallet;
+    private PlayerMovement    _playerMovement;
     private CanvasGroup       hudCanvasGroup;
 
     // Feedback UI refs (cached during runtime build)
     private Image     _xpFrameImage;
+    private Image     dashBarFill;
     private Transform _levelRowTransform;
     private Transform _goldPipTransform;
 
@@ -424,6 +426,9 @@ public class MainHudCanvasUI : MonoBehaviour
             currentXpFill     = Mathf.Lerp(currentXpFill, targetXp, Time.deltaTime * hudLerpSpeed);
             xpBarFill.fillAmount = currentXpFill;
         }
+
+        if (_playerMovement != null && dashBarFill != null)
+            dashBarFill.fillAmount = _playerMovement.DashCooldownNormalized;
     }
 
     private void UpdateLabels()
@@ -518,9 +523,10 @@ public class MainHudCanvasUI : MonoBehaviour
 
     private void ResolveReferences()
     {
-        if (playerHealth    == null) playerHealth    = FindFirstObjectByType<PlayerHealth>();
+        if (playerHealth      == null) playerHealth      = FindFirstObjectByType<PlayerHealth>();
         if (playerLevelSystem == null) playerLevelSystem = FindFirstObjectByType<PlayerLevelSystem>();
-        if (goldWallet      == null) goldWallet      = FindFirstObjectByType<GoldWallet>();
+        if (goldWallet        == null) goldWallet        = FindFirstObjectByType<GoldWallet>();
+        if (_playerMovement   == null) _playerMovement   = FindFirstObjectByType<PlayerMovement>();
     }
 
     // ── HUD reactive feedback ────────────────────────────────────────────────
@@ -770,60 +776,109 @@ public class MainHudCanvasUI : MonoBehaviour
 
     private void BuildPremiumHud(RectTransform root, Font font)
     {
-        // HUD_TopLeft — anchor top-left, pos 30,-30
-        GameObject hudTopLeft = new GameObject("HUD_TopLeft", typeof(RectTransform));
-        hudTopLeft.transform.SetParent(root, false);
-        RectTransform topLeftRect = hudTopLeft.GetComponent<RectTransform>();
-        topLeftRect.anchorMin       = new Vector2(0f, 1f);
-        topLeftRect.anchorMax       = new Vector2(0f, 1f);
-        topLeftRect.pivot           = new Vector2(0f, 1f);
-        topLeftRect.anchoredPosition = new Vector2(30f, -30f);
-        topLeftRect.sizeDelta       = new Vector2(420f, 150f);
-
-        GameObject overlay = new GameObject("HUD_Dark_Purple_Overlay", typeof(RectTransform), typeof(Image));
-        overlay.transform.SetParent(topLeftRect, false);
-        RectTransform overlayRect = overlay.GetComponent<RectTransform>();
-        overlayRect.anchorMin        = new Vector2(0f, 1f);
-        overlayRect.anchorMax        = new Vector2(0f, 1f);
-        overlayRect.pivot            = new Vector2(0f, 1f);
-        overlayRect.anchoredPosition = new Vector2(-12f, 8f);
-        overlayRect.sizeDelta        = new Vector2(430f, 142f);
-        Image overlayImage = overlay.GetComponent<Image>();
-        overlayImage.sprite = GetHudOverlaySprite();
-        overlayImage.color  = HudOverlayColor;
-
-        BuildHpOrb(topLeftRect, font);
-        BuildRightStack(topLeftRect, font);
+        BuildBottomLeftInfo(root, font);
+        BuildBottomCombatHud(root, font);
+        BuildMinimapPlaceholder(root, font);
     }
 
-    // HP Orb (130x130, radial 360 fill)
+    // ── HUD_BottomLeft_Info: small gold + timer ───────────────────────────────
+
+    private void BuildBottomLeftInfo(RectTransform root, Font font)
+    {
+        GameObject panel = new GameObject("HUD_BottomLeft_Info", typeof(RectTransform));
+        panel.transform.SetParent(root, false);
+        RectTransform panelRect = panel.GetComponent<RectTransform>();
+        panelRect.anchorMin        = new Vector2(0f, 0f);
+        panelRect.anchorMax        = new Vector2(0f, 0f);
+        panelRect.pivot            = new Vector2(0f, 0f);
+        panelRect.anchoredPosition = new Vector2(16f, 28f);
+        panelRect.sizeDelta        = new Vector2(210f, 66f);
+
+        GameObject bg = new GameObject("TopLeft_Bg", typeof(RectTransform), typeof(Image));
+        bg.transform.SetParent(panelRect, false);
+        RectTransform bgRect = bg.GetComponent<RectTransform>();
+        bgRect.anchorMin = Vector2.zero;
+        bgRect.anchorMax = Vector2.one;
+        bgRect.offsetMin = Vector2.zero;
+        bgRect.offsetMax = Vector2.zero;
+        Image bgImg = bg.GetComponent<Image>();
+        bgImg.sprite = GetHudOverlaySprite();
+        bgImg.color  = new Color(HudOverlayColor.r, HudOverlayColor.g, HudOverlayColor.b, 0.72f);
+
+        BuildGoldPip(panelRect, font);
+
+        timerText = CreateText(panelRect, "Timer_Text", "Time: 0.0s",
+            new Vector2(8f, -15f), new Vector2(190f, 20f),
+            TextAnchor.MiddleLeft, 10, font);
+        timerText.color = new Color(TextSoftLavender.r, TextSoftLavender.g, TextSoftLavender.b, 0.62f);
+    }
+
+    // ── HUD_BottomCenter: HP orb + Level + XP ────────────────────────────────
+
+    private void BuildBottomCombatHud(RectTransform root, Font font)
+    {
+        GameObject combat = new GameObject("HUD_BottomCenter", typeof(RectTransform));
+        combat.transform.SetParent(root, false);
+        RectTransform combatRect = combat.GetComponent<RectTransform>();
+        combatRect.anchorMin        = new Vector2(0.5f, 0f);
+        combatRect.anchorMax        = new Vector2(0.5f, 0f);
+        combatRect.pivot            = new Vector2(0.5f, 0f);
+        combatRect.anchoredPosition = new Vector2(0f, 28f);
+        combatRect.sizeDelta        = new Vector2(640f, 130f);
+
+        // Thin purple border behind panel
+        GameObject border = new GameObject("Combat_Border", typeof(RectTransform), typeof(Image));
+        border.transform.SetParent(combatRect, false);
+        RectTransform borderRect = border.GetComponent<RectTransform>();
+        borderRect.anchorMin = Vector2.zero;
+        borderRect.anchorMax = Vector2.one;
+        borderRect.offsetMin = new Vector2(-2f, -2f);
+        borderRect.offsetMax = new Vector2(2f,  2f);
+        Image borderImg = border.GetComponent<Image>();
+        borderImg.sprite = GetHudOverlaySprite();
+        borderImg.color  = new Color(XpFrameColor.r, XpFrameColor.g, XpFrameColor.b, 0.42f);
+
+        // Dark panel background
+        GameObject bgPanel = new GameObject("Combat_Panel", typeof(RectTransform), typeof(Image));
+        bgPanel.transform.SetParent(combatRect, false);
+        RectTransform bgPanelRect = bgPanel.GetComponent<RectTransform>();
+        bgPanelRect.anchorMin = Vector2.zero;
+        bgPanelRect.anchorMax = Vector2.one;
+        bgPanelRect.offsetMin = Vector2.zero;
+        bgPanelRect.offsetMax = Vector2.zero;
+        Image bgPanelImg = bgPanel.GetComponent<Image>();
+        bgPanelImg.sprite = GetHudOverlaySprite();
+        bgPanelImg.color  = new Color(HudOverlayColor.r, HudOverlayColor.g, HudOverlayColor.b, 0.88f);
+
+        BuildHpOrb(combatRect, font);
+        BuildRightStack(combatRect, font);
+    }
+
+    // ── HP Orb (100×100, radial 360 fill, bottom-center parent) ─────────────
+
     private void BuildHpOrb(RectTransform parent, Font font)
     {
+        const float OrbSize = 108f;
+
         GameObject orbGroup = new GameObject("HP_Orb_Group", typeof(RectTransform));
         orbGroup.transform.SetParent(parent, false);
         RectTransform orbRect = orbGroup.GetComponent<RectTransform>();
-        orbRect.anchorMin        = new Vector2(0f, 1f);
-        orbRect.anchorMax        = new Vector2(0f, 1f);
-        orbRect.pivot            = new Vector2(0f, 1f);
-        orbRect.anchoredPosition = Vector2.zero;
-        orbRect.sizeDelta        = new Vector2(130f, 130f);
+        orbRect.anchorMin        = new Vector2(0f, 0.5f);
+        orbRect.anchorMax        = new Vector2(0f, 0.5f);
+        orbRect.pivot            = new Vector2(0.5f, 0.5f);
+        orbRect.anchoredPosition = new Vector2(62f, 0f);
+        orbRect.sizeDelta        = new Vector2(OrbSize, OrbSize);
 
-        // OrbBreathing bileşeni
         orbGroup.AddComponent<OrbBreathing>();
 
-        // Orb_Background_Glow — en altta (büyük, saydam mor halo)
         Image orbGlow = CreateCircleImage(orbRect, "Orb_Background_Glow",
-            new Color(OrbGlowColor.r, OrbGlowColor.g, OrbGlowColor.b, 0.62f),
-            158f, 158f);
+            new Color(OrbGlowColor.r, OrbGlowColor.g, OrbGlowColor.b, 0.52f),
+            132f, 132f);
         orbGlow.sprite = GetSoftGlowSprite();
         orbGlow.GetComponent<RectTransform>().SetSiblingIndex(0);
 
-        // Orb_Track (koyu arka plan dairesi)
-        CreateCircleImage(orbRect, "Orb_Track",
-            OrbTrackColor,
-            130f, 130f);
+        CreateCircleImage(orbRect, "Orb_Track", OrbTrackColor, OrbSize, OrbSize);
 
-        // Orb_Fill (HP yüzdesi — Radial 360)
         GameObject fillGo = new GameObject("Orb_Fill", typeof(RectTransform), typeof(Image));
         fillGo.transform.SetParent(orbRect, false);
         RectTransform fillRect = fillGo.GetComponent<RectTransform>();
@@ -831,7 +886,7 @@ public class MainHudCanvasUI : MonoBehaviour
         fillRect.anchorMax        = new Vector2(0.5f, 0.5f);
         fillRect.pivot            = new Vector2(0.5f, 0.5f);
         fillRect.anchoredPosition = Vector2.zero;
-        fillRect.sizeDelta        = new Vector2(130f, 130f);
+        fillRect.sizeDelta        = new Vector2(OrbSize, OrbSize);
 
         hpOrbFill               = fillGo.GetComponent<Image>();
         hpOrbFill.sprite        = GetHpFillSprite();
@@ -842,12 +897,8 @@ public class MainHudCanvasUI : MonoBehaviour
         hpOrbFill.fillClockwise = true;
         hpOrbFill.fillAmount    = 1f;
 
-        // Orb_Inner_Disk (orb iç karanlık disk)
-        CreateCircleImage(orbRect, "Orb_Inner_Disk",
-            OrbBackgroundColor,
-            96f, 96f);
+        CreateCircleImage(orbRect, "Orb_Inner_Disk", OrbBackgroundColor, 74f, 74f);
 
-        // Orb_Rotating_Ring
         GameObject ringGo = new GameObject("Orb_Rotating_Ring", typeof(RectTransform), typeof(Image));
         ringGo.transform.SetParent(orbRect, false);
         RectTransform ringRect = ringGo.GetComponent<RectTransform>();
@@ -855,50 +906,50 @@ public class MainHudCanvasUI : MonoBehaviour
         ringRect.anchorMax        = new Vector2(0.5f, 0.5f);
         ringRect.pivot            = new Vector2(0.5f, 0.5f);
         ringRect.anchoredPosition = Vector2.zero;
-        ringRect.sizeDelta        = new Vector2(130f, 130f);
-        Image ringImage = ringGo.GetComponent<Image>();
-        ringImage.sprite = GetRingSprite();
-        ringImage.color = new Color(OrbGlowColor.r, OrbGlowColor.g, OrbGlowColor.b, 0.72f);
+        ringRect.sizeDelta        = new Vector2(OrbSize, OrbSize);
+        ringGo.GetComponent<Image>().sprite = GetRingSprite();
+        ringGo.GetComponent<Image>().color  = new Color(OrbGlowColor.r, OrbGlowColor.g, OrbGlowColor.b, 0.72f);
         ringGo.AddComponent<OrbRingRotator>();
 
-        // HP Text group (orb merkezinde)
         GameObject textGroup = new GameObject("Orb_Text_Group", typeof(RectTransform));
         textGroup.transform.SetParent(orbRect, false);
         RectTransform tgRect = textGroup.GetComponent<RectTransform>();
-        tgRect.anchorMin = new Vector2(0.5f, 0.5f);
-        tgRect.anchorMax = new Vector2(0.5f, 0.5f);
-        tgRect.pivot     = new Vector2(0.5f, 0.5f);
-        tgRect.sizeDelta = new Vector2(90f, 60f);
+        tgRect.anchorMin        = new Vector2(0.5f, 0.5f);
+        tgRect.anchorMax        = new Vector2(0.5f, 0.5f);
+        tgRect.pivot            = new Vector2(0.5f, 0.5f);
         tgRect.anchoredPosition = Vector2.zero;
+        tgRect.sizeDelta        = new Vector2(72f, 50f);
 
-        hpNumberText = CreateText(tgRect, "HP_Number", "100",
-            new Vector2(0f, 5f), new Vector2(90f, 36f),
-            TextAnchor.MiddleCenter, 28, font);
+        hpNumberText           = CreateText(tgRect, "HP_Number", "100",
+            new Vector2(0f, 4f), new Vector2(72f, 28f),
+            TextAnchor.MiddleCenter, 26, font);
         hpNumberText.fontStyle = FontStyle.Bold;
-        hpNumberText.color = TextSoftLavender;
+        hpNumberText.color     = TextSoftLavender;
+        hpNumberText.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.8f);
 
         Text vitaLabel = CreateText(tgRect, "HP_Label_Vita", "VITA",
-            new Vector2(0f, -20f), new Vector2(90f, 18f),
-            TextAnchor.MiddleCenter, 9, font);
-        vitaLabel.color     = new Color(TextSoftLavender.r, TextSoftLavender.g, TextSoftLavender.b, 0.7f);
+            new Vector2(0f, -16f), new Vector2(72f, 16f),
+            TextAnchor.MiddleCenter, 8, font);
+        vitaLabel.color     = new Color(TextSoftLavender.r, TextSoftLavender.g, TextSoftLavender.b, 0.62f);
         vitaLabel.fontStyle = FontStyle.Bold;
     }
 
-    // Right stack: Level row + XP bar + Gold pip
+    // ── Right stack: Level row + XP bar (gold moved to top-left info) ────────
+
     private void BuildRightStack(RectTransform parent, Font font)
     {
         GameObject stack = new GameObject("Right_Stack", typeof(RectTransform));
         stack.transform.SetParent(parent, false);
         RectTransform stackRect = stack.GetComponent<RectTransform>();
-        stackRect.anchorMin        = new Vector2(0f, 1f);
-        stackRect.anchorMax        = new Vector2(0f, 1f);
-        stackRect.pivot            = new Vector2(0f, 1f);
-        stackRect.anchoredPosition = new Vector2(144f, 0f); // orb'un sağına
-        stackRect.sizeDelta        = new Vector2(260f, 140f);
+        stackRect.anchorMin        = new Vector2(0f, 0.5f);
+        stackRect.anchorMax        = new Vector2(0f, 0.5f);
+        stackRect.pivot            = new Vector2(0f, 0.5f);
+        stackRect.anchoredPosition = new Vector2(122f, 0f);
+        stackRect.sizeDelta        = new Vector2(508f, 120f);
 
         BuildLevelRow(stackRect, font);
+        BuildDashBar(stackRect, font);
         BuildXpBarGroup(stackRect, font);
-        BuildGoldPip(stackRect, font);
     }
 
     private void BuildLevelRow(RectTransform parent, Font font)
@@ -907,26 +958,23 @@ public class MainHudCanvasUI : MonoBehaviour
         row.transform.SetParent(parent, false);
         RectTransform rowRect = row.GetComponent<RectTransform>();
         rowRect.anchorMin        = new Vector2(0f, 1f);
-        rowRect.anchorMax        = new Vector2(0f, 1f);
-        rowRect.pivot            = new Vector2(0f, 1f);
-        rowRect.anchoredPosition = new Vector2(0f, 0f);
-        rowRect.sizeDelta        = new Vector2(260f, 36f);
+        rowRect.anchorMax        = new Vector2(1f, 1f);
+        rowRect.pivot            = new Vector2(0.5f, 1f);
+        rowRect.anchoredPosition = Vector2.zero;
+        rowRect.sizeDelta        = new Vector2(0f, 36f);
         _levelRowTransform       = row.transform;
 
-        // Level badge background
         GameObject levelBadge = new GameObject("Level_Symbol_Bg", typeof(RectTransform), typeof(Image));
         levelBadge.transform.SetParent(rowRect, false);
         RectTransform badgeRect = levelBadge.GetComponent<RectTransform>();
         badgeRect.anchorMin        = new Vector2(0f, 0.5f);
         badgeRect.anchorMax        = new Vector2(0f, 0.5f);
         badgeRect.pivot            = new Vector2(0f, 0.5f);
-        badgeRect.anchoredPosition = new Vector2(0f, 0f);
+        badgeRect.anchoredPosition = Vector2.zero;
         badgeRect.sizeDelta        = new Vector2(36f, 36f);
-        Image badgeImg = levelBadge.GetComponent<Image>();
-        badgeImg.sprite = GetLevelBadgeSprite();
-        badgeImg.color  = Color.white;
+        levelBadge.GetComponent<Image>().sprite = GetLevelBadgeSprite();
+        levelBadge.GetComponent<Image>().color  = Color.white;
 
-        // Badge frame
         GameObject badgeFrame = new GameObject("Level_Symbol_Frame", typeof(RectTransform), typeof(Image));
         badgeFrame.transform.SetParent(badgeRect, false);
         RectTransform badgeFrameRect = badgeFrame.GetComponent<RectTransform>();
@@ -935,51 +983,48 @@ public class MainHudCanvasUI : MonoBehaviour
         badgeFrameRect.pivot            = new Vector2(0.5f, 0.5f);
         badgeFrameRect.anchoredPosition = Vector2.zero;
         badgeFrameRect.sizeDelta        = new Vector2(38f, 38f);
-        Image badgeFrameImg = badgeFrame.GetComponent<Image>();
-        badgeFrameImg.sprite = GetRingSprite();
-        badgeFrameImg.color  = new Color(LevelFrameColor.r, LevelFrameColor.g, LevelFrameColor.b, 0.9f);
+        badgeFrame.GetComponent<Image>().sprite = GetRingSprite();
+        badgeFrame.GetComponent<Image>().color  = new Color(LevelFrameColor.r, LevelFrameColor.g, LevelFrameColor.b, 0.9f);
 
-        // Pulse ring
         GameObject pulse = new GameObject("Level_Symbol_Pulse", typeof(RectTransform), typeof(Image));
         pulse.transform.SetParent(badgeRect, false);
         RectTransform pulseRect = pulse.GetComponent<RectTransform>();
-        pulseRect.anchorMin = new Vector2(0.5f, 0.5f);
-        pulseRect.anchorMax = new Vector2(0.5f, 0.5f);
-        pulseRect.pivot     = new Vector2(0.5f, 0.5f);
-        pulseRect.sizeDelta = new Vector2(44f, 44f);
+        pulseRect.anchorMin        = new Vector2(0.5f, 0.5f);
+        pulseRect.anchorMax        = new Vector2(0.5f, 0.5f);
+        pulseRect.pivot            = new Vector2(0.5f, 0.5f);
         pulseRect.anchoredPosition = Vector2.zero;
-        Image pulseImg = pulse.GetComponent<Image>();
-        pulseImg.sprite = GetRingSprite();
-        pulseImg.color  = new Color(LevelFrameColor.r, LevelFrameColor.g, LevelFrameColor.b, 0.55f);
+        pulseRect.sizeDelta        = new Vector2(44f, 44f);
+        pulse.GetComponent<Image>().sprite = GetRingSprite();
+        pulse.GetComponent<Image>().color  = new Color(LevelFrameColor.r, LevelFrameColor.g, LevelFrameColor.b, 0.50f);
         LevelPulseRing pulseComp = pulse.AddComponent<LevelPulseRing>();
         pulseComp.SetPulseImage(pulse.GetComponent<Image>());
 
-        // Roman numeral text
-        levelRomanText = CreateText(rowRect, "Level_Roman_Text", "I",
-            new Vector2(40f, 0f), new Vector2(50f, 36f),
-            TextAnchor.MiddleLeft, 18, font);
+        levelRomanText           = CreateText(rowRect, "Level_Roman_Text", "I",
+            new Vector2(40f, 0f), new Vector2(52f, 36f),
+            TextAnchor.MiddleLeft, 24, font);
         levelRomanText.color     = TextSoftLavender;
         levelRomanText.fontStyle = FontStyle.Bold;
+        levelRomanText.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.8f);
 
-        // "ATLAS LEVEL" label
         levelLabelText = CreateText(rowRect, "Level_Label_Text", "ATLAS LEVEL",
-            new Vector2(96f, 0f), new Vector2(160f, 36f),
-            TextAnchor.MiddleLeft, 10, font);
-        levelLabelText.color = new Color(LevelFrameColor.r, LevelFrameColor.g, LevelFrameColor.b, 0.85f);
+            new Vector2(98f, 0f), new Vector2(220f, 36f),
+            TextAnchor.MiddleLeft, 12, font);
+        levelLabelText.color = new Color(LevelFrameColor.r, LevelFrameColor.g, LevelFrameColor.b, 0.80f);
     }
 
     private void BuildXpBarGroup(RectTransform parent, Font font)
     {
+        // Anchored to bottom of right stack, stretches full width
         GameObject group = new GameObject("XP_Bar_Group", typeof(RectTransform));
         group.transform.SetParent(parent, false);
         RectTransform groupRect = group.GetComponent<RectTransform>();
-        groupRect.anchorMin        = new Vector2(0f, 1f);
-        groupRect.anchorMax        = new Vector2(0f, 1f);
-        groupRect.pivot            = new Vector2(0f, 1f);
-        groupRect.anchoredPosition = new Vector2(0f, -46f);
-        groupRect.sizeDelta        = new Vector2(260f, 52f);
+        groupRect.anchorMin        = new Vector2(0f, 0f);
+        groupRect.anchorMax        = new Vector2(1f, 0f);
+        groupRect.pivot            = new Vector2(0.5f, 0f);
+        groupRect.anchoredPosition = Vector2.zero;
+        groupRect.sizeDelta        = new Vector2(0f, 52f);
 
-        // Frame
+        // XP bar frame (border, top of group)
         GameObject frame = new GameObject("XP_Bar_Frame", typeof(RectTransform), typeof(Image));
         frame.transform.SetParent(groupRect, false);
         RectTransform frameRect = frame.GetComponent<RectTransform>();
@@ -987,11 +1032,11 @@ public class MainHudCanvasUI : MonoBehaviour
         frameRect.anchorMax        = new Vector2(1f, 1f);
         frameRect.pivot            = new Vector2(0.5f, 1f);
         frameRect.anchoredPosition = Vector2.zero;
-        frameRect.sizeDelta        = new Vector2(0f, 14f);
-        Image frameImage = frame.GetComponent<Image>();
-        frameImage.sprite = GetRoundedBarSprite();
-        frameImage.color  = XpFrameColor;
-        _xpFrameImage     = frameImage;
+        frameRect.sizeDelta        = new Vector2(0f, 18f);
+        Image frameImage           = frame.GetComponent<Image>();
+        frameImage.sprite          = GetRoundedBarSprite();
+        frameImage.color           = XpFrameColor;
+        _xpFrameImage              = frameImage;
 
         // Background
         GameObject bg = new GameObject("XP_Bar_Background", typeof(RectTransform), typeof(Image));
@@ -1001,9 +1046,8 @@ public class MainHudCanvasUI : MonoBehaviour
         bgRect.anchorMax = Vector2.one;
         bgRect.offsetMin = new Vector2(1f, 1f);
         bgRect.offsetMax = new Vector2(-1f, -1f);
-        Image bgImage = bg.GetComponent<Image>();
-        bgImage.sprite = GetRoundedBarSprite();
-        bgImage.color  = XpBackgroundColor;
+        bg.GetComponent<Image>().sprite = GetRoundedBarSprite();
+        bg.GetComponent<Image>().color  = XpBackgroundColor;
 
         // Fill
         GameObject fill = new GameObject("XP_Bar_Fill", typeof(RectTransform), typeof(Image));
@@ -1022,7 +1066,7 @@ public class MainHudCanvasUI : MonoBehaviour
         xpBarFill.fillOrigin    = (int)Image.OriginHorizontal.Left;
         xpBarFill.fillAmount    = 0f;
 
-        // Flow effect
+        // Animated flow shimmer
         GameObject flowGo = new GameObject("XP_Flow_Effect", typeof(RectTransform), typeof(RawImage));
         flowGo.transform.SetParent(bgRect, false);
         RectTransform flowRect = flowGo.GetComponent<RectTransform>();
@@ -1030,45 +1074,106 @@ public class MainHudCanvasUI : MonoBehaviour
         flowRect.anchorMax = Vector2.one;
         flowRect.offsetMin = Vector2.zero;
         flowRect.offsetMax = Vector2.zero;
-        RawImage flowRaw = flowGo.GetComponent<RawImage>();
-        flowRaw.color = new Color(0.427f, 0.851f, 0.941f, 0.10f); // #6DD9F0
+        RawImage flowRaw   = flowGo.GetComponent<RawImage>();
+        flowRaw.color = new Color(0.427f, 0.851f, 0.941f, 0.10f);
         XpBarFlowEffect flowEffect = flowGo.AddComponent<XpBarFlowEffect>();
         flowEffect.SetFlowImage(flowRaw);
 
-        // Meta text row
+        // Meta text row below the bar
         GameObject metaRow = new GameObject("XP_Meta_Text_Row", typeof(RectTransform));
         metaRow.transform.SetParent(groupRect, false);
         RectTransform metaRect = metaRow.GetComponent<RectTransform>();
         metaRect.anchorMin        = new Vector2(0f, 1f);
         metaRect.anchorMax        = new Vector2(1f, 1f);
         metaRect.pivot            = new Vector2(0.5f, 1f);
+        metaRect.anchoredPosition = new Vector2(0f, -22f);
         metaRect.sizeDelta        = new Vector2(0f, 20f);
-        metaRect.anchoredPosition = new Vector2(0f, -18f);
 
         Text xpLabel = CreateText(metaRect, "XP_Label_Text", "EXPERIENCE",
-            new Vector2(0f, 0f), new Vector2(120f, 18f),
-            TextAnchor.MiddleLeft, 9, font);
-        xpLabel.color = new Color(LevelFrameColor.r, LevelFrameColor.g, LevelFrameColor.b, 0.7f);
+            new Vector2(0f, 0f), new Vector2(130f, 18f),
+            TextAnchor.MiddleLeft, 10, font);
+        xpLabel.color = new Color(LevelFrameColor.r, LevelFrameColor.g, LevelFrameColor.b, 0.70f);
 
         xpValueText = CreateText(metaRect, "XP_Value_Text", "0 / 5",
-            new Vector2(120f, 0f), new Vector2(138f, 18f),
-            TextAnchor.MiddleRight, 10, font);
-        xpValueText.color = new Color(TextSoftLavender.r, TextSoftLavender.g, TextSoftLavender.b, 0.9f);
+            new Vector2(132f, 0f), new Vector2(260f, 18f),
+            TextAnchor.MiddleLeft, 11, font);
+        xpValueText.color = new Color(TextSoftLavender.r, TextSoftLavender.g, TextSoftLavender.b, 0.88f);
+    }
+
+    private void BuildDashBar(RectTransform parent, Font font)
+    {
+        // Anchored between level row (top) and XP bar (bottom) in right stack
+        GameObject group = new GameObject("Dash_Bar_Group", typeof(RectTransform));
+        group.transform.SetParent(parent, false);
+        RectTransform groupRect = group.GetComponent<RectTransform>();
+        groupRect.anchorMin        = new Vector2(0f, 0.5f);
+        groupRect.anchorMax        = new Vector2(1f, 0.5f);
+        groupRect.pivot            = new Vector2(0.5f, 0.5f);
+        groupRect.anchoredPosition = new Vector2(0f, 0f);
+        groupRect.sizeDelta        = new Vector2(0f, 20f);
+
+        // Label
+        Text dashLabel = CreateText(groupRect, "Dash_Label", "DASH",
+            new Vector2(0f, 0f), new Vector2(44f, 20f),
+            TextAnchor.MiddleLeft, 9, font);
+        dashLabel.color     = new Color(0.42f, 0.95f, 1f, 0.75f);
+        dashLabel.fontStyle = FontStyle.Bold;
+
+        // Bar frame
+        GameObject frame = new GameObject("Dash_Bar_Frame", typeof(RectTransform), typeof(Image));
+        frame.transform.SetParent(groupRect, false);
+        RectTransform frameRect = frame.GetComponent<RectTransform>();
+        frameRect.anchorMin        = new Vector2(0f, 0.5f);
+        frameRect.anchorMax        = new Vector2(1f, 0.5f);
+        frameRect.pivot            = new Vector2(0f, 0.5f);
+        frameRect.anchoredPosition = new Vector2(48f, 0f);
+        frameRect.sizeDelta        = new Vector2(-48f, 14f);
+        Image frameImg = frame.GetComponent<Image>();
+        frameImg.sprite = GetRoundedBarSprite();
+        frameImg.color  = new Color(0.42f, 0.95f, 1f, 0.38f);
+
+        // Background
+        GameObject bg = new GameObject("Dash_Bar_Bg", typeof(RectTransform), typeof(Image));
+        bg.transform.SetParent(frameRect, false);
+        RectTransform bgRect = bg.GetComponent<RectTransform>();
+        bgRect.anchorMin = Vector2.zero;
+        bgRect.anchorMax = Vector2.one;
+        bgRect.offsetMin = new Vector2(1f, 1f);
+        bgRect.offsetMax = new Vector2(-1f, -1f);
+        bg.GetComponent<Image>().sprite = GetRoundedBarSprite();
+        bg.GetComponent<Image>().color  = new Color(0.04f, 0.06f, 0.12f, 1f);
+
+        // Fill
+        GameObject fill = new GameObject("Dash_Bar_Fill", typeof(RectTransform), typeof(Image));
+        fill.transform.SetParent(bgRect, false);
+        RectTransform fillRect = fill.GetComponent<RectTransform>();
+        fillRect.anchorMin = Vector2.zero;
+        fillRect.anchorMax = Vector2.one;
+        fillRect.offsetMin = Vector2.zero;
+        fillRect.offsetMax = Vector2.zero;
+
+        dashBarFill               = fill.GetComponent<Image>();
+        dashBarFill.sprite        = GetRoundedBarSprite();
+        dashBarFill.color         = new Color(0.15f, 0.90f, 1f, 0.90f);
+        dashBarFill.type          = Image.Type.Filled;
+        dashBarFill.fillMethod    = Image.FillMethod.Horizontal;
+        dashBarFill.fillOrigin    = (int)Image.OriginHorizontal.Left;
+        dashBarFill.fillAmount    = 1f;
     }
 
     private void BuildGoldPip(RectTransform parent, Font font)
     {
+        // In new layout: parent is HUD_TopLeft_Info panel (anchor top-left)
         GameObject pip = new GameObject("Gold_Pip", typeof(RectTransform));
         pip.transform.SetParent(parent, false);
         RectTransform pipRect = pip.GetComponent<RectTransform>();
         pipRect.anchorMin        = new Vector2(0f, 1f);
         pipRect.anchorMax        = new Vector2(0f, 1f);
         pipRect.pivot            = new Vector2(0f, 1f);
-        pipRect.anchoredPosition = new Vector2(0f, -108f);
-        pipRect.sizeDelta        = new Vector2(180f, 28f);
+        pipRect.anchoredPosition = new Vector2(8f, -8f);
+        pipRect.sizeDelta        = new Vector2(170f, 26f);
         _goldPipTransform        = pip.transform;
 
-        // Coin image (circle)
         GameObject coin = new GameObject("Coin_Image", typeof(RectTransform), typeof(Image));
         coin.transform.SetParent(pipRect, false);
         RectTransform coinRect = coin.GetComponent<RectTransform>();
@@ -1076,16 +1181,16 @@ public class MainHudCanvasUI : MonoBehaviour
         coinRect.anchorMax        = new Vector2(0f, 0.5f);
         coinRect.pivot            = new Vector2(0f, 0.5f);
         coinRect.anchoredPosition = Vector2.zero;
-        coinRect.sizeDelta        = new Vector2(22f, 22f);
-        Image coinImg = coin.GetComponent<Image>();
-        coinImg.sprite = GetCoinSprite();
-        coinImg.color  = Color.white;
+        coinRect.sizeDelta        = new Vector2(20f, 20f);
+        coin.GetComponent<Image>().sprite = GetCoinSprite();
+        coin.GetComponent<Image>().color  = Color.white;
 
-        goldNumberText = CreateText(pipRect, "Gold_Number", "0",
-            new Vector2(28f, 0f), new Vector2(150f, 28f),
-            TextAnchor.MiddleLeft, 14, font);
+        goldNumberText           = CreateText(pipRect, "Gold_Number", "0",
+            new Vector2(26f, 0f), new Vector2(140f, 26f),
+            TextAnchor.MiddleLeft, 15, font);
         goldNumberText.color     = GoldTextColor;
         goldNumberText.fontStyle = FontStyle.Bold;
+        goldNumberText.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.75f);
     }
 
     private void BuildMinimapPlaceholder(RectTransform root, Font font)
