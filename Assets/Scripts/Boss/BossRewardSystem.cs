@@ -138,6 +138,7 @@ public class BossRewardSystem : MonoBehaviour
             BossSpawnSystem.Instance.ScheduleNextWave();
             rewardTaken    = false;
             rewardUiOpened = false;
+            PortalSpawnSystem.Instance?.OpenPortalAfterBossReward(BossSpawnSystem.Instance.LastBossDeathPos);
         }
     }
 

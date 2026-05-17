@@ -26,9 +26,12 @@ public class BossSpawnSystem : MonoBehaviour
     public bool BossDefeated => bossDefeated;
     public float NextBossTime => nextBossTime;
 
+    public Vector3 LastBossDeathPos => lastBossDeathPosition;
+
     private EnemyHealth activeBoss;
     private bool bossSpawned;
     private bool bossDefeated;
+    private Vector3 lastBossDeathPosition;
     private float warningTimer;
     private string warningMessage = "";
     private float nextBossTime;
@@ -86,6 +89,9 @@ public class BossSpawnSystem : MonoBehaviour
             return;
         }
 
+        if (bossSpawned && !bossDefeated && activeBoss != null)
+            lastBossDeathPosition = activeBoss.transform.position;
+
         if (!bossDefeated && activeBoss == null)
         {
             bossDefeated = true;
@@ -123,6 +129,8 @@ public class BossSpawnSystem : MonoBehaviour
 
         Vector3 spawnPosition = player.position + new Vector3(circle.x, 0f, circle.y) * spawnDistance;
         spawnPosition.y = bossSpawnHeight;
+
+        lastBossDeathPosition = spawnPosition;
 
         GameObject bossObject = Instantiate(miniBossPrefab, spawnPosition, Quaternion.identity);
 

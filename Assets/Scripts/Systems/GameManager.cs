@@ -51,6 +51,7 @@ public class GameManager : MonoBehaviour
 
         EnsureAudioManager();
         EnsureRelicSelectionSystem();
+        EnsurePortalSpawnSystem();
         EnsureMainHudCanvas();
         EnsureGameOverUI();
     }
@@ -59,6 +60,12 @@ public class GameManager : MonoBehaviour
     {
         if (RelicSelectionSystem.Instance != null) return;
         new GameObject("RelicSelectionSystem").AddComponent<RelicSelectionSystem>();
+    }
+
+    void EnsurePortalSpawnSystem()
+    {
+        if (PortalSpawnSystem.Instance != null) return;
+        new GameObject("PortalSpawnSystem").AddComponent<PortalSpawnSystem>();
     }
 
     void EnsureAudioManager()
