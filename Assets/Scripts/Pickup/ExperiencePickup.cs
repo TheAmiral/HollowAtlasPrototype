@@ -39,6 +39,8 @@ public class ExperiencePickup : MonoBehaviour
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayXpPickup();
 
+        VFXSpawner.Instance?.Spawn("XPPickupSpark", transform.position);
+
         Destroy(gameObject);
     }
 }

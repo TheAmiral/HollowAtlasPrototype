@@ -46,6 +46,10 @@ public class LevelUpCardSystem : MonoBehaviour
 
         if (_currentCards.Count == 0) return;
 
+        // Spawn before Open() sets timeScale=0; prefab uses useUnscaledTime so it plays during freeze.
+        if (_player != null)
+            VFXSpawner.Instance?.Spawn("LevelUpBurst", _player.transform.position);
+
         Open("ATLAS LÜTUFLARI", "Atlas bir lütuf seçmeni istiyor.", playerLevel);
     }
 

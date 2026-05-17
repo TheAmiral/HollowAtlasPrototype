@@ -39,6 +39,8 @@ public class GoldPickup : MonoBehaviour
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayGoldPickup();
 
+        VFXSpawner.Instance?.Spawn("GoldPickupSpark", transform.position);
+
         Destroy(gameObject);
     }
 }

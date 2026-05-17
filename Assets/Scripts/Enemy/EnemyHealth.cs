@@ -75,6 +75,7 @@ public class EnemyHealth : MonoBehaviour
         {
             if (visuals != null)
                 visuals.PlayHitFlash();
+            VFXSpawner.Instance?.Spawn("HitSmall", transform.position);
         }
         else
         {
@@ -98,6 +99,8 @@ public class EnemyHealth : MonoBehaviour
         // Normal düşmanlarda enemy death sesi burada çalıyor.
         if (!isBoss && AudioManager.Instance != null)
             AudioManager.Instance.PlayEnemyDeath();
+
+        VFXSpawner.Instance?.Spawn("EnemyDeathDust", transform.position);
 
         DropGold();
         DropXP();

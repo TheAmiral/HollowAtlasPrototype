@@ -1329,6 +1329,69 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1637886493
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1637886495}
+  - component: {fileID: 1637886494}
+  m_Layer: 0
+  m_Name: VFXSpawner
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1637886494
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1637886493}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0353b079cf5b6c74a9144364edf08a8e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VFXSpawner
+  _entries:
+  - key: HitSmall
+    prefab: {fileID: 3884490994732011325, guid: 7410aac064abca0419fec859b406fbe3, type: 3}
+    prewarmCount: 8
+  - key: EnemyDeathDust
+    prefab: {fileID: 4229391613127182094, guid: 27da94c89239965438707d1dcb965375, type: 3}
+    prewarmCount: 6
+  - key: GoldPickupSpark
+    prefab: {fileID: 6375675082703339465, guid: 210b796574a04044d974ddb33c750e56, type: 3}
+    prewarmCount: 4
+  - key: XPPickupSpark
+    prefab: {fileID: 188076001319925444, guid: ab6df6be54ebe8948b74768fc71ea01e, type: 3}
+    prewarmCount: 4
+  - key: LevelUpBurst
+    prefab: {fileID: 7249754139810558684, guid: c030cd1542be79d46a674eac1b0a574a, type: 3}
+    prewarmCount: 2
+  - key: BossTelegraphCircle
+    prefab: {fileID: 5223343306049645583, guid: 8dda8f18c1ea09645b200c7d8bf65e2c, type: 3}
+    prewarmCount: 2
+--- !u!4 &1637886495
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1637886493}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2.04972, y: 0, z: 5.98059}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1670118973
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1557,3 +1620,4 @@ SceneRoots:
   - {fileID: 1012776702}
   - {fileID: 1458836665}
   - {fileID: 1239218267}
+  - {fileID: 1637886495}
