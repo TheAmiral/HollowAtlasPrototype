@@ -62,6 +62,31 @@ public static class CardDatabase
                 CardTag.Movement,
                 player => { Mv(player, mv => { mv.moveSpeed += 1.2f; mv.dashDuration += 0.15f; mv.dashCooldown = Mathf.Max(0.2f, mv.dashCooldown - 0.12f); }); }),
 
+            Card("yol_acan_ruzgar", "Yol Açan Rüzgar",
+                "Hermes'in yolu temizler, ayakların özgürleşir.",
+                "+0.5 Hız  -0.1 Dash CD",
+                CardClass.Hermes, CardRarity.Common,
+                CardTag.Movement,
+                player => { Mv(player, mv => { mv.moveSpeed += 0.5f; mv.dashCooldown = Mathf.Max(0.25f, mv.dashCooldown - 0.1f); }); }),
+
+            Card("ruzgarin_kilici", "Rüzgarın Kılıcı",
+                "Hız ile dash hasarı iç içe geçer.",
+                "+0.6 Hız  +7 Dash Hasar",
+                CardClass.Hermes, CardRarity.Rare,
+                CardTag.Movement | CardTag.Damage,
+                player => { Mv(player, mv => { mv.moveSpeed += 0.6f; mv.dashDamage += 7; }); }),
+
+            Card("kor_hiz", "Kör Hız",
+                "Hız kontrolsüzce artar ama aura daralır.",
+                "+1.0 Hız  -0.35 Aura Menzili",
+                CardClass.Hermes, CardRarity.Rare,
+                CardTag.Movement | CardTag.RiskReward,
+                player =>
+                {
+                    Mv(player, mv => mv.moveSpeed += 1.0f);
+                    Aura(player, a => a.radius = Mathf.Max(0.5f, a.radius - 0.35f));
+                }),
+
             // ── Nyx ──────────────────────────────────────────────────────────
 
             Card("gece_fisiltisi", "Gece Fısıltısı",
@@ -105,6 +130,24 @@ public static class CardDatabase
                 CardClass.Nyx, CardRarity.Legendary,
                 CardTag.Aura,
                 player => { Aura(player, a => { a.damage += 8; a.radius += 0.5f; a.tickInterval = Mathf.Max(0.2f, a.tickInterval * 0.85f); }); }),
+
+            Card("gece_yayilimi", "Gece Yayılımı",
+                "Karanlık aura genişler ve daha hızlı titreşir.",
+                "+0.3 Menzil  Tick Hızı +%12",
+                CardClass.Nyx, CardRarity.Rare,
+                CardTag.Aura,
+                player => { Aura(player, a => { a.radius += 0.3f; a.tickInterval = Mathf.Max(0.2f, a.tickInterval * 0.88f); }); }),
+
+            Card("golge_ve_celik", "Gölge ve Çelik",
+                "Karanlık ve çelik bir araya gelir, tüm saldırılar güçlenir.",
+                "+7 Aura Hasar  +9 Dash Hasar",
+                CardClass.Nyx, CardRarity.Epic,
+                CardTag.Aura | CardTag.Damage,
+                player =>
+                {
+                    Aura(player, a => a.damage += 7);
+                    Mv(player, mv => mv.dashDamage += 9);
+                }),
 
             // ── Atlas ─────────────────────────────────────────────────────────
 
@@ -177,6 +220,51 @@ public static class CardDatabase
                 CardTag.Defense,
                 player => { Hp(player, hp => { hp.IncreaseMaxHealth(55); hp.Heal(30); }); }),
 
+            Card("atlas_cemberi", "Atlas Çemberi",
+                "Atlas'ın yükü dayanıklılık ve menzil verir ama hareketi zorlaştırır.",
+                "+0.35 Menzil  +30 Maks. Can  -0.4 Hız",
+                CardClass.Atlas, CardRarity.Epic,
+                CardTag.Defense | CardTag.Aura | CardTag.RiskReward,
+                player =>
+                {
+                    Aura(player, a => a.radius += 0.35f);
+                    Hp(player, hp => { hp.IncreaseMaxHealth(30); hp.Heal(15); });
+                    Mv(player, mv => mv.moveSpeed = Mathf.Max(1.5f, mv.moveSpeed - 0.4f));
+                }),
+
+            Card("titan_nefesi", "Titan'ın Nefesi",
+                "Atlas'ın nefesi bedeni ve aurayı aynı anda güçlendirir.",
+                "+35 Maks. Can  +0.25 Menzil",
+                CardClass.Atlas, CardRarity.Rare,
+                CardTag.Defense | CardTag.Aura,
+                player =>
+                {
+                    Hp(player, hp => { hp.IncreaseMaxHealth(35); hp.Heal(15); });
+                    Aura(player, a => a.radius += 0.25f);
+                }),
+
+            Card("kizil_zirh", "Kızıl Zırh",
+                "Demirden beden, kandan güç.",
+                "+40 Maks. Can  +8 Aura Hasar",
+                CardClass.Atlas, CardRarity.Epic,
+                CardTag.Defense | CardTag.Aura | CardTag.Damage,
+                player =>
+                {
+                    Hp(player, hp => { hp.IncreaseMaxHealth(40); hp.Heal(20); });
+                    Aura(player, a => a.damage += 8);
+                }),
+
+            Card("agir_zirh", "Ağır Zırh",
+                "Çelik zırh tüm darbeyi savar ama adımları ağırlaştırır.",
+                "+50 Maks. Can  -0.5 Hız",
+                CardClass.Atlas, CardRarity.Rare,
+                CardTag.Defense | CardTag.RiskReward,
+                player =>
+                {
+                    Hp(player, hp => { hp.IncreaseMaxHealth(50); hp.Heal(25); });
+                    Mv(player, mv => mv.moveSpeed = Mathf.Max(1.5f, mv.moveSpeed - 0.5f));
+                }),
+
             // ── Ares ──────────────────────────────────────────────────────────
 
             Card("kanli_hasat", "Kanlı Hasat",
@@ -245,6 +333,28 @@ public static class CardDatabase
                     Mv(player, mv => mv.dashDamage += 8);
                 }),
 
+            Card("kizil_halka", "Kızıl Halka",
+                "Kandan beslenen aura güçlenir ama beden zayıflar.",
+                "+10 Aura Hasar  -15 Maks. Can",
+                CardClass.Ares, CardRarity.Rare,
+                CardTag.Damage | CardTag.Aura | CardTag.RiskReward,
+                player =>
+                {
+                    Aura(player, a => a.damage += 10);
+                    Hp(player, hp => hp.IncreaseMaxHealth(-15));
+                }),
+
+            Card("kan_borcu", "Kan Borcu",
+                "Her dash daha ölümcül olur, bedel kanla ödenir.",
+                "+14 Dash Hasar  -10 Maks. Can",
+                CardClass.Ares, CardRarity.Rare,
+                CardTag.Damage | CardTag.RiskReward,
+                player =>
+                {
+                    Mv(player, mv => mv.dashDamage += 14);
+                    Hp(player, hp => hp.IncreaseMaxHealth(-10));
+                }),
+
             // ── Artemis ───────────────────────────────────────────────────────
 
             Card("avci_gozu", "Avcı Gözü",
@@ -294,6 +404,28 @@ public static class CardDatabase
                     Mv(player, mv => mv.dashDamage += 10);
                 }),
 
+            Card("avci_odaklanmasi", "Avcı Odaklanması",
+                "Artemis'in odağı tüm saldırıları keskinleştirir.",
+                "+6 Aura Hasar  +8 Dash Hasar",
+                CardClass.Artemis, CardRarity.Rare,
+                CardTag.Damage | CardTag.Aura,
+                player =>
+                {
+                    Aura(player, a => a.damage += 6);
+                    Mv(player, mv => mv.dashDamage += 8);
+                }),
+
+            Card("avci_golgesi", "Avcı'nın Gölgesi",
+                "Gölgede bekleyen avcı menzilini genişletir ve refleksini hızlandırır.",
+                "+0.3 Menzil  -0.15 Dash CD",
+                CardClass.Artemis, CardRarity.Epic,
+                CardTag.Aura | CardTag.Damage | CardTag.Movement,
+                player =>
+                {
+                    Aura(player, a => a.radius += 0.3f);
+                    Mv(player, mv => mv.dashCooldown = Mathf.Max(0.2f, mv.dashCooldown - 0.15f));
+                }),
+
             // ── Hephaistos ────────────────────────────────────────────────────
 
             Card("kivilcim_patlamasi", "Kıvılcım Patlaması",
@@ -341,6 +473,28 @@ public static class CardDatabase
                 {
                     Aura(player, a => { a.damage += 15; a.tickInterval = Mathf.Max(0.2f, a.tickInterval * 0.85f); });
                     Mv(player, mv => mv.dashDamage += 12);
+                }),
+
+            Card("dovme_ritim", "Dövme Ritim",
+                "Demircinin ritmi aurayı hızlandırır, ama adımları ağırlaştırır.",
+                "Tick Hızı +%15  -0.3 Hız",
+                CardClass.Hephaistos, CardRarity.Rare,
+                CardTag.Weapon | CardTag.Aura,
+                player =>
+                {
+                    Aura(player, a => a.tickInterval = Mathf.Max(0.2f, a.tickInterval * 0.85f));
+                    Mv(player, mv => mv.moveSpeed = Mathf.Max(1.5f, mv.moveSpeed - 0.3f));
+                }),
+
+            Card("demir_firtina", "Demir Fırtına",
+                "Çelikten fırtına hem aura titreşimini hem dash atikliğini artırır.",
+                "Tick Hızı +%18  +3 Dash Hızı",
+                CardClass.Hephaistos, CardRarity.Epic,
+                CardTag.Weapon | CardTag.Aura,
+                player =>
+                {
+                    Aura(player, a => a.tickInterval = Mathf.Max(0.2f, a.tickInterval * 0.82f));
+                    Mv(player, mv => mv.dashSpeed += 3f);
                 }),
 
             // ── Khaos ─────────────────────────────────────────────────────────
@@ -422,6 +576,104 @@ public static class CardDatabase
                     Hp(player, hp => hp.IncreaseMaxHealth(-30));
                     Aura(player, a => a.damage += 18);
                     Mv(player, mv => mv.dashDamage += 14);
+                }),
+
+            Card("khaos_carki", "Khaos Çarkı",
+                "Khaos'un çarkı döner ve güçlü bir stat demeti hediye eder.",
+                "Rastgele güçlü stat demeti",
+                CardClass.Khaos, CardRarity.Legendary,
+                CardTag.Random | CardTag.ShowsResultFeedback,
+                player =>
+                {
+                    int roll = UnityEngine.Random.Range(0, 4);
+                    if (roll == 0)      { Aura(player, a => { a.damage += 12; a.tickInterval = Mathf.Max(0.2f, a.tickInterval * 0.85f); }); }
+                    else if (roll == 1) { Mv(player, mv => { mv.moveSpeed += 1.0f; mv.dashDamage += 10; mv.dashCooldown = Mathf.Max(0.2f, mv.dashCooldown - 0.15f); }); }
+                    else if (roll == 2) { Hp(player, hp => { hp.IncreaseMaxHealth(70); hp.Heal(50); }); Aura(player, a => a.radius += 0.4f); }
+                    else               { Aura(player, a => { a.damage += 8; a.radius += 0.3f; }); Mv(player, mv => mv.dashDamage += 8); Hp(player, hp => hp.Heal(25)); }
+                }),
+
+            Card("bozuk_kehanet", "Bozuk Kehanet",
+                "İki güçlendirme ve bir küçük bedel.",
+                "2 güçlendirme + 1 küçük ceza",
+                CardClass.Khaos, CardRarity.Rare,
+                CardTag.Random | CardTag.ShowsResultFeedback,
+                player =>
+                {
+                    int roll = UnityEngine.Random.Range(0, 3);
+                    if (roll == 0)
+                    {
+                        Aura(player, a => { a.damage += 6; a.radius += 0.2f; });
+                        Mv(player, mv => mv.moveSpeed = Mathf.Max(1.5f, mv.moveSpeed - 0.25f));
+                    }
+                    else if (roll == 1)
+                    {
+                        Mv(player, mv => { mv.moveSpeed += 0.7f; mv.dashDamage += 8; });
+                        Hp(player, hp => hp.IncreaseMaxHealth(-10));
+                    }
+                    else
+                    {
+                        Hp(player, hp => { hp.IncreaseMaxHealth(30); hp.Heal(20); });
+                        Aura(player, a => a.tickInterval = Mathf.Max(0.2f, a.tickInterval * 0.88f));
+                        Mv(player, mv => mv.moveSpeed = Mathf.Max(1.5f, mv.moveSpeed - 0.2f));
+                    }
+                }),
+
+            Card("aynali_lanet", "Aynalı Lanet",
+                "Ayna seçer: hasar, yaşam ya da hareket.",
+                "Rastgele güç yolu",
+                CardClass.Khaos, CardRarity.Epic,
+                CardTag.Random | CardTag.ShowsResultFeedback,
+                player =>
+                {
+                    int roll = UnityEngine.Random.Range(0, 3);
+                    if (roll == 0) { Aura(player, a => { a.damage += 10; a.radius += 0.25f; }); Mv(player, mv => mv.dashDamage += 8); }
+                    else if (roll == 1) { Hp(player, hp => { hp.IncreaseMaxHealth(50); hp.Heal(35); }); Aura(player, a => a.radius += 0.2f); }
+                    else { Mv(player, mv => { mv.moveSpeed += 0.9f; mv.dashSpeed += 3f; mv.dashCooldown = Mathf.Max(0.2f, mv.dashCooldown - 0.15f); }); }
+                }),
+
+            Card("atlas_kumarhanesi", "Atlas'ın Kumarhanesi",
+                "Büyük kazanç ya da küçük kayıp — Atlas'ın kaderi.",
+                "Yüksek kazanç veya küçük bedel",
+                CardClass.Khaos, CardRarity.Chaos,
+                CardTag.Random | CardTag.RiskReward | CardTag.ShowsResultFeedback,
+                player =>
+                {
+                    if (UnityEngine.Random.Range(0, 4) < 3)
+                    {
+                        Aura(player, a => { a.damage += 10; a.radius += 0.3f; });
+                        Hp(player, hp => { hp.IncreaseMaxHealth(25); hp.Heal(15); });
+                    }
+                    else
+                    {
+                        Hp(player, hp => hp.IncreaseMaxHealth(-20));
+                        Mv(player, mv => mv.moveSpeed = Mathf.Max(1.5f, mv.moveSpeed - 0.3f));
+                    }
+                }),
+
+            Card("parcalanmis_lutuf", "Parçalanmış Lütuf",
+                "Kırık bir kehanet üç küçük armağan sunar.",
+                "3 küçük rastgele güçlendirme",
+                CardClass.Khaos, CardRarity.Common,
+                CardTag.Random | CardTag.ShowsResultFeedback,
+                player =>
+                {
+                    int[] picks = { 0, 1, 2, 3, 4 };
+                    for (int i = 0; i < 3; i++)
+                    {
+                        int j = UnityEngine.Random.Range(i, 5);
+                        int tmp = picks[i]; picks[i] = picks[j]; picks[j] = tmp;
+                    }
+                    for (int k = 0; k < 3; k++)
+                    {
+                        switch (picks[k])
+                        {
+                            case 0: Aura(player, a => a.damage += 3); break;
+                            case 1: Aura(player, a => a.radius += 0.12f); break;
+                            case 2: Mv(player, mv => mv.moveSpeed += 0.3f); break;
+                            case 3: Hp(player, hp => { hp.IncreaseMaxHealth(12); hp.Heal(6); }); break;
+                            case 4: Mv(player, mv => mv.dashDamage += 4); break;
+                        }
+                    }
                 })
         };
 
@@ -481,7 +733,10 @@ public static class CardDatabase
             "karanlik_tutulma" or
             "atlas_yankisi" or
             "atlas_laneti" or
-            "dovulmus_silah" => CardVisualCategory.Combo,
+            "dovulmus_silah" or
+            "gece_yayilimi" or
+            "golge_ve_celik" or
+            "demir_firtina" => CardVisualCategory.Combo,
 
             _ => ResolveVisualCategoryFromTags(tags)
         };
