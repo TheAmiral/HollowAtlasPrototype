@@ -51,6 +51,7 @@ public class GameManager : MonoBehaviour
 
         EnsureAudioManager();
         EnsureRelicSelectionSystem();
+        EnsureRelicChestSpawnSystem();
         EnsurePortalSpawnSystem();
         EnsureMainHudCanvas();
         EnsureGameOverUI();
@@ -60,6 +61,11 @@ public class GameManager : MonoBehaviour
     {
         if (RelicSelectionSystem.Instance != null) return;
         new GameObject("RelicSelectionSystem").AddComponent<RelicSelectionSystem>();
+    }
+
+    void EnsureRelicChestSpawnSystem()
+    {
+        RelicChestSpawnSystem.EnsureInstance();
     }
 
     void EnsurePortalSpawnSystem()
@@ -238,6 +244,7 @@ public class GameManager : MonoBehaviour
         IsPaused = false;
         pauseSettingsOpen = false;
         Time.timeScale = 1f;
+        RelicChestSpawnSystem.Instance?.ResetForNewRun();
     }
 
     void TogglePause()
@@ -254,6 +261,7 @@ public class GameManager : MonoBehaviour
     {
         RelicInventory.Instance?.Reset();
         RelicSelectionSystem.Instance?.ForceClose();
+        RelicChestSpawnSystem.Instance?.ResetForNewRun();
         IsPaused = false;
         pauseSettingsOpen = false;
         Time.timeScale = 1f;
@@ -264,6 +272,7 @@ public class GameManager : MonoBehaviour
     {
         RelicInventory.Instance?.Reset();
         RelicSelectionSystem.Instance?.ForceClose();
+        RelicChestSpawnSystem.Instance?.ResetForNewRun();
         IsPaused = false;
         IsGameOver = false;
         pauseSettingsOpen = false;
