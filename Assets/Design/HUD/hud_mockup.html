@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Hollow Atlas — HUD Pack 01 Mockup (1920x1080)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg-deep:      #07040e;
+    --bg-purple:    #150a26;
+    --panel-bg:     rgba(16, 8, 30, 0.88);
+    --panel-border: rgba(180, 130, 220, 0.42);
+    --gold:         #d4af37;
+    --gold-light:   #ffe5a0;
+    --cyan:         #22eeff;
+    --cyan-dim:     rgba(34, 238, 255, 0.38);
+    --hp-deep:      #dc3545;
+    --hp-hot:       #ff6b78;
+    --xp-a:         #5a1f9c;
+    --xp-b:         #9a3dd8;
+    --xp-c:         #c862ee;
+    --xp-d:         #6dd9f0;
+    --lavender:     #f5e0ff;
+    --frame-purple: #b482dc;
+  }
+
+  html, body { width: 1920px; height: 1080px; overflow: hidden; }
+
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background:
+      radial-gradient(ellipse 1200px 700px at 50% 45%, #1d1033 0%, var(--bg-purple) 55%, var(--bg-deep) 100%);
+    position: relative;
+    color: var(--lavender);
+  }
+
+  /* subtle vignette so HUD readability can be judged against dark world */
+  body::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
+    pointer-events: none;
+  }
+
+  .panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    box-shadow: 0 0 18px rgba(0,0,0,0.6), inset 0 0 24px rgba(90, 31, 156, 0.12);
+  }
+
+  .gold-frame {
+    border: 1px solid rgba(212, 175, 55, 0.55);
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.7),
+      0 0 14px rgba(212, 175, 55, 0.18),
+      inset 0 0 18px rgba(0,0,0,0.55);
+  }
+
+  .label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(220, 180, 255, 0.78);
+  }
+
+  /* ── Boss bar — top-center ─────────────────────────────────────────── */
+  .boss-bar {
+    position: absolute;
+    top: 26px; left: 50%;
+    transform: translateX(-50%);
+    width: 640px;
+    text-align: center;
+  }
+  .boss-bar .boss-name {
+    font-size: 15px; font-weight: 700;
+    letter-spacing: 4px;
+    color: var(--gold-light);
+    text-shadow: 0 0 10px rgba(212,175,55,0.5), 0 2px 3px #000;
+    margin-bottom: 6px;
+  }
+  .boss-bar .bar {
+    height: 16px;
+    border-radius: 8px;
+    background: #14060a;
+    position: relative;
+    overflow: hidden;
+  }
+  .boss-bar .fill {
+    position: absolute; inset: 2px;
+    width: 72%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #7a0f1e 0%, var(--hp-deep) 60%, var(--hp-hot) 100%);
+    box-shadow: 0 0 12px rgba(220, 53, 69, 0.55);
+  }
+
+  /* ── Minimap — top-right ───────────────────────────────────────────── */
+  .minimap {
+    position: absolute;
+    top: 20px; right: 20px;
+    width: 190px; height: 190px;
+    border-radius: 12px;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(90,31,156,0.25) 0%, transparent 70%),
+      var(--panel-bg);
+    overflow: hidden;
+  }
+  .minimap .grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(180,130,220,0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(180,130,220,0.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  .minimap .player-dot {
+    position: absolute; top: 50%; left: 50%;
+    width: 10px; height: 10px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 10px var(--cyan);
+  }
+  .minimap .enemy-dot {
+    position: absolute;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--hp-deep);
+    box-shadow: 0 0 6px rgba(220,53,69,0.8);
+  }
+
+  /* ── Contract panel — right side (bottom-right, below resonance) ───── */
+  .contract {
+    position: absolute;
+    right: 20px; bottom: 20px;
+    width: 250px;
+    padding: 10px 14px 12px;
+  }
+  .contract .title  { font-size: 14px; font-weight: 700; color: var(--gold-light); letter-spacing: 1px; }
+  .contract .desc   { font-size: 11px; color: rgba(192, 152, 240, 0.85); margin-top: 3px; }
+  .contract .progress { font-size: 14px; font-weight: 700; color: var(--lavender); margin-top: 6px; }
+  .contract .reward { font-size: 10px; color: rgba(255, 224, 144, 0.85); margin-top: 4px; }
+
+  /* ── Atlas Rezonansı — right-center ────────────────────────────────── */
+  .resonance {
+    position: absolute;
+    right: 32px; top: 50%;
+    transform: translateY(-50%);
+    width: 300px; height: 68px;
+    border-radius: 8px;
+    border: 2px solid var(--cyan);
+    background: rgba(16, 8, 30, 0.93);
+    box-shadow: 0 0 22px var(--cyan-dim), inset 0 0 16px rgba(34,238,255,0.10);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 4px;
+  }
+  .resonance .res-label { font-size: 11px; font-weight: 700; letter-spacing: 3px; color: rgba(190,160,235,0.75); }
+  .resonance .res-level {
+    font-size: 19px; font-weight: 700; letter-spacing: 2px;
+    color: #44ffff;
+    text-shadow: 0 0 12px rgba(34,238,255,0.8), 0 2px 2px #000;
+  }
+
+  /* ── Gold / Time / Kill — bottom-left ──────────────────────────────── */
+  .info-panel {
+    position: absolute;
+    left: 16px; bottom: 28px;
+    width: 210px;
+    padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .info-panel .row { display: flex; align-items: center; gap: 8px; }
+  .coin {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 65%, #ffe79b 0%, #f4c64a 55%, #8a5a10 100%);
+    box-shadow: 0 0 8px rgba(244, 198, 74, 0.5);
+  }
+  .gold-num { font-size: 16px; font-weight: 700; color: var(--gold-light); text-shadow: 0 1px 2px #000; }
+  .kill-row { font-size: 12px; font-weight: 600; color: rgba(217,217,217,0.85); letter-spacing: 1px; }
+  .time-row { font-size: 11px; color: rgba(245, 224, 255, 0.62); }
+
+  /* ── Bottom-center combat HUD ──────────────────────────────────────── */
+  .combat-hud {
+    position: absolute;
+    left: 50%; bottom: 28px;
+    transform: translateX(-50%);
+    width: 760px; height: 130px;
+    border-radius: 12px;
+    display: flex; align-items: center;
+  }
+
+  /* Dash bar — LEFT of HP orb */
+  .dash-zone {
+    position: absolute;
+    left: 22px; top: 50%;
+    transform: translateY(-50%);
+    width: 286px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .dash-zone .dash-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 2px;
+    color: rgba(107, 242, 255, 0.85);
+  }
+  .dash-zone .bar {
+    flex: 1; height: 14px;
+    border-radius: 7px;
+    background: #0a0f1f;
+    border: 1px solid var(--cyan-dim);
+    overflow: hidden; position: relative;
+  }
+  .dash-zone .fill {
+    position: absolute; inset: 1px;
+    width: 100%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #1690b8 0%, #26e6ff 100%);
+    box-shadow: 0 0 10px rgba(34, 238, 255, 0.55);
+  }
+
+  /* HP orb — CENTER */
+  .hp-orb {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 108px; height: 108px;
+  }
+  .hp-orb .glow {
+    position: absolute; inset: -14px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(180,130,220,0.45) 0%, transparent 70%);
+  }
+  .hp-orb .orb {
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    background:
+      conic-gradient(from 0deg, var(--hp-deep) 0deg, var(--hp-hot) 280deg, #28143a 280deg, #28143a 360deg);
+    box-shadow: 0 0 18px rgba(220, 53, 69, 0.4), inset 0 0 14px rgba(0,0,0,0.6);
+  }
+  .hp-orb .inner {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 74px; height: 74px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #150a22 0%, #08040e 75%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .hp-orb .ring {
+    position: absolute; inset: -3px;
+    border-radius: 50%;
+    border: 2px solid rgba(180, 130, 220, 0.72);
+  }
+  .hp-orb .hp-num {
+    font-size: 26px; font-weight: 700; color: var(--lavender);
+    text-shadow: 0 2px 3px #000;
+  }
+  .hp-orb .hp-label { font-size: 8px; font-weight: 700; letter-spacing: 2px; color: rgba(245,224,255,0.62); }
+
+  /* Level + XP — RIGHT of HP orb */
+  .xp-zone {
+    position: absolute;
+    right: 22px; top: 50%;
+    transform: translateY(-50%);
+    width: 286px;
+    display: flex; flex-direction: column; gap: 9px;
+  }
+  .level-row { display: flex; align-items: center; gap: 10px; }
+  .level-badge {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: radial-gradient(circle at 40% 60%, #8c50c8 0%, #1e0f37 90%);
+    border: 2px solid rgba(220, 180, 255, 0.9);
+    box-shadow: 0 0 12px rgba(140, 80, 200, 0.55);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700; color: var(--lavender);
+    text-shadow: 0 1px 2px #000;
+  }
+  .level-roman { font-size: 22px; font-weight: 700; color: var(--lavender); text-shadow: 0 2px 3px #000; }
+  .level-label { font-size: 11px; letter-spacing: 2px; color: rgba(220, 180, 255, 0.8); }
+
+  .xp-bar {
+    height: 18px;
+    border-radius: 9px;
+    background: #08041a;
+    border: 1px solid var(--frame-purple);
+    overflow: hidden; position: relative;
+  }
+  .xp-bar .fill {
+    position: absolute; inset: 1px;
+    width: 58%;
+    border-radius: 8px;
+    background: linear-gradient(90deg, var(--xp-a) 0%, var(--xp-b) 40%, var(--xp-c) 75%, var(--xp-d) 100%);
+    box-shadow: 0 0 10px rgba(154, 61, 216, 0.6);
+  }
+  .xp-meta { display: flex; gap: 12px; align-items: baseline; }
+  .xp-meta .xp-label { font-size: 10px; letter-spacing: 2px; color: rgba(220, 180, 255, 0.7); }
+  .xp-meta .xp-value { font-size: 11px; color: rgba(245, 224, 255, 0.88); }
+</style>
+</head>
+<body>
+
+  <!-- Boss bar — top-center -->
+  <div class="boss-bar">
+    <div class="boss-name">KHAOS BEKÇİSİ</div>
+    <div class="bar gold-frame"><div class="fill"></div></div>
+  </div>
+
+  <!-- Minimap — top-right -->
+  <div class="minimap gold-frame">
+    <div class="grid"></div>
+    <div class="enemy-dot" style="top: 30%; left: 62%;"></div>
+    <div class="enemy-dot" style="top: 68%; left: 28%;"></div>
+    <div class="enemy-dot" style="top: 44%; left: 78%;"></div>
+    <div class="player-dot"></div>
+  </div>
+
+  <!-- Atlas Rezonansı — right-center -->
+  <div class="resonance">
+    <div class="res-label">ATLAS REZONANSI</div>
+    <div class="res-level">◈◈&nbsp;&nbsp;GÜÇLÜ</div>
+  </div>
+
+  <!-- Contract panel — right side, bottom -->
+  <div class="contract panel gold-frame">
+    <div class="title">Kan Borcu</div>
+    <div class="desc">Düşman öldür</div>
+    <div class="progress">34 / 50 düşman</div>
+    <div class="reward">Ödül: 120 Altın</div>
+  </div>
+
+  <!-- Gold / Time / Kill — bottom-left -->
+  <div class="info-panel panel">
+    <div class="row"><div class="coin"></div><div class="gold-num">248</div></div>
+    <div class="row kill-row">KILL: 34</div>
+    <div class="row time-row">Time: 184.6s</div>
+  </div>
+
+  <!-- Bottom-center combat HUD: dash (left) + HP orb (center) + level/XP (right) -->
+  <div class="combat-hud panel">
+    <div class="dash-zone">
+      <span class="dash-label">DASH</span>
+      <div class="bar"><div class="fill"></div></div>
+    </div>
+
+    <div class="hp-orb">
+      <div class="glow"></div>
+      <div class="orb"></div>
+      <div class="ring"></div>
+      <div class="inner">
+        <div class="hp-num">100</div>
+        <div class="hp-label">VITA</div>
+      </div>
+    </div>
+
+    <div class="xp-zone">
+      <div class="level-row">
+        <div class="level-badge">VII</div>
+        <div class="level-label">ATLAS LEVEL</div>
+      </div>
+      <div class="xp-bar"><div class="fill"></div></div>
+      <div class="xp-meta">
+        <span class="xp-label">EXPERIENCE</span>
+        <span class="xp-value">42 / 73</span>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

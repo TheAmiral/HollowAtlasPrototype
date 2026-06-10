@@ -356,6 +356,7 @@ public class MainHudCanvasUI : MonoBehaviour
     private Image     dashBarFill;
     private Transform _levelRowTransform;
     private Transform _goldPipTransform;
+    private Text      killText;
 
     // Feedback state
     private int  _prevHp;
@@ -447,6 +448,11 @@ public class MainHudCanvasUI : MonoBehaviour
 
         if (goldNumberText != null && goldWallet != null)
             goldNumberText.text = goldWallet.RunGold.ToString();
+
+        if (killText != null)
+            killText.text = RunStatsSystem.Instance != null
+                ? $"KILL: {RunStatsSystem.Instance.KillsThisRun}"
+                : "KILL: 0";
 
         if (timerText != null && GameManager.Instance != null)
             timerText.text = $"Time: {GameManager.Instance.ElapsedTime:0.0}s";
@@ -792,7 +798,7 @@ public class MainHudCanvasUI : MonoBehaviour
         panelRect.anchorMax        = new Vector2(0f, 0f);
         panelRect.pivot            = new Vector2(0f, 0f);
         panelRect.anchoredPosition = new Vector2(16f, 28f);
-        panelRect.sizeDelta        = new Vector2(210f, 66f);
+        panelRect.sizeDelta        = new Vector2(210f, 88f);
 
         GameObject bg = new GameObject("TopLeft_Bg", typeof(RectTransform), typeof(Image));
         bg.transform.SetParent(panelRect, false);
@@ -807,8 +813,14 @@ public class MainHudCanvasUI : MonoBehaviour
 
         BuildGoldPip(panelRect, font);
 
+        // KILL row — between gold (top) and timer (bottom)
+        killText = CreateText(panelRect, "Kill_Text", "KILL: 0",
+            new Vector2(8f, -4f), new Vector2(190f, 20f),
+            TextAnchor.MiddleLeft, 12, font);
+        killText.color = new Color(0.85f, 0.85f, 0.85f, 0.80f);
+
         timerText = CreateText(panelRect, "Timer_Text", "Time: 0.0s",
-            new Vector2(8f, -15f), new Vector2(190f, 20f),
+            new Vector2(8f, -26f), new Vector2(190f, 20f),
             TextAnchor.MiddleLeft, 10, font);
         timerText.color = new Color(TextSoftLavender.r, TextSoftLavender.g, TextSoftLavender.b, 0.62f);
     }
@@ -824,7 +836,7 @@ public class MainHudCanvasUI : MonoBehaviour
         combatRect.anchorMax        = new Vector2(0.5f, 0f);
         combatRect.pivot            = new Vector2(0.5f, 0f);
         combatRect.anchoredPosition = new Vector2(0f, 28f);
-        combatRect.sizeDelta        = new Vector2(640f, 130f);
+        combatRect.sizeDelta        = new Vector2(760f, 130f);
 
         // Thin purple border behind panel
         GameObject border = new GameObject("Combat_Border", typeof(RectTransform), typeof(Image));
@@ -850,11 +862,12 @@ public class MainHudCanvasUI : MonoBehaviour
         bgPanelImg.sprite = GetHudOverlaySprite();
         bgPanelImg.color  = new Color(HudOverlayColor.r, HudOverlayColor.g, HudOverlayColor.b, 0.88f);
 
+        BuildDashBar(combatRect, font);
         BuildHpOrb(combatRect, font);
         BuildRightStack(combatRect, font);
     }
 
-    // ── HP Orb (100×100, radial 360 fill, bottom-center parent) ─────────────
+    // ── HP Orb (108×108, radial 360 fill, centered in bottom panel) ─────────
 
     private void BuildHpOrb(RectTransform parent, Font font)
     {
@@ -863,10 +876,10 @@ public class MainHudCanvasUI : MonoBehaviour
         GameObject orbGroup = new GameObject("HP_Orb_Group", typeof(RectTransform));
         orbGroup.transform.SetParent(parent, false);
         RectTransform orbRect = orbGroup.GetComponent<RectTransform>();
-        orbRect.anchorMin        = new Vector2(0f, 0.5f);
-        orbRect.anchorMax        = new Vector2(0f, 0.5f);
+        orbRect.anchorMin        = new Vector2(0.5f, 0.5f);
+        orbRect.anchorMax        = new Vector2(0.5f, 0.5f);
         orbRect.pivot            = new Vector2(0.5f, 0.5f);
-        orbRect.anchoredPosition = new Vector2(62f, 0f);
+        orbRect.anchoredPosition = Vector2.zero;
         orbRect.sizeDelta        = new Vector2(OrbSize, OrbSize);
 
         orbGroup.AddComponent<OrbBreathing>();
@@ -934,21 +947,20 @@ public class MainHudCanvasUI : MonoBehaviour
         vitaLabel.fontStyle = FontStyle.Bold;
     }
 
-    // ── Right stack: Level row + XP bar (gold moved to top-left info) ────────
+    // ── Right stack: Level row + XP bar, right of centered HP orb ────────────
 
     private void BuildRightStack(RectTransform parent, Font font)
     {
         GameObject stack = new GameObject("Right_Stack", typeof(RectTransform));
         stack.transform.SetParent(parent, false);
         RectTransform stackRect = stack.GetComponent<RectTransform>();
-        stackRect.anchorMin        = new Vector2(0f, 0.5f);
-        stackRect.anchorMax        = new Vector2(0f, 0.5f);
-        stackRect.pivot            = new Vector2(0f, 0.5f);
-        stackRect.anchoredPosition = new Vector2(122f, 0f);
-        stackRect.sizeDelta        = new Vector2(508f, 120f);
+        stackRect.anchorMin        = new Vector2(1f, 0.5f);
+        stackRect.anchorMax        = new Vector2(1f, 0.5f);
+        stackRect.pivot            = new Vector2(1f, 0.5f);
+        stackRect.anchoredPosition = new Vector2(-22f, 0f);
+        stackRect.sizeDelta        = new Vector2(286f, 104f);
 
         BuildLevelRow(stackRect, font);
-        BuildDashBar(stackRect, font);
         BuildXpBarGroup(stackRect, font);
     }
 
@@ -1102,15 +1114,15 @@ public class MainHudCanvasUI : MonoBehaviour
 
     private void BuildDashBar(RectTransform parent, Font font)
     {
-        // Anchored between level row (top) and XP bar (bottom) in right stack
+        // Left zone of the bottom-center combat panel, left of the HP orb
         GameObject group = new GameObject("Dash_Bar_Group", typeof(RectTransform));
         group.transform.SetParent(parent, false);
         RectTransform groupRect = group.GetComponent<RectTransform>();
         groupRect.anchorMin        = new Vector2(0f, 0.5f);
-        groupRect.anchorMax        = new Vector2(1f, 0.5f);
-        groupRect.pivot            = new Vector2(0.5f, 0.5f);
-        groupRect.anchoredPosition = new Vector2(0f, 0f);
-        groupRect.sizeDelta        = new Vector2(0f, 20f);
+        groupRect.anchorMax        = new Vector2(0f, 0.5f);
+        groupRect.pivot            = new Vector2(0f, 0.5f);
+        groupRect.anchoredPosition = new Vector2(22f, 0f);
+        groupRect.sizeDelta        = new Vector2(286f, 20f);
 
         // Label
         Text dashLabel = CreateText(groupRect, "Dash_Label", "DASH",
