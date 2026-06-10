@@ -3,13 +3,17 @@ using UnityEngine;
 public class CharacterAnimatorBridge : MonoBehaviour
 {
     [Header("Animator Parameters")]
-    public string horParam = "Hor";
-    public string vertParam = "Vert";
-    public string stateParam = "State";
-    public string isJumpParam = "IsJump";
+    public string horParam       = "Hor";
+    public string vertParam      = "Vert";
+    public string stateParam     = "State";
+    public string isJumpParam    = "IsJump";
+    public string isDashingParam = "IsDashing";
 
     [Header("Smoothing")]
     public float dampTime = 0.08f;
+
+    [Header("Deadzone")]
+    public float idleDeadzone = 0.05f;
 
     private Animator animator;
     private PlayerMovement playerMovement;
@@ -18,6 +22,9 @@ public class CharacterAnimatorBridge : MonoBehaviour
     private float prevTimeScale = 1f;
     private bool gameplayBlockedLastFrame;
     private const float RESUME_GRACE = 0.45f;
+
+    private enum AnimState { Idle, Walk, Run }
+    private AnimState lastAnimState = AnimState.Idle;
 
     void Awake()
     {
@@ -58,9 +65,20 @@ public class CharacterAnimatorBridge : MonoBehaviour
 
         Vector3 move = transform.InverseTransformDirection(playerMovement.CurrentMoveDirection);
 
-        float hor = move.x;
-        float vert = move.z;
-        float state = move.sqrMagnitude > 0.001f ? 1f : 0f;
+        bool isMoving = move.sqrMagnitude > idleDeadzone * idleDeadzone;
+        bool isRunning = isMoving && playerMovement.IsRunInputHeld;
+
+        float hor   = isMoving ? move.x : 0f;
+        float vert  = isMoving ? move.z : 0f;
+        float state = isMoving ? 1f : 0f;
+
+        AnimState newState = isRunning ? AnimState.Run : (isMoving ? AnimState.Walk : AnimState.Idle);
+        if (newState != lastAnimState)
+        {
+            lastAnimState = newState;
+            Debug.Log($"[AnimBridge] {newState}");
+        }
+
         bool isJump = resumeGraceTimer <= 0f && playerMovement.ShouldPlayFallAnimation;
 
         animator.SetFloat(horParam, hor, dampTime, Time.deltaTime);
@@ -68,6 +86,9 @@ public class CharacterAnimatorBridge : MonoBehaviour
         animator.SetFloat(stateParam, state, dampTime, Time.deltaTime);
 
         SetJump(isJump);
+
+        if (HasParameter(isDashingParam))
+            animator.SetBool(isDashingParam, playerMovement.IsDashing);
     }
 
     bool IsGameplayBlocked()
