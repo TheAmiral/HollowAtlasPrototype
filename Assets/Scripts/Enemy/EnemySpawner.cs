@@ -66,12 +66,33 @@ public class EnemySpawner : MonoBehaviour
         if (point == Vector2.zero)
             point = Vector2.up * minSpawnDistance;
 
-        Vector3 spawnPos = player.position + new Vector3(point.x, 0.5f, point.y);
+        float candidateX = player.position.x + point.x;
+        float candidateZ = player.position.z + point.y;
+        float groundY = GroundYAtPoint(candidateX, candidateZ, player.position.y);
 
         GameObject prefabToSpawn = ChooseEnemyPrefab();
-        GameObject spawnedEnemy = Instantiate(prefabToSpawn, spawnPos, Quaternion.identity);
+        GameObject spawnedEnemy = Instantiate(prefabToSpawn, new Vector3(candidateX, groundY, candidateZ), Quaternion.identity);
+
+        Renderer r = spawnedEnemy.GetComponentInChildren<Renderer>();
+        if (r != null)
+        {
+            float delta = groundY - r.bounds.min.y;
+            if (Mathf.Abs(delta) > 0.005f)
+                spawnedEnemy.transform.position += Vector3.up * delta;
+        }
 
         ApplyXpRewardByType(spawnedEnemy, prefabToSpawn);
+    }
+
+    float GroundYAtPoint(float x, float z, float referenceY)
+    {
+        Vector3 origin = new Vector3(x, referenceY + 5f, z);
+
+        if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, 10f,
+            Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            return hit.point.y;
+
+        return referenceY;
     }
 
     GameObject ChooseEnemyPrefab()

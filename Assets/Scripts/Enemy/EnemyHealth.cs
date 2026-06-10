@@ -103,6 +103,7 @@ public class EnemyHealth : MonoBehaviour
         VFXSpawner.Instance?.Spawn("EnemyDeathDust", transform.position);
 
         RelicChestSpawnSystem.RegisterEnemyKill(transform.position, isBoss);
+        RunStatsSystem.RegisterEnemyKill(isBoss);
 
         DropGold();
         DropXP();

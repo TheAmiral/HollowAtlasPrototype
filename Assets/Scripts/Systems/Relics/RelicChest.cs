@@ -67,18 +67,15 @@ public class RelicChest : MonoBehaviour
         _consumed     = true;
         _playerNearby = false;
 
-        var greyMat = CreateBuildSafeMaterial(new Color(0.22f, 0.22f, 0.22f, 1f));
-        if (greyMat != null)
-            foreach (var r in GetComponentsInChildren<Renderer>())
-                r.sharedMaterial = greyMat;
-
         RelicInventory.EnsureInstance();
         BiomeRerollService.EnsureInstance();
 
         if (RelicSelectionSystem.Instance == null)
             new GameObject("RelicSelectionSystem").AddComponent<RelicSelectionSystem>();
 
+        RelicChestSpawnSystem.NotifyChestConsumed(this);
         RelicSelectionSystem.Instance.TriggerRelicSelection(_playerRef);
+        Destroy(gameObject);
     }
 
     // ── Placeholder builder ───────────────────────────────────────────────────
