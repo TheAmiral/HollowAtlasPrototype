@@ -32,9 +32,9 @@ public class PlayerMovement : MonoBehaviour
     [Header("Dash Trail")]
     public float dashTrailTime = 0.18f;
     public float dashTrailWidth = 0.7f;
-
     public Vector3 CurrentMoveDirection => currentMoveDirection;
     public bool IsDashing => isDashing;
+    public bool IsRunInputHeld { get; private set; }
     public float VerticalVelocity => verticalVelocity;
     public float DashCooldownNormalized => dashCooldown > 0f
         ? Mathf.Clamp01(1f - (dashCooldownTimer / dashCooldown))
@@ -112,6 +112,9 @@ public class PlayerMovement : MonoBehaviour
             dashCooldownTimer -= Time.deltaTime;
 
         Vector2 input = ReadInput();
+        IsRunInputHeld = input.sqrMagnitude > 0.001f
+            && Keyboard.current != null
+            && (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed);
         Vector3 move = CalculateMoveDirection(input);
 
         if (move.sqrMagnitude > 1f)
@@ -399,17 +402,29 @@ public class PlayerMovement : MonoBehaviour
         if (spawnGroundSnapDistance <= 0f)
             return;
 
-        float capsuleBottom = transform.position.y + controller.center.y - (controller.height * 0.5f);
-        Vector3 rayOrigin = transform.position + Vector3.up * 0.1f;
+        float sy = Mathf.Abs(transform.lossyScale.y);
+        float bottomY = transform.position.y
+            + controller.center.y * sy
+            - controller.height * sy * 0.5f;
 
-        if (!Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, spawnGroundSnapDistance + 0.1f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+        Vector3 rayOrigin = new Vector3(transform.position.x, bottomY + 0.5f, transform.position.z);
+
+        if (!Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, spawnGroundSnapDistance + 0.5f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
             return;
 
-        float targetBottom = hit.point.y + controller.skinWidth;
-        float delta = targetBottom - capsuleBottom;
+        // Tek yönlü snap: taban zaten zemine yakınsa hiçbir şey yapma.
+        // Root asla yukarı taşınmaz; edit mode hizası Play'de korunur.
+        const float SnapTolerance = 0.05f;
+        float gap = bottomY - hit.point.y;
 
-        if (Mathf.Abs(delta) > 0.001f)
-            controller.Move(Vector3.up * delta);
+        if (gap <= controller.skinWidth + SnapTolerance)
+            return;
+
+        // Sadece gerçekten havadaysa: tabanı zemin + skinWidth hizasına indir.
+        float delta = (hit.point.y + controller.skinWidth) - bottomY;
+        transform.position += Vector3.up * delta;
+
+        Debug.Log($"[SpawnSnap] Lowered by {-delta:F3} (gap was {gap:F3}, groundY {hit.point.y:F3})");
     }
 
     void OnDrawGizmosSelected()
