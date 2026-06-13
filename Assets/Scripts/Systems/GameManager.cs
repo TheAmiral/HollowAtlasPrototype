@@ -52,6 +52,7 @@ public class GameManager : MonoBehaviour
         EnsureAudioManager();
         EnsureRelicSelectionSystem();
         EnsurePortalSpawnSystem();
+        EnsureWeaponInventory();
         EnsureMainHudCanvas();
         EnsureGameOverUI();
     }
@@ -66,6 +67,12 @@ public class GameManager : MonoBehaviour
     {
         if (PortalSpawnSystem.Instance != null) return;
         new GameObject("PortalSpawnSystem").AddComponent<PortalSpawnSystem>();
+    }
+
+    void EnsureWeaponInventory()
+    {
+        if (WeaponInventory.Instance != null) return;
+        new GameObject("WeaponInventory").AddComponent<WeaponInventory>();
     }
 
     void EnsureAudioManager()
@@ -254,6 +261,7 @@ public class GameManager : MonoBehaviour
     {
         RelicInventory.Instance?.Reset();
         RelicSelectionSystem.Instance?.ForceClose();
+        WeaponInventory.Instance?.ResetForNewRun();
         IsPaused = false;
         pauseSettingsOpen = false;
         Time.timeScale = 1f;
@@ -264,6 +272,7 @@ public class GameManager : MonoBehaviour
     {
         RelicInventory.Instance?.Reset();
         RelicSelectionSystem.Instance?.ForceClose();
+        WeaponInventory.Instance?.ResetForNewRun();
         IsPaused = false;
         IsGameOver = false;
         pauseSettingsOpen = false;

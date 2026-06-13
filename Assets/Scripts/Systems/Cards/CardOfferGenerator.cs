@@ -1,158 +1,198 @@
+// ─────────────────────────────────────────────────────────────────────────────
+//  CardOfferGenerator.cs  (YENİDEN YAZILDI — VS Sistemi)
+//  Assets/Scripts/Systems/Cards/CardOfferGenerator.cs
+//
+//  Her level-up'ta VS mantığına göre 3 kart teklif eder:
+//
+//  Slot 1 → Sahip olunan silahlardan upgrade teklifi
+//           (veya en ucuz yeni silah, eğer hiç upgrade yoksa)
+//  Slot 2 → Pasif kart (Sustain / Mobility / Damage)
+//  Slot 3 → Yeni silah teklifi (sahip olunmayanlardan)
+//           veya ikinci upgrade / ikinci pasif
+// ─────────────────────────────────────────────────────────────────────────────
 using System.Collections.Generic;
 using UnityEngine;
 
 public static class CardOfferGenerator
 {
-    // Common, Rare, Epic, Legendary, Chaos
-    static readonly int[] BaseWeights = { 60, 28, 10, 2, 0 };
+    static readonly int[] BaseWeights = { 60, 28, 10, 2, 0 }; // C/R/E/L/Chaos
 
-    public static List<CardDefinition> Generate(int count, int playerLevel, HashSet<string> excludeIds = null)
+    public static List<CardDefinition> Generate(int count, int playerLevel,
+                                                HashSet<string> excludeIds = null)
     {
+        var inv = WeaponInventory.Instance;
         var result = new List<CardDefinition>(count);
-        var usedIds = excludeIds != null
-            ? new HashSet<string>(excludeIds)
-            : new HashSet<string>();
+        var usedIds = excludeIds != null ? new HashSet<string>(excludeIds) : new HashSet<string>();
 
-        var usedClasses = new HashSet<CardClass>();
+        // ── Silah upgrade kartlarını hazırla ──────────────────────────────────
+        var weaponUpgrades = inv != null
+            ? CardDatabase.GetWeaponCards(inv)
+            : new List<CardDefinition>();
 
-        for (int i = 0; i < count; i++)
+        // Elinde olmayan silahlar
+        var newWeapons = new List<CardDefinition>();
+        // Elindeki silahlara upgrade
+        var ownedUpgrades = new List<CardDefinition>();
+
+        foreach (var wCard in weaponUpgrades)
         {
-            CardRarity targetRarity = RollRarity(playerLevel);
+            if (wCard == null) continue;
+            if (usedIds.Contains(wCard.id)) continue;
 
-            CardDefinition pick = PickCandidate(targetRarity, usedIds, usedClasses, preferNewClass: true);
+            if (inv != null && inv.HasWeapon(wCard.weaponType))
+                ownedUpgrades.Add(wCard);
+            else
+                newWeapons.Add(wCard);
+        }
 
-            if (pick == null)
-                pick = PickCandidate(targetRarity, usedIds, usedClasses, preferNewClass: false);
+        // Pasif kartlar
+        var passives = GetPassiveCandidates(playerLevel, usedIds);
+        var khaos    = GetKhaosCandidates(playerLevel, usedIds);
 
-            if (pick == null)
-                pick = PickAny(usedIds);
+        // ── 3 Slot doldur ─────────────────────────────────────────────────────
 
-            if (pick == null)
-                break;
-
+        // Slot 1: Mevcut silah upgrade (VS önceliği)
+        if (ownedUpgrades.Count > 0)
+        {
+            var pick = ownedUpgrades[Random.Range(0, ownedUpgrades.Count)];
             result.Add(pick);
             usedIds.Add(pick.id);
-            usedClasses.Add(pick.cardClass);
+        }
+        else if (newWeapons.Count > 0)
+        {
+            // Henüz upgrade yoksa yeni silah teklif et
+            var pick = newWeapons[Random.Range(0, newWeapons.Count)];
+            result.Add(pick);
+            usedIds.Add(pick.id);
+            newWeapons.Remove(pick);
+        }
+        else if (passives.Count > 0)
+        {
+            // Hiç silah seçeneği yoksa pasif
+            var pick = PickWeightedPassive(passives, playerLevel);
+            if (pick != null) { result.Add(pick); usedIds.Add(pick.id); passives.Remove(pick); }
+        }
+
+        // Slot 2: Pasif kart
+        if (result.Count < count && passives.Count > 0)
+        {
+            var pick = PickWeightedPassive(passives, playerLevel);
+            if (pick != null) { result.Add(pick); usedIds.Add(pick.id); passives.Remove(pick); }
+        }
+
+        // Slot 3: Yeni silah VEYA ikinci pasif VEYA khaos
+        if (result.Count < count)
+        {
+            bool offerKhaos = playerLevel >= 3 && Random.value < 0.15f;
+
+            if (offerKhaos && khaos.Count > 0)
+            {
+                var pick = khaos[Random.Range(0, khaos.Count)];
+                result.Add(pick);
+                usedIds.Add(pick.id);
+            }
+            else if (newWeapons.Count > 0)
+            {
+                var pick = newWeapons[Random.Range(0, newWeapons.Count)];
+                result.Add(pick);
+                usedIds.Add(pick.id);
+            }
+            else if (passives.Count > 0)
+            {
+                var pick = PickWeightedPassive(passives, playerLevel);
+                if (pick != null) { result.Add(pick); usedIds.Add(pick.id); }
+            }
+            else if (ownedUpgrades.Count > 0)
+            {
+                // Bonus upgrade slot
+                foreach (var up in ownedUpgrades)
+                {
+                    if (!usedIds.Contains(up.id))
+                    {
+                        result.Add(up);
+                        usedIds.Add(up.id);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // count'a ulaşamadıysak pasif ile doldur
+        while (result.Count < count && passives.Count > 0)
+        {
+            var pick = PickWeightedPassive(passives, playerLevel);
+            if (pick == null) break;
+            if (!usedIds.Contains(pick.id))
+            {
+                result.Add(pick);
+                usedIds.Add(pick.id);
+            }
+            passives.Remove(pick);
         }
 
         return result;
     }
 
-    static CardDefinition PickCandidate(
-        CardRarity rarity,
-        HashSet<string> usedIds,
-        HashSet<CardClass> usedClasses,
-        bool preferNewClass)
+    // ── Pasif aday listesi ────────────────────────────────────────────────────
+
+    static List<CardDefinition> GetPassiveCandidates(int playerLevel, HashSet<string> usedIds)
     {
         var candidates = new List<CardDefinition>();
-
         foreach (var card in CardDatabase.All)
         {
-            if (card == null)
-                continue;
-
-            if (usedIds.Contains(card.id))
-                continue;
-
-            if (card.rarity != rarity)
-                continue;
-
-            if (preferNewClass && usedClasses.Contains(card.cardClass))
-                continue;
-
+            if (card == null) continue;
+            if (card.cardType != CardType.Passive) continue;
+            if (usedIds.Contains(card.id)) continue;
             candidates.Add(card);
         }
-
-        if (candidates.Count == 0)
-            return null;
-
-        return candidates[Random.Range(0, candidates.Count)];
+        return candidates;
     }
 
-    static CardDefinition PickAny(HashSet<string> usedIds)
+    static List<CardDefinition> GetKhaosCandidates(int playerLevel, HashSet<string> usedIds)
     {
         var candidates = new List<CardDefinition>();
-
         foreach (var card in CardDatabase.All)
         {
-            if (card == null)
-                continue;
-
-            if (usedIds.Contains(card.id))
-                continue;
-
+            if (card == null) continue;
+            if (card.cardType != CardType.Chaos) continue;
+            if (usedIds.Contains(card.id)) continue;
             candidates.Add(card);
         }
-
-        if (candidates.Count == 0)
-            return null;
-
-        return candidates[Random.Range(0, candidates.Count)];
+        return candidates;
     }
 
-    static CardRarity RollRarity(int playerLevel)
+    // ── Ağırlıklı pasif seçimi ────────────────────────────────────────────────
+
+    static CardDefinition PickWeightedPassive(List<CardDefinition> pool, int playerLevel)
     {
-        int common = BaseWeights[0];
-        int rare = BaseWeights[1];
-        int epic = BaseWeights[2];
-        int legendary = BaseWeights[3];
-        int chaos = BaseWeights[4];
+        if (pool.Count == 0) return null;
 
-        // Level arttıkça Rare/Epic/Legendary şansı hafif artsın.
-        if (playerLevel >= 4)
+        // Level arttıkça nadir kartlar açılır
+        var weighted = new List<(CardDefinition card, int w)>();
+        foreach (var c in pool)
         {
-            common -= 5;
-            rare += 3;
-            epic += 2;
+            int w = c.rarity switch
+            {
+                CardRarity.Common    => 60,
+                CardRarity.Rare      => playerLevel >= 3 ? 30 : 15,
+                CardRarity.Epic      => playerLevel >= 6 ? 15 : 5,
+                CardRarity.Legendary => playerLevel >= 9 ? 8  : 2,
+                _                    => 5,
+            };
+            weighted.Add((c, w));
         }
 
-        if (playerLevel >= 7)
-        {
-            common -= 5;
-            rare += 2;
-            epic += 2;
-            legendary += 1;
-        }
-
-        if (playerLevel >= 10)
-        {
-            common -= 5;
-            epic += 3;
-            legendary += 2;
-        }
-
-        // Khaos çok düşük oranlı özel teklif.
-        if (playerLevel >= 3)
-            chaos = 3;
-
-        common = Mathf.Max(0, common);
-        rare = Mathf.Max(0, rare);
-        epic = Mathf.Max(0, epic);
-        legendary = Mathf.Max(0, legendary);
-        chaos = Mathf.Max(0, chaos);
-
-        int total = common + rare + epic + legendary + chaos;
-        if (total <= 0)
-            return CardRarity.Common;
+        int total = 0;
+        foreach (var (_, w) in weighted) total += w;
+        if (total <= 0) return pool[Random.Range(0, pool.Count)];
 
         int roll = Random.Range(0, total);
-        int cursor = common;
-
-        if (roll < cursor)
-            return CardRarity.Common;
-
-        cursor += rare;
-        if (roll < cursor)
-            return CardRarity.Rare;
-
-        cursor += epic;
-        if (roll < cursor)
-            return CardRarity.Epic;
-
-        cursor += legendary;
-        if (roll < cursor)
-            return CardRarity.Legendary;
-
-        return CardRarity.Chaos;
+        int cursor = 0;
+        foreach (var (card, w) in weighted)
+        {
+            cursor += w;
+            if (roll < cursor) return card;
+        }
+        return pool[pool.Count - 1];
     }
 }

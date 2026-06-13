@@ -61,3 +61,18 @@ public enum CardEffectKind
     RandomStatBundle,
     Special
 }
+
+public enum WeaponType
+{
+    None,
+    KatanaAura,
+    RuhKunai,
+    AtlasSphere,
+}
+
+public enum CardType
+{
+    WeaponUpgrade,
+    Passive,
+    Chaos,
+}

@@ -60,6 +60,21 @@ public static class CardThemeLibrary
             main = Hex("C04BFF"), dark = Hex("250530"), glow = Hex("FF7CF5"),
             text = Hex("FFE9FF"), secondaryGlow = Hex("59E1FF")
         },
+        CardVisualCategory.WeaponKatana => new CardVisualTheme
+        {
+            main = Hex("D86A1C"), dark = Hex("2D1204"), glow = Hex("FFB05A"),
+            text = Hex("FFE8D0"), secondaryGlow = Hex("FFB05A")
+        },
+        CardVisualCategory.WeaponKunai => new CardVisualTheme
+        {
+            main = Hex("10B8C8"), dark = Hex("063B46"), glow = Hex("6DF6FF"),
+            text = Hex("D8FFFF"), secondaryGlow = Hex("6DF6FF")
+        },
+        CardVisualCategory.WeaponSphere => new CardVisualTheme
+        {
+            main = Hex("B8873A"), dark = Hex("2C1B08"), glow = Hex("FFD56A"),
+            text = Hex("FFF1C2"), secondaryGlow = Hex("FFD56A")
+        },
         _ => new CardVisualTheme
         {
             main = Color.white, dark = Color.black, glow = Color.white,
@@ -69,9 +84,12 @@ public static class CardThemeLibrary
 
     public static string GetVisualCornerLabel(CardVisualCategory c) => c switch
     {
-        CardVisualCategory.BossReward => "BOSS",
-        CardVisualCategory.Combo      => "KOMBO",
-        CardVisualCategory.Chaos      => "KHAOS",
+        CardVisualCategory.BossReward    => "BOSS",
+        CardVisualCategory.Combo         => "KOMBO",
+        CardVisualCategory.Chaos         => "KHAOS",
+        CardVisualCategory.WeaponKatana  => "SİLAH",
+        CardVisualCategory.WeaponKunai   => "SİLAH",
+        CardVisualCategory.WeaponSphere  => "SİLAH",
         _ => null
     };
 
