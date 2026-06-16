@@ -3,21 +3,22 @@
 **Last updated:** 2026-06-14
 
 ## Active Branch
-`main` — commit `be2b0026`
+`main`
 
 ## Recently Completed
-- VS tarzı silah sistemi eklendi: `WeaponInventory.cs`, `RuhKunai.cs`, `AtlasSphere.cs`
-- `CardType` (WeaponUpgrade / Passive / Chaos) ve `WeaponType` enum'ları kart sistemine entegre edildi
-- `CardDefinition.cs` güncellendi: `weaponType` ve `weaponLevel` alanları eklendi
-- Duplicate enum tanımları `CardEnums.cs`'ten kaldırıldı
-- Derleme: **0 hata**
+- **VS Weapon System tam entegrasyonu tamamlandı ve doğrulandı** (Play Mode'da çalışıyor)
+- Orijinal 50+ kartlık tanrı sistemi (Hermes/Nyx/Atlas/Ares/Artemis/Hephaistos/Khaos) geri getirildi
+- Silah kartları (Katana Aura / Ruh Kunai / Atlas Küresi) level-up ekranına entegre edildi
+- `WeaponInventory` artık sahnede objeye eklemeye gerek yok — `RuntimeInitializeOnLoadMethod` ile otomatik başlatılıyor
+- `CardThemeLibrary` silah görsel temalarıyla güncellendi (turuncu/cyan/altın)
 
 ## Known State
-- `CardDatabase.cs` ve `CardOfferGenerator.cs` henüz VS mantığına göre güncellenmedi
-- Silah kartları kart ekranında henüz test edilmedi
-- `feature/vs-weapon-system` branch'i remote'da mevcut (referans için)
+- `RuhKunai` ve `AtlasSphere` prefabları yok; bileşenler `player.AddComponent<>()` ile runtime'da ekleniyor
+- Kart ekranı UI: legacy `UnityEngine.UI.Text` (TextMeshPro'ya geçiş roadmap'te)
 
-## Pending
-- Kart ekranında silah kartlarının doğru çıkıp çıkmadığını Play Mode'da test et
-- `CardDatabase.cs` içinde `WeaponUpgrade` tipinde kartlar tanımla
-- `CardOfferGenerator.cs`'i VS mantığına göre güncelle (silah önce açılır, sonra seviyelenir)
+## Pending (Roadmap)
+- TextMeshPro migrasyonu
+- MetaShop (`bankGold` harcama ekranı)
+- SaveSystem (PlayerPrefs)
+- Minimap
+- WeaponInventory run sonu sıfırlama entegrasyonu (`ResetForNewRun()` → GameManager'a bağla)

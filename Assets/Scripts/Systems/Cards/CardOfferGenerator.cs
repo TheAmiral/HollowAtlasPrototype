@@ -3,156 +3,86 @@ using UnityEngine;
 
 public static class CardOfferGenerator
 {
-    // Common, Rare, Epic, Legendary, Chaos
-    static readonly int[] BaseWeights = { 60, 28, 10, 2, 0 };
-
     public static List<CardDefinition> Generate(int count, int playerLevel, HashSet<string> excludeIds = null)
     {
-        var result = new List<CardDefinition>(count);
+        var result  = new List<CardDefinition>(count);
         var usedIds = excludeIds != null
             ? new HashSet<string>(excludeIds)
             : new HashSet<string>();
 
-        var usedClasses = new HashSet<CardClass>();
+        var inv = WeaponInventory.Instance;
+        var rls = RunLoadoutSystem.Instance;
 
-        for (int i = 0; i < count; i++)
+        // Mevcut duruma göre uygun kartları topla
+        var weaponCards  = CardDatabase.GetWeaponCards(inv);
+        var passiveCards = CardDatabase.GetPassiveCards(rls);
+
+        // Max level ve daha önce sunulan kartları filtrele
+        weaponCards.RemoveAll(c => c == null || usedIds.Contains(c.id));
+        passiveCards.RemoveAll(c => c == null || usedIds.Contains(c.id));
+
+        // Havuzu birleştir ve karıştır
+        var pool = new List<CardDefinition>(weaponCards.Count + passiveCards.Count);
+        pool.AddRange(weaponCards);
+        pool.AddRange(passiveCards);
+        Shuffle(pool);
+
+        // count kadar benzersiz kart seç
+        foreach (var card in pool)
         {
-            CardRarity targetRarity = RollRarity(playerLevel);
-
-            CardDefinition pick = PickCandidate(targetRarity, usedIds, usedClasses, preferNewClass: true);
-
-            if (pick == null)
-                pick = PickCandidate(targetRarity, usedIds, usedClasses, preferNewClass: false);
-
-            if (pick == null)
-                pick = PickAny(usedIds);
-
-            if (pick == null)
-                break;
-
-            result.Add(pick);
-            usedIds.Add(pick.id);
-            usedClasses.Add(pick.cardClass);
+            if (result.Count >= count) break;
+            if (usedIds.Contains(card.id)) continue;
+            result.Add(card);
+            usedIds.Add(card.id);
         }
 
         return result;
     }
 
-    static CardDefinition PickCandidate(
-        CardRarity rarity,
-        HashSet<string> usedIds,
-        HashSet<CardClass> usedClasses,
-        bool preferNewClass)
+    /// <summary>
+    /// Sandık ödül teklifi üretir.
+    /// Uygun uyanış varsa 3 karttan en az 1 tanesi SİLAH UYANIŞI olur.
+    /// Normal level-up pasifleri bu havuza girmez.
+    /// </summary>
+    public static List<CardDefinition> GenerateChestOffer(int count = 3)
     {
-        var candidates = new List<CardDefinition>();
+        var inv    = WeaponInventory.Instance;
+        var rls    = RunLoadoutSystem.Instance;
+        var result = new List<CardDefinition>(count);
+        var usedIds = new HashSet<string>();
 
-        foreach (var card in CardDatabase.All)
+        // Uygun uyanışları kontrol et — varsa 1 tane ekle
+        var awakenings = CardDatabase.GetWeaponAwakenings(inv, rls);
+        Shuffle(awakenings);
+        if (awakenings.Count > 0)
         {
-            if (card == null)
-                continue;
-
-            if (usedIds.Contains(card.id))
-                continue;
-
-            if (card.rarity != rarity)
-                continue;
-
-            if (preferNewClass && usedClasses.Contains(card.cardClass))
-                continue;
-
-            candidates.Add(card);
+            result.Add(awakenings[0]);
+            usedIds.Add(awakenings[0].id);
         }
 
-        if (candidates.Count == 0)
-            return null;
+        // Kalan slotları chest-only kartlarla doldur
+        // Daha önce alınmış chest reward'ları havuzdan çıkar
+        var chestCards = CardDatabase.GetChestCards();
+        if (rls != null)
+            chestCards.RemoveAll(c => rls.HasChestReward(c.id));
+        Shuffle(chestCards);
+        foreach (var card in chestCards)
+        {
+            if (result.Count >= count) break;
+            if (usedIds.Contains(card.id)) continue;
+            result.Add(card);
+            usedIds.Add(card.id);
+        }
 
-        return candidates[Random.Range(0, candidates.Count)];
+        return result;
     }
 
-    static CardDefinition PickAny(HashSet<string> usedIds)
+    static void Shuffle<T>(List<T> list)
     {
-        var candidates = new List<CardDefinition>();
-
-        foreach (var card in CardDatabase.All)
+        for (int i = list.Count - 1; i > 0; i--)
         {
-            if (card == null)
-                continue;
-
-            if (usedIds.Contains(card.id))
-                continue;
-
-            candidates.Add(card);
+            int j = Random.Range(0, i + 1);
+            T tmp = list[i]; list[i] = list[j]; list[j] = tmp;
         }
-
-        if (candidates.Count == 0)
-            return null;
-
-        return candidates[Random.Range(0, candidates.Count)];
-    }
-
-    static CardRarity RollRarity(int playerLevel)
-    {
-        int common = BaseWeights[0];
-        int rare = BaseWeights[1];
-        int epic = BaseWeights[2];
-        int legendary = BaseWeights[3];
-        int chaos = BaseWeights[4];
-
-        // Level arttıkça Rare/Epic/Legendary şansı hafif artsın.
-        if (playerLevel >= 4)
-        {
-            common -= 5;
-            rare += 3;
-            epic += 2;
-        }
-
-        if (playerLevel >= 7)
-        {
-            common -= 5;
-            rare += 2;
-            epic += 2;
-            legendary += 1;
-        }
-
-        if (playerLevel >= 10)
-        {
-            common -= 5;
-            epic += 3;
-            legendary += 2;
-        }
-
-        // Khaos çok düşük oranlı özel teklif.
-        if (playerLevel >= 3)
-            chaos = 3;
-
-        common = Mathf.Max(0, common);
-        rare = Mathf.Max(0, rare);
-        epic = Mathf.Max(0, epic);
-        legendary = Mathf.Max(0, legendary);
-        chaos = Mathf.Max(0, chaos);
-
-        int total = common + rare + epic + legendary + chaos;
-        if (total <= 0)
-            return CardRarity.Common;
-
-        int roll = Random.Range(0, total);
-        int cursor = common;
-
-        if (roll < cursor)
-            return CardRarity.Common;
-
-        cursor += rare;
-        if (roll < cursor)
-            return CardRarity.Rare;
-
-        cursor += epic;
-        if (roll < cursor)
-            return CardRarity.Epic;
-
-        cursor += legendary;
-        if (roll < cursor)
-            return CardRarity.Legendary;
-
-        return CardRarity.Chaos;
     }
 }

@@ -60,6 +60,51 @@ public static class CardThemeLibrary
             main = Hex("C04BFF"), dark = Hex("250530"), glow = Hex("FF7CF5"),
             text = Hex("FFE9FF"), secondaryGlow = Hex("59E1FF")
         },
+        CardVisualCategory.WeaponKatana => new CardVisualTheme
+        {
+            main = Hex("D86A1C"), dark = Hex("2D1204"), glow = Hex("FFB05A"),
+            text = Hex("FFE8D0"), secondaryGlow = Hex("FFB05A")
+        },
+        CardVisualCategory.WeaponKunai => new CardVisualTheme
+        {
+            main = Hex("10B8C8"), dark = Hex("063B46"), glow = Hex("6DF6FF"),
+            text = Hex("D8FFFF"), secondaryGlow = Hex("6DF6FF")
+        },
+        CardVisualCategory.WeaponSphere => new CardVisualTheme
+        {
+            main = Hex("B8873A"), dark = Hex("2C1B08"), glow = Hex("FFD56A"),
+            text = Hex("FFF1C2"), secondaryGlow = Hex("FFD56A")
+        },
+        CardVisualCategory.WeaponAwakening => new CardVisualTheme
+        {
+            main = Hex("E8B800"), dark = Hex("3D2800"), glow = Hex("FFE97A"),
+            text = Hex("FFF8D0"), secondaryGlow = Hex("FF8A00")
+        },
+        CardVisualCategory.ChestRelic => new CardVisualTheme
+        {
+            main = Hex("C43737"), dark = Hex("2A0909"), glow = Hex("FF7B7B"),
+            text = Hex("FFEAEA"), secondaryGlow = Hex("FF7B7B")
+        },
+        CardVisualCategory.ChestSeal => new CardVisualTheme
+        {
+            main = Hex("7B52C8"), dark = Hex("1A0D3A"), glow = Hex("B99AFF"),
+            text = Hex("EEE3FF"), secondaryGlow = Hex("B99AFF")
+        },
+        CardVisualCategory.ChestEconomy => new CardVisualTheme
+        {
+            main = Hex("C89A30"), dark = Hex("2D1F00"), glow = Hex("FFD96A"),
+            text = Hex("FFF3CC"), secondaryGlow = Hex("FFD96A")
+        },
+        CardVisualCategory.ChestSurvival => new CardVisualTheme
+        {
+            main = Hex("2FBF71"), dark = Hex("0C2E1D"), glow = Hex("7DFFAE"),
+            text = Hex("E8FFF0"), secondaryGlow = Hex("7DFFAE")
+        },
+        CardVisualCategory.ChestAtlas => new CardVisualTheme
+        {
+            main = Hex("3A7FC1"), dark = Hex("0A1C36"), glow = Hex("7CC4FF"),
+            text = Hex("D6EEFF"), secondaryGlow = Hex("7CC4FF")
+        },
         _ => new CardVisualTheme
         {
             main = Color.white, dark = Color.black, glow = Color.white,
@@ -69,9 +114,18 @@ public static class CardThemeLibrary
 
     public static string GetVisualCornerLabel(CardVisualCategory c) => c switch
     {
-        CardVisualCategory.BossReward => "BOSS",
-        CardVisualCategory.Combo      => "KOMBO",
-        CardVisualCategory.Chaos      => "KHAOS",
+        CardVisualCategory.BossReward      => "BOSS",
+        CardVisualCategory.Combo           => "KOMBO",
+        CardVisualCategory.Chaos           => "KHAOS",
+        CardVisualCategory.WeaponKatana    => "SİLAH",
+        CardVisualCategory.WeaponKunai     => "SİLAH",
+        CardVisualCategory.WeaponSphere    => "SİLAH",
+        CardVisualCategory.WeaponAwakening => "UYANIŞ",
+        CardVisualCategory.ChestRelic      => "KALINTI",
+        CardVisualCategory.ChestSeal       => "MÜHÜR",
+        CardVisualCategory.ChestEconomy    => "EKONOMİ",
+        CardVisualCategory.ChestSurvival   => "KALKAN",
+        CardVisualCategory.ChestAtlas      => "ATLAS",
         _ => null
     };
 

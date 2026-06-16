@@ -69,10 +69,11 @@ public class BossRewardSystem : MonoBehaviour
             id            = "boss_muhafiz_muhru",
             title         = "Muhafızın Mührü",
             description   = "Atlas Muhafızı'nın enerjisi saldırılarını güçlendirir.",
-            effectPreview = "+8 Aura Hasar  +0.35 Aura Menzili  +35 Gold",
+            effectPreview = "+8 Aura Hasar  +0.35 Alan  +35 Altın",
             cardClass     = CardClass.Atlas,
             rarity        = CardRarity.Epic,
             tags          = CardTag.Aura | CardTag.Defense,
+            cardKind      = CardKind.Special,
             Apply         = _ => ApplyReward(1)
         },
         new CardDefinition
@@ -80,10 +81,11 @@ public class BossRewardSystem : MonoBehaviour
             id            = "boss_golge_adim",
             title         = "Gölge Adım",
             description   = "Boss savaşından öğrendiğin ritimle daha hızlı hareket edersin.",
-            effectPreview = "+0.8 Hız  -0.20 Dash CD  +3 Dash Hızı",
+            effectPreview = "+0.8 Hız  Dash Bekleme ↓  +3 Dash Hızı",
             cardClass     = CardClass.Hermes,
             rarity        = CardRarity.Epic,
             tags          = CardTag.Movement,
+            cardKind      = CardKind.Special,
             Apply         = _ => ApplyReward(2)
         },
         new CardDefinition
@@ -91,10 +93,11 @@ public class BossRewardSystem : MonoBehaviour
             id            = "boss_atlas_cekirdegi",
             title         = "Atlas Çekirdeği",
             description   = "Atlas enerjisi bedenini güçlendirir ve yüksek altın kazandırır.",
-            effectPreview = "+45 Maks. Can  +45 İyileşme  +60 Gold",
+            effectPreview = "+45 Maks. Can  +45 İyileşme  +60 Altın",
             cardClass     = CardClass.Atlas,
             rarity        = CardRarity.Legendary,
             tags          = CardTag.Defense,
+            cardKind      = CardKind.Special,
             Apply         = _ => ApplyReward(3)
         }
     };

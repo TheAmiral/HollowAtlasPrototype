@@ -21,7 +21,8 @@ public class WeaponInventory : MonoBehaviour
     public static WeaponInventory Instance { get; private set; }
 
     // Sahip olunan silahlar ve seviyeleri (0 = yok, 1-8 = seviye)
-    readonly Dictionary<WeaponType, int> _levels = new();
+    readonly Dictionary<WeaponType, int> _levels   = new();
+    readonly HashSet<WeaponType>         _awakened = new();
 
     const int MaxWeaponLevel = 8;
 
@@ -47,11 +48,13 @@ public class WeaponInventory : MonoBehaviour
 
     // ── Public API ────────────────────────────────────────────────────────────
 
-    public bool HasWeapon(WeaponType w)      => _levels.ContainsKey(w) && _levels[w] > 0;
-    public int  GetLevel(WeaponType w)       => _levels.TryGetValue(w, out int lv) ? lv : 0;
-    public bool IsMaxLevel(WeaponType w)     => GetLevel(w) >= MaxWeaponLevel;
-    public int  OwnedWeaponCount            => _levels.Count;
+    public bool HasWeapon(WeaponType w)         => _levels.ContainsKey(w) && _levels[w] > 0;
+    public int  GetLevel(WeaponType w)          => _levels.TryGetValue(w, out int lv) ? lv : 0;
+    public bool IsMaxLevel(WeaponType w)        => GetLevel(w) >= MaxWeaponLevel;
+    public int  OwnedWeaponCount               => _levels.Count;
     public IEnumerable<WeaponType> OwnedWeapons() => _levels.Keys;
+    public bool IsWeaponAwakened(WeaponType w)  => _awakened.Contains(w);
+    public void MarkWeaponAwakened(WeaponType w) => _awakened.Add(w);
 
     /// <summary>
     /// Silahı edinir (Lv1'den başlar) veya mevcut seviyeyi 1 artırır.
@@ -78,6 +81,7 @@ public class WeaponInventory : MonoBehaviour
     {
         _levels.Clear();
         _levels[WeaponType.KatanaAura] = 1;
+        _awakened.Clear();
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────

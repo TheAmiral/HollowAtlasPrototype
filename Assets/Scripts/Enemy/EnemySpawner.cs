@@ -46,7 +46,8 @@ public class EnemySpawner : MonoBehaviour
         if (GameManager.Instance != null)
             timeBonus = GameManager.Instance.ElapsedTime * difficultyRamp;
 
-        float currentSpawnInterval = Mathf.Clamp(spawnInterval - timeBonus, 0.2f, spawnInterval);
+        float pressure = RunLoadoutSystem.Instance?.EnemySpawnPressure ?? 1f;
+        float currentSpawnInterval = Mathf.Clamp((spawnInterval - timeBonus) / pressure, 0.15f, spawnInterval);
         timer = currentSpawnInterval;
 
         int currentMaxAlive = maxAliveEnemies + Mathf.FloorToInt(timeBonus * 10f);

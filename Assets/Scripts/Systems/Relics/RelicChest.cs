@@ -67,14 +67,31 @@ public class RelicChest : MonoBehaviour
         _consumed     = true;
         _playerNearby = false;
 
-        RelicInventory.EnsureInstance();
-        BiomeRerollService.EnsureInstance();
-
-        if (RelicSelectionSystem.Instance == null)
-            new GameObject("RelicSelectionSystem").AddComponent<RelicSelectionSystem>();
-
         RelicChestSpawnSystem.NotifyChestConsumed(this);
-        RelicSelectionSystem.Instance.TriggerRelicSelection(_playerRef);
+
+        var cards = CardOfferGenerator.GenerateChestOffer(3);
+        if (cards.Count == 0)
+        {
+            Debug.LogWarning("[RelicChest] No chest cards available.");
+            Destroy(gameObject);
+            return;
+        }
+
+        if (LevelUpCardSystem.Instance == null)
+        {
+            Debug.LogWarning("[RelicChest] LevelUpCardSystem not found.");
+            Destroy(gameObject);
+            return;
+        }
+
+        bool opened = LevelUpCardSystem.Instance.ShowChestCards("ATLAS KALINTILARI", "Bir lütuf seç", cards);
+        if (!opened)
+        {
+            Debug.LogWarning("[RelicChest] Chest reward screen could not open.");
+            _consumed = false;
+            return;
+        }
+
         Destroy(gameObject);
     }
 

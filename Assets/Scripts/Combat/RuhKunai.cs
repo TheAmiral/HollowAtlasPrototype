@@ -7,6 +7,7 @@ public class RuhKunai : MonoBehaviour
     public int   damage          = 18;
     public float fireInterval    = 0.8f;
     public int   projectileCount = 1;
+    public int   pierceCount     = 1;
     public float projectileSpeed = 14f;
     public float projectileLifetime = 2.5f;
 
@@ -51,10 +52,11 @@ public class RuhKunai : MonoBehaviour
         }
 
         var proj = go.AddComponent<KunaiProjectile>();
-        proj.damage    = damage;
-        proj.speed     = projectileSpeed;
-        proj.lifetime  = projectileLifetime;
-        proj.direction = (targetPos - go.transform.position).normalized;
+        proj.damage      = damage;
+        proj.speed       = projectileSpeed;
+        proj.lifetime    = projectileLifetime;
+        proj.pierceCount = pierceCount;
+        proj.direction   = (targetPos - go.transform.position).normalized;
         proj.direction.y = 0f;
         if (proj.direction == Vector3.zero) proj.direction = transform.forward;
 

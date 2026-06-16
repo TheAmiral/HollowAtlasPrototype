@@ -23,6 +23,7 @@ public class LevelUpCardSystem : MonoBehaviour
     List<CardDefinition> _currentCards;
     GameObject           _player;
     bool                 _inputBlocked;
+    bool                 _isBossReward;
     Action               _onSelectionComplete;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -50,7 +51,25 @@ public class LevelUpCardSystem : MonoBehaviour
         if (_player != null)
             VFXSpawner.Instance?.Spawn("LevelUpBurst", _player.transform.position);
 
-        Open("ATLAS LÜTUFLARI", "Atlas bir lütuf seçmeni istiyor.", playerLevel);
+        Open("ATLAS LÜTFU SEÇ", "Bir güçlendirme seç", playerLevel, isBossReward: false);
+    }
+
+    // Called by RelicChest with chest-only / awakening cards.
+    // Visual categories are preserved per-card (not overridden).
+    public bool ShowChestCards(string title, string subtitle, List<CardDefinition> cards, Action onComplete = null)
+    {
+        if (SelectionPending)                 return false;
+        if (cards == null || cards.Count == 0) return false;
+
+        _player              = GameObject.FindGameObjectWithTag("Player");
+        _currentCards        = CopiedList(cards);
+        _onSelectionComplete = onComplete;
+
+        if (_currentCards.Count == 0) return false;
+
+        Open(title, subtitle, 0, isBossReward: true);
+        Debug.Log("[ChestReward] Screen opened");
+        return true;
     }
 
     // Called by BossRewardSystem with pre-built cards.
@@ -66,14 +85,15 @@ public class LevelUpCardSystem : MonoBehaviour
 
         if (_currentCards.Count == 0) return false;
 
-        Open(title, subtitle, 0);
+        Open(title, subtitle, 0, isBossReward: true);
         return true;
     }
 
     // ── Internal open ─────────────────────────────────────────────────────────
 
-    void Open(string title, string subtitle, int playerLevel)
+    void Open(string title, string subtitle, int playerLevel, bool isBossReward = false)
     {
+        _isBossReward    = isBossReward;
         SelectionPending = true;
         Time.timeScale   = 0f;
         _inputBlocked    = true;
@@ -84,19 +104,21 @@ public class LevelUpCardSystem : MonoBehaviour
         DontDestroyOnLoad(_root);
 
         var canvas = _root.AddComponent<Canvas>();
-        canvas.renderMode  = RenderMode.ScreenSpaceOverlay;
+        canvas.renderMode   = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 200;
 
         var scaler = _root.AddComponent<UnityEngine.UI.CanvasScaler>();
-        scaler.uiScaleMode       = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.uiScaleMode         = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920f, 1080f);
         scaler.matchWidthOrHeight  = 0.5f;
 
         _root.AddComponent<UnityEngine.UI.GraphicRaycaster>();
 
         _view = _root.AddComponent<CardSelectionView>();
-        _view.Setup(_currentCards, title, subtitle, playerLevel, SelectCard);
+        _view.Setup(_currentCards, title, subtitle, playerLevel, SelectCard, isBossReward);
         _inputBlocked = false;
+
+        if (_isBossReward) Debug.Log("[BossReward] Screen opened");
     }
 
     // ── Card selection ────────────────────────────────────────────────────────
@@ -111,32 +133,54 @@ public class LevelUpCardSystem : MonoBehaviour
             _view.InputBlocked = true;
 
         AudioManager.Instance?.PlayCardSelect();
-        var card   = _currentCards[index];
-        var deltas = CardRewardApplier.Apply(card, _player);
+        var card = _currentCards[index];
+        if (_isBossReward) Debug.Log($"[BossReward] Selected: {card.title}");
+
+        List<StatDelta> deltas;
+        try
+        {
+            if (_isBossReward) Debug.Log("[BossReward] Apply started");
+            deltas = CardRewardApplier.Apply(card, _player);
+            if (_isBossReward) Debug.Log("[BossReward] Apply finished");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[LevelUpCardSystem] CardRewardApplier.Apply failed: {e.Message}");
+            SelectionPending = false;
+            Time.timeScale   = 1f;
+            if (_root != null) { Destroy(_root); _root = null; }
+            _view = null;
+            return;
+        }
 
         StartCoroutine(AnimateOut(index, card, deltas));
     }
 
     IEnumerator AnimateOut(int selectedIndex, CardDefinition card, List<StatDelta> deltas)
     {
-        yield return StartCoroutine(_view.DismissSelected(selectedIndex));
-
-        if (ShouldShowResultFeedback(card))
+        try
         {
-            var feedbackGo = _view.BuildFeedbackPanel(card, deltas);
-            var feedbackCg = feedbackGo.GetComponent<CanvasGroup>();
-            yield return StartCoroutine(FadeCanvasGroup(feedbackCg, 0f, 1f, 0.20f));
-            yield return new WaitForSecondsRealtime(0.88f);
-            StartCoroutine(FadeCanvasGroup(feedbackCg, 1f, 0f, 0.22f));
+            yield return StartCoroutine(_view.DismissSelected(selectedIndex));
+
+            if (ShouldShowResultFeedback(card))
+            {
+                var feedbackGo = _view.BuildFeedbackPanel(card, deltas);
+                var feedbackCg = feedbackGo.GetComponent<CanvasGroup>();
+                yield return StartCoroutine(FadeCanvasGroup(feedbackCg, 0f, 1f, 0.20f));
+                yield return new WaitForSecondsRealtime(0.88f);
+                StartCoroutine(FadeCanvasGroup(feedbackCg, 1f, 0f, 0.22f));
+            }
+
+            yield return StartCoroutine(_view.FadeOutOverlay());
         }
-
-        yield return StartCoroutine(_view.FadeOutOverlay());
-
-        SelectionPending = false;
-        Destroy(_root);
-        _view    = null;
-        _root    = null;
-        Time.timeScale = 1f;
+        finally
+        {
+            SelectionPending = false;
+            if (_root != null) { Destroy(_root); _root = null; }
+            _view          = null;
+            Time.timeScale = 1f;
+            if (_isBossReward) Debug.Log($"[BossReward] Resume complete. timeScale: {Time.timeScale}");
+        }
 
         if (_player != null)
         {
