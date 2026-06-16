@@ -1,10 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-//  AtlasSphere.cs
-//  Assets/Scripts/Combat/AtlasSphere.cs
-//
-//  Oyuncunun etrafında dönen orbit silah. VS'deki King Bible eşdeğeri.
-//  Level arttıkça küre sayısı ve hasar artar.
-// ─────────────────────────────────────────────────────────────────────────────
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -13,22 +6,23 @@ public class AtlasSphere : MonoBehaviour
     [Header("Stats")]
     public int   damage       = 22;
     public float orbitRadius  = 2.8f;
-    public float orbitSpeed   = 120f;   // derece / saniye
+    public float orbitSpeed   = 120f;
     public int   sphereCount  = 1;
-    public float hitCooldown  = 0.5f;   // aynı düşmana tekrar vurma süresi
+    public float hitCooldown  = 0.5f;
 
-    // Runtime orb listesi
-    readonly List<GameObject> _orbs     = new();
+    readonly List<GameObject> _orbs = new();
     float _angle;
 
-    // Düşman başına cooldown takibi
-    readonly Dictionary<EnemyHealth, float> _hitTimers = new();
+    // Düşman başına cooldown: EnemyHealth ref yerine instanceID kullan
+    // (destroy edilmiş objeye referans tutmamak için)
+    readonly Dictionary<int, float> _hitTimers = new();
+
+    const float HIT_RADIUS = 0.35f;
 
     void Start() => RebuildOrbs();
 
     void Update()
     {
-        // Küre sayısı değiştiyse yeniden oluştur
         if (_orbs.Count != sphereCount) RebuildOrbs();
 
         _angle += orbitSpeed * Time.deltaTime;
@@ -38,34 +32,43 @@ public class AtlasSphere : MonoBehaviour
         {
             if (_orbs[i] == null) continue;
 
-            float rad = Mathf.Deg2Rad * (_angle + step * i);
+            float rad    = Mathf.Deg2Rad * (_angle + step * i);
             Vector3 offset = new Vector3(Mathf.Cos(rad), 0f, Mathf.Sin(rad)) * orbitRadius;
-            _orbs[i].transform.position = transform.position + offset + Vector3.up * 0.8f;
+            Vector3 orbPos = transform.position + offset + Vector3.up * 0.8f;
+            _orbs[i].transform.position = orbPos;
+
+            // OverlapSphere hasar tespiti — Rigidbody/trigger gerektirmez
+            var hits = Physics.OverlapSphere(orbPos, HIT_RADIUS);
+            foreach (var hit in hits)
+            {
+                var enemy = hit.GetComponent<EnemyHealth>();
+                if (enemy == null || enemy.IsDead) continue;
+                int id = enemy.gameObject.GetInstanceID();
+                if (_hitTimers.ContainsKey(id)) continue;
+
+                enemy.TakeDamage(damage);
+                _hitTimers[id] = hitCooldown;
+                Debug.Log($"[AtlasSphere] Hit enemy: {enemy.name} damage:{damage}");
+            }
         }
 
         // Hit cooldown temizle
-        var toRemove = new List<EnemyHealth>();
-        var keys = new List<EnemyHealth>(_hitTimers.Keys);
+        var keys = new List<int>(_hitTimers.Keys);
         foreach (var k in keys)
         {
             _hitTimers[k] -= Time.deltaTime;
-            if (_hitTimers[k] <= 0f) toRemove.Add(k);
+            if (_hitTimers[k] <= 0f) _hitTimers.Remove(k);
         }
-        foreach (var k in toRemove) _hitTimers.Remove(k);
     }
 
     void OnDestroy()
     {
-        foreach (var orb in _orbs)
-            if (orb != null) Destroy(orb);
+        foreach (var orb in _orbs) if (orb != null) Destroy(orb);
         _orbs.Clear();
     }
 
-    // ── Orb oluşturma ─────────────────────────────────────────────────────────
-
     void RebuildOrbs()
     {
-        // Önce mevcut orb'ları temizle
         foreach (var o in _orbs) if (o != null) Destroy(o);
         _orbs.Clear();
 
@@ -75,61 +78,23 @@ public class AtlasSphere : MonoBehaviour
             orb.name = "AtlasOrb";
             orb.transform.localScale = Vector3.one * 0.38f;
 
-            // Renk — altın/mor Atlas tonu
+            // Collider kaldır — hasar OverlapSphere ile uygulanır
+            var col = orb.GetComponent<Collider>();
+            if (col != null) Destroy(col);
+
             var mr = orb.GetComponent<MeshRenderer>();
             if (mr != null)
             {
                 var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
                 if (mat != null)
                 {
-                    mat.color = new Color(1f, 0.8f, 0.1f);   // altın
+                    mat.color = new Color(1f, 0.8f, 0.1f);
                     mat.SetFloat("_Smoothness", 0.9f);
                     mr.material = mat;
                 }
             }
 
-            // Collider trigger
-            var col = orb.GetComponent<Collider>();
-            if (col != null) col.isTrigger = true;
-
-            // Hit bileşeni
-            var hit = orb.AddComponent<AtlasOrbHit>();
-            hit.owner = this;
-
             _orbs.Add(orb);
         }
-    }
-
-    // ── Dış erişim: OrbHit tarafından çağrılır ────────────────────────────────
-
-    public void OnOrbHit(EnemyHealth enemy)
-    {
-        if (enemy == null || enemy.IsDead) return;
-        if (_hitTimers.ContainsKey(enemy)) return;   // cooldown'da
-
-        enemy.TakeDamage(damage);
-        _hitTimers[enemy] = hitCooldown;
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  AtlasOrbHit — Her orb'a takılır, trigger'ları AtlasSphere'e iletir
-// ─────────────────────────────────────────────────────────────────────────────
-public class AtlasOrbHit : MonoBehaviour
-{
-    public AtlasSphere owner;
-
-    void OnTriggerEnter(Collider other)
-    {
-        if (owner == null) return;
-        var enemy = other.GetComponent<EnemyHealth>();
-        if (enemy != null) owner.OnOrbHit(enemy);
-    }
-
-    void OnTriggerStay(Collider other)
-    {
-        if (owner == null) return;
-        var enemy = other.GetComponent<EnemyHealth>();
-        if (enemy != null) owner.OnOrbHit(enemy);
     }
 }

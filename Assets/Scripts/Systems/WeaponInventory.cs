@@ -25,14 +25,24 @@ public class WeaponInventory : MonoBehaviour
 
     const int MaxWeaponLevel = 8;
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    static void AutoCreate()
+    {
+        if (Instance != null) return;
+        var go = new GameObject("[WeaponInventory]");
+        Instance = go.AddComponent<WeaponInventory>();
+        DontDestroyOnLoad(go);
+    }
+
     void Awake()
     {
-        if (Instance != null) { Destroy(gameObject); return; }
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
         // Oyuncu her zaman KatanaAura Lv1 ile başlar
-        _levels[WeaponType.KatanaAura] = 1;
+        if (!_levels.ContainsKey(WeaponType.KatanaAura))
+            _levels[WeaponType.KatanaAura] = 1;
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -40,6 +50,7 @@ public class WeaponInventory : MonoBehaviour
     public bool HasWeapon(WeaponType w)      => _levels.ContainsKey(w) && _levels[w] > 0;
     public int  GetLevel(WeaponType w)       => _levels.TryGetValue(w, out int lv) ? lv : 0;
     public bool IsMaxLevel(WeaponType w)     => GetLevel(w) >= MaxWeaponLevel;
+    public int  OwnedWeaponCount            => _levels.Count;
     public IEnumerable<WeaponType> OwnedWeapons() => _levels.Keys;
 
     /// <summary>
@@ -56,6 +67,8 @@ public class WeaponInventory : MonoBehaviour
         else if (_levels[w] < MaxWeaponLevel)
         {
             _levels[w]++;
+            if (w != WeaponType.KatanaAura)
+                Debug.Log($"[WeaponInventory] Upgrade {w} Lv {_levels[w]}");
             ApplyLevelStats(w, _levels[w], player);
         }
     }
@@ -78,11 +91,13 @@ public class WeaponInventory : MonoBehaviour
             case WeaponType.RuhKunai:
                 if (player.GetComponent<RuhKunai>() == null)
                     player.AddComponent<RuhKunai>();
+                Debug.Log("[WeaponInventory] Unlock RuhKunai Lv 1");
                 break;
 
             case WeaponType.AtlasSphere:
                 if (player.GetComponent<AtlasSphere>() == null)
                     player.AddComponent<AtlasSphere>();
+                Debug.Log("[WeaponInventory] Unlock AtlasSphere Lv 1");
                 break;
         }
 
