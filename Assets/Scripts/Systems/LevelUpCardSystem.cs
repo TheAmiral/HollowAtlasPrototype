@@ -18,6 +18,10 @@ public class LevelUpCardSystem : MonoBehaviour
 
     public bool SelectionPending { get; private set; }
 
+    // Global, null-safe read for external systems (e.g. RelicChest) to suppress
+    // their own world UI / input while any card selection screen is open.
+    public static bool IsSelectionOpen => Instance != null && Instance.SelectionPending;
+
     GameObject           _root;
     CardSelectionView    _view;
     List<CardDefinition> _currentCards;

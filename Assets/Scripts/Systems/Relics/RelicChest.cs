@@ -49,6 +49,9 @@ public class RelicChest : MonoBehaviour
             (GameManager.Instance.IsGameOver || GameManager.Instance.IsPaused)) return;
         if (RelicSelectionSystem.Instance != null &&
             RelicSelectionSystem.Instance.SelectionPending) return;
+        // Suppress chest interaction while any card selection screen is open
+        // (level-up, boss reward, or chest reward).
+        if (LevelUpCardSystem.IsSelectionOpen) { _playerNearby = false; return; }
 
         _playerNearby = Vector3.Distance(
             transform.position,
@@ -207,6 +210,8 @@ public class RelicChest : MonoBehaviour
         if (_consumed || !_playerNearby) return;
         if (RelicSelectionSystem.Instance != null &&
             RelicSelectionSystem.Instance.SelectionPending) return;
+        // Hide the "[E] open chest" prompt while a card selection screen is up.
+        if (LevelUpCardSystem.IsSelectionOpen) return;
 
         EnsureStyles();
 
