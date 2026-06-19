@@ -353,7 +353,7 @@ public class MainHudCanvasUI : MonoBehaviour
 
     // Feedback UI refs (cached during runtime build)
     private Image     _xpFrameImage;
-    private Image     dashBarFill;
+    private RectTransform dashBarFillRect;
     private Transform _levelRowTransform;
     private Transform _goldPipTransform;
     private Text      killText;
@@ -429,8 +429,19 @@ public class MainHudCanvasUI : MonoBehaviour
             xpBarFill.fillAmount = currentXpFill;
         }
 
-        if (_playerMovement != null && dashBarFill != null)
-            dashBarFill.fillAmount = _playerMovement.DashCooldownNormalized;
+        if (_playerMovement != null && dashBarFillRect != null)
+        {
+            // Ham DashCooldownNormalized: 0 = dash yeni atıldı, 1 = dash hazır → invert gerekmez.
+            // Sağ kenar (anchorMax.x = 1) sabit; sol kenarı (anchorMin.x = 1 - ready01) sola
+            // kaydırarak cyan alanı SAĞDAN SOLA büyütür (XP bar'ın tersi yön).
+            float ready01 = Mathf.Clamp01(_playerMovement.DashCooldownNormalized);
+            Vector2 fillAnchorMin = dashBarFillRect.anchorMin;
+            Vector2 fillAnchorMax = dashBarFillRect.anchorMax;
+            fillAnchorMin.x = 1f - ready01;
+            fillAnchorMax.x = 1f;
+            dashBarFillRect.anchorMin = fillAnchorMin;
+            dashBarFillRect.anchorMax = fillAnchorMax;
+        }
     }
 
     private void UpdateLabels()
@@ -456,7 +467,12 @@ public class MainHudCanvasUI : MonoBehaviour
                 : "KILL: 0";
 
         if (timerText != null && GameManager.Instance != null)
-            timerText.text = $"Time: {GameManager.Instance.ElapsedTime:0.0}s";
+        {
+            int totalSeconds = Mathf.FloorToInt(GameManager.Instance.ElapsedTime);
+            int minutes = totalSeconds / 60;
+            int seconds = totalSeconds % 60;
+            timerText.text = $"{minutes}.{seconds:00}";
+        }
 
         if (minimapPlaceholderImage != null)
         {
@@ -821,7 +837,7 @@ public class MainHudCanvasUI : MonoBehaviour
             TextAnchor.MiddleLeft, 12, font);
         killText.color = new Color(0.85f, 0.85f, 0.85f, 0.80f);
 
-        timerText = CreateText(panelRect, "Timer_Text", "Time: 0.0s",
+        timerText = CreateText(panelRect, "Timer_Text", "0.00",
             new Vector2(8f, -26f), new Vector2(190f, 20f),
             TextAnchor.MiddleLeft, 10, font);
         timerText.color = new Color(TextSoftLavender.r, TextSoftLavender.g, TextSoftLavender.b, 0.62f);
@@ -1157,22 +1173,20 @@ public class MainHudCanvasUI : MonoBehaviour
         bg.GetComponent<Image>().sprite = GetRoundedBarSprite();
         bg.GetComponent<Image>().color  = new Color(0.04f, 0.06f, 0.12f, 1f);
 
-        // Fill
+        // Fill (cyan) — RectTransform sağ anchor ile SAĞDAN SOLA büyür; Image.fillAmount KULLANILMAZ.
         GameObject fill = new GameObject("Dash_Bar_Fill", typeof(RectTransform), typeof(Image));
         fill.transform.SetParent(bgRect, false);
-        RectTransform fillRect = fill.GetComponent<RectTransform>();
-        fillRect.anchorMin = Vector2.zero;
-        fillRect.anchorMax = Vector2.one;
-        fillRect.offsetMin = Vector2.zero;
-        fillRect.offsetMax = Vector2.zero;
+        dashBarFillRect = fill.GetComponent<RectTransform>();
+        dashBarFillRect.anchorMin = new Vector2(0f, 0f);   // anchorMin.x = 1f - ready01 her frame set edilir
+        dashBarFillRect.anchorMax = new Vector2(1f, 1f);   // sağ kenar sabit (1 = dash hazır → full)
+        dashBarFillRect.pivot     = new Vector2(1f, 0.5f); // sağ pivot — sağdan sola dolum
+        dashBarFillRect.offsetMin = Vector2.zero;
+        dashBarFillRect.offsetMax = Vector2.zero;
 
-        dashBarFill               = fill.GetComponent<Image>();
-        dashBarFill.sprite        = GetRoundedBarSprite();
-        dashBarFill.color         = new Color(0.15f, 0.90f, 1f, 0.90f);
-        dashBarFill.type          = Image.Type.Filled;
-        dashBarFill.fillMethod    = Image.FillMethod.Horizontal;
-        dashBarFill.fillOrigin    = (int)Image.OriginHorizontal.Left;
-        dashBarFill.fillAmount    = 1f;
+        Image dashFillImg = fill.GetComponent<Image>();
+        dashFillImg.sprite = GetRoundedBarSprite();
+        dashFillImg.color  = new Color32(0x47, 0xE6, 0xF2, 0xFF); // parlak cyan #47E6F2, alpha 1
+        dashFillImg.type   = Image.Type.Simple;
     }
 
     private void BuildGoldPip(RectTransform parent, Font font)
