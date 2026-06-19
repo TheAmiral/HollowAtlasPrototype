@@ -10,13 +10,16 @@ public class BossSpawnSystem : MonoBehaviour
     public string bossDisplayName = "Atlas Muhafızı";
 
     [Header("Spawn Settings")]
-    public float firstBossTime = 60f;
+    public float firstBossTime = 300f;   // ilk (mini) boss 5:00'te
     public float spawnDistance = 14f;
     public float warningDuration = 3f;
     public float bossSpawnHeight = 1f;
 
     [Header("Multi-Wave")]
-    public float waveInterval = 90f;
+    public float waveInterval = 300f;    // sonraki boss +5 dk (10:00, 15:00, ...)
+
+    [Header("Debug Logging")]
+    public bool debugLogging = true;
 
     [Header("UI")]
     [SerializeField] private bool showLegacyBottomPanel = false;
@@ -104,7 +107,8 @@ public class BossSpawnSystem : MonoBehaviour
             if (AudioManager.Instance != null)
                 AudioManager.Instance.PlayBossDeath();
 
-            Debug.Log($"{bossDisplayName} yenildi!");
+            if (debugLogging)
+                Debug.Log("[Boss] Defeated");
         }
     }
 
@@ -164,7 +168,11 @@ public class BossSpawnSystem : MonoBehaviour
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayBossSpawn();
 
-        Debug.Log($"{bossDisplayName} doğdu!");
+        if (debugLogging)
+        {
+            float spawnElapsed = GameManager.Instance != null ? GameManager.Instance.ElapsedTime : 0f;
+            Debug.Log($"[Boss] Spawned at {spawnElapsed:0}s");
+        }
     }
 
     void EnsureGuiStyles()
