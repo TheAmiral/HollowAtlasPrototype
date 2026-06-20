@@ -39,6 +39,7 @@ public class BossSpawnSystem : MonoBehaviour
     private string warningMessage = "";
     private float nextBossTime;
     private int waveNumber = 0;
+    private bool preSpawnWarned;
 
     private GUIStyle centerWarningStyle;
     private GUIStyle centerWarningShadowStyle;
@@ -86,6 +87,14 @@ public class BossSpawnSystem : MonoBehaviour
             if (GameManager.Instance != null)
                 elapsedTime = GameManager.Instance.ElapsedTime;
 
+            // Spawn'dan warningDuration kadar önce net merkez uyarısı: "... GELİYOR".
+            if (!preSpawnWarned && elapsedTime >= nextBossTime - warningDuration && elapsedTime < nextBossTime)
+            {
+                preSpawnWarned = true;
+                warningMessage = $"{bossDisplayName.ToUpper()} GELİYOR";
+                warningTimer   = warningDuration;
+            }
+
             if (elapsedTime >= nextBossTime)
                 SpawnBoss();
 
@@ -116,9 +125,10 @@ public class BossSpawnSystem : MonoBehaviour
     {
         float now = GameManager.Instance != null ? GameManager.Instance.ElapsedTime : 0f;
         nextBossTime = now + waveInterval;
-        bossSpawned  = false;
-        bossDefeated = false;
-        activeBoss   = null;
+        bossSpawned    = false;
+        bossDefeated   = false;
+        activeBoss     = null;
+        preSpawnWarned = false;
         waveNumber++;
     }
 

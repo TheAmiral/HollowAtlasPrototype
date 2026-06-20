@@ -24,6 +24,11 @@ public class BossSpecialAttack : MonoBehaviour
     public float previewScale = 0.26f;
     public Color previewColor = new Color(1f, 0.82f, 0.45f, 0.95f);
 
+    [Header("Ground Telegraph (yarı saydam kırmızı alan)")]
+    public float telegraphRadius = 3.5f;
+    public Color telegraphColor = new Color(0.92f, 0.06f, 0.06f, 0.34f);
+    public float telegraphYOffset = 0.05f;
+
     private Transform player;
     private PlayerHealth playerHealth;
     private EnemyChaser enemyChaser;
@@ -42,6 +47,9 @@ public class BossSpecialAttack : MonoBehaviour
     private readonly List<GameObject> previewMarkers = new();
     private readonly List<Material> previewMaterials = new();
     private readonly List<Vector3> previewDirections = new();
+
+    private GameObject telegraphDisc;
+    private Material   telegraphMaterial;
 
     void Awake()
     {
@@ -113,6 +121,7 @@ public class BossSpecialAttack : MonoBehaviour
             float t = 1f - Mathf.Clamp01(chargeTimer / chargeDuration);
             UpdateChargeVisual(t);
             UpdatePreviewRingVisual(t);
+            UpdateTelegraphDisc(t);
 
             if (chargeTimer <= 0f)
             {
@@ -166,8 +175,10 @@ public class BossSpecialAttack : MonoBehaviour
             enemyChaser.enabled = false;
 
         CreatePreviewRing();
+        CreateTelegraphDisc();
         UpdateChargeVisual(0f);
         UpdatePreviewRingVisual(0f);
+        UpdateTelegraphDisc(0f);
     }
 
     void EndCharge()
@@ -180,6 +191,7 @@ public class BossSpecialAttack : MonoBehaviour
 
         RestoreOriginalColors();
         ClearPreviewRing();
+        ClearTelegraphDisc();
     }
 
     void CancelChargeAndCleanup()
@@ -189,6 +201,7 @@ public class BossSpecialAttack : MonoBehaviour
 
         RestoreOriginalColors();
         ClearPreviewRing();
+        ClearTelegraphDisc();
 
         if (enemyChaser != null && !ownerDead && (enemyHealth == null || !enemyHealth.IsDead))
             enemyChaser.enabled = true;
@@ -305,6 +318,85 @@ public class BossSpecialAttack : MonoBehaviour
         previewMaterials.Clear();
     }
 
+    // ── Ground telegraph (yarı saydam kırmızı tehlike alanı) ──────────────────
+    void CreateTelegraphDisc()
+    {
+        ClearTelegraphDisc();
+
+        telegraphDisc = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        telegraphDisc.name = "BossTelegraphDisc";
+
+        // Çarpışma kapalı: mermilerin/oyuncunun yolunu engellemesin (sadece görsel).
+        Collider col = telegraphDisc.GetComponent<Collider>();
+        if (col != null)
+            Destroy(col);
+
+        telegraphDisc.transform.SetParent(transform, false);
+        telegraphDisc.transform.localPosition = new Vector3(0f, telegraphYOffset, 0f);
+        telegraphDisc.transform.localRotation = Quaternion.identity;
+
+        float diameter = Mathf.Max(0.1f, telegraphRadius) * 2f;
+        telegraphDisc.transform.localScale = new Vector3(diameter, 0.02f, diameter);
+
+        Renderer rend = telegraphDisc.GetComponent<Renderer>();
+        if (rend != null)
+        {
+            Shader shader = Shader.Find("Sprites/Default");
+            if (shader == null) shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            if (shader == null) shader = Shader.Find("Universal Render Pipeline/Unlit");
+
+            if (shader != null)
+            {
+                telegraphMaterial = new Material(shader);
+                ApplyTelegraphColor(telegraphColor);
+                rend.material = telegraphMaterial;
+            }
+
+            rend.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            rend.receiveShadows = false;
+        }
+    }
+
+    void UpdateTelegraphDisc(float t)
+    {
+        if (telegraphDisc == null)
+            return;
+
+        // Şarj doldukça disk büyür ve kırmızı yoğunlaşır (yaklaşan patlama uyarısı).
+        float clamped  = Mathf.Clamp01(t);
+        float radius   = Mathf.Lerp(telegraphRadius * 0.35f, telegraphRadius, clamped);
+        float diameter = Mathf.Max(0.1f, radius) * 2f;
+        telegraphDisc.transform.localScale = new Vector3(diameter, 0.02f, diameter);
+
+        if (telegraphMaterial != null)
+        {
+            float alpha = Mathf.Lerp(telegraphColor.a * 0.4f, telegraphColor.a, clamped);
+            ApplyTelegraphColor(new Color(telegraphColor.r, telegraphColor.g, telegraphColor.b, alpha));
+        }
+    }
+
+    void ApplyTelegraphColor(Color color)
+    {
+        if (telegraphMaterial == null)
+            return;
+
+        if (telegraphMaterial.HasProperty("_Color"))
+            telegraphMaterial.SetColor("_Color", color);
+        if (telegraphMaterial.HasProperty("_BaseColor"))
+            telegraphMaterial.SetColor("_BaseColor", color);
+    }
+
+    void ClearTelegraphDisc()
+    {
+        if (telegraphDisc != null)
+            Destroy(telegraphDisc);
+        telegraphDisc = null;
+
+        if (telegraphMaterial != null)
+            Destroy(telegraphMaterial);
+        telegraphMaterial = null;
+    }
+
     void FindPlayer()
     {
         GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
@@ -384,5 +476,6 @@ public class BossSpecialAttack : MonoBehaviour
     void OnDestroy()
     {
         ClearPreviewRing();
+        ClearTelegraphDisc();
     }
 }
