@@ -11,6 +11,8 @@ public class RuhKunai : MonoBehaviour
     public float projectileSpeed = 14f;
     public float projectileLifetime = 2.5f;
 
+    [SerializeField] bool debugLogs = false;
+
     float _timer;
 
     void Update()
@@ -59,8 +61,9 @@ public class RuhKunai : MonoBehaviour
         proj.direction   = (targetPos - go.transform.position).normalized;
         proj.direction.y = 0f;
         if (proj.direction == Vector3.zero) proj.direction = transform.forward;
+        proj.debugLogs   = debugLogs;
 
-        Debug.Log($"[RuhKunai] Fired projectile toward {targetPos}");
+        if (debugLogs) Debug.Log($"[RuhKunai] Fired projectile toward {targetPos}");
     }
 
     List<EnemyHealth> FindClosestEnemies(int count)
@@ -90,6 +93,7 @@ public class KunaiProjectile : MonoBehaviour
     public float   lifetime;
     public Vector3 direction;
     public int     pierceCount = 1;
+    public bool    debugLogs   = false;
 
     float _age;
     readonly HashSet<int> _hitIds = new();
@@ -113,7 +117,7 @@ public class KunaiProjectile : MonoBehaviour
 
             _hitIds.Add(id);
             enemy.TakeDamage(damage);
-            Debug.Log($"[RuhKunai] Hit enemy: {enemy.name} damage:{damage}");
+            if (debugLogs) Debug.Log($"[RuhKunai] Hit enemy: {enemy.name} damage:{damage}");
             _pierced++;
 
             if (_pierced >= pierceCount) { Destroy(gameObject); return; }

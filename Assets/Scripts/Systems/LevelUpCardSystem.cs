@@ -28,6 +28,7 @@ public class LevelUpCardSystem : MonoBehaviour
     GameObject           _player;
     bool                 _inputBlocked;
     bool                 _isBossReward;
+    bool                 _isChestReward;
     Action               _onSelectionComplete;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -48,6 +49,7 @@ public class LevelUpCardSystem : MonoBehaviour
         _player              = GameObject.FindGameObjectWithTag("Player");
         _currentCards        = CardOfferGenerator.Generate(3, playerLevel);
         _onSelectionComplete = null;
+        _isChestReward       = false;
 
         if (_currentCards.Count == 0) return;
 
@@ -71,8 +73,10 @@ public class LevelUpCardSystem : MonoBehaviour
 
         if (_currentCards.Count == 0) return false;
 
+        // Chest rewards reuse the boss-reward visual path; flag them so we emit
+        // clean [RelicChest] logs and suppress the [BossReward] debug spam.
+        _isChestReward = true;
         Open(title, subtitle, 0, isBossReward: true);
-        Debug.Log("[ChestReward] Screen opened");
         return true;
     }
 
@@ -86,6 +90,7 @@ public class LevelUpCardSystem : MonoBehaviour
         _currentCards        = CopiedList(cards);
         SetVisualCategory(_currentCards, CardVisualCategory.BossReward);
         _onSelectionComplete = onComplete;
+        _isChestReward       = false;
 
         if (_currentCards.Count == 0) return false;
 
@@ -122,7 +127,7 @@ public class LevelUpCardSystem : MonoBehaviour
         _view.Setup(_currentCards, title, subtitle, playerLevel, SelectCard, isBossReward);
         _inputBlocked = false;
 
-        if (_isBossReward) Debug.Log("[BossReward] Screen opened");
+        if (_isBossReward && !_isChestReward) Debug.Log("[BossReward] Screen opened");
     }
 
     // ── Card selection ────────────────────────────────────────────────────────
@@ -138,14 +143,15 @@ public class LevelUpCardSystem : MonoBehaviour
 
         AudioManager.Instance?.PlayCardSelect();
         var card = _currentCards[index];
-        if (_isBossReward) Debug.Log($"[BossReward] Selected: {card.title}");
+        if (_isChestReward)     Debug.Log($"[RelicChest] Reward selected: {card.title}");
+        else if (_isBossReward) Debug.Log($"[BossReward] Selected: {card.title}");
 
         List<StatDelta> deltas;
         try
         {
-            if (_isBossReward) Debug.Log("[BossReward] Apply started");
+            if (_isBossReward && !_isChestReward) Debug.Log("[BossReward] Apply started");
             deltas = CardRewardApplier.Apply(card, _player);
-            if (_isBossReward) Debug.Log("[BossReward] Apply finished");
+            if (_isBossReward && !_isChestReward) Debug.Log("[BossReward] Apply finished");
         }
         catch (System.Exception e)
         {
@@ -183,7 +189,7 @@ public class LevelUpCardSystem : MonoBehaviour
             if (_root != null) { Destroy(_root); _root = null; }
             _view          = null;
             Time.timeScale = 1f;
-            if (_isBossReward) Debug.Log($"[BossReward] Resume complete. timeScale: {Time.timeScale}");
+            if (_isBossReward && !_isChestReward) Debug.Log($"[BossReward] Resume complete. timeScale: {Time.timeScale}");
         }
 
         if (_player != null)

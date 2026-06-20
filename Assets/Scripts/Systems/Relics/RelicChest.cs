@@ -18,6 +18,10 @@ public class RelicChest : MonoBehaviour
     [Tooltip("Placeholder'ın genel ölçeği.")]
     public float visualScale = 1f;
 
+    [Header("Debug")]
+    [Tooltip("Sandık yaşam döngüsü loglarını ([RelicChest] Opened/Consumed) aç/kapat.")]
+    public bool debugLogs = true;
+
     const string PlaceholderName = "RelicChestPlaceholderVisual";
 
     static bool _shaderWarningLogged;
@@ -69,6 +73,7 @@ public class RelicChest : MonoBehaviour
     {
         _consumed     = true;
         _playerNearby = false;
+        if (debugLogs) Debug.Log("[RelicChest] Opened");
 
         RelicChestSpawnSystem.NotifyChestConsumed(this);
 
@@ -87,7 +92,13 @@ public class RelicChest : MonoBehaviour
             return;
         }
 
-        bool opened = LevelUpCardSystem.Instance.ShowChestCards("ATLAS KALINTILARI", "Bir lütuf seç", cards);
+        // "Consumed" seçim tamamlanınca loglanır (sıra: Opened → Reward selected →
+        // Consumed). Chest hemen Destroy edildiği için lambda 'this' yerine local
+        // bool yakalar (yok edilmiş MonoBehaviour'a erişim olmaz).
+        bool logLifecycle = debugLogs;
+        bool opened = LevelUpCardSystem.Instance.ShowChestCards(
+            "ATLAS KALINTISI SEÇ", "Bir lütuf seç", cards,
+            () => { if (logLifecycle) Debug.Log("[RelicChest] Consumed"); });
         if (!opened)
         {
             Debug.LogWarning("[RelicChest] Chest reward screen could not open.");

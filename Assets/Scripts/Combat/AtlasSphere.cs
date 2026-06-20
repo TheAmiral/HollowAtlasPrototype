@@ -10,6 +10,8 @@ public class AtlasSphere : MonoBehaviour
     public int   sphereCount  = 1;
     public float hitCooldown  = 0.5f;
 
+    [SerializeField] bool debugLogs = false;
+
     readonly List<GameObject> _orbs = new();
     float _angle;
 
@@ -48,7 +50,7 @@ public class AtlasSphere : MonoBehaviour
 
                 enemy.TakeDamage(damage);
                 _hitTimers[id] = hitCooldown;
-                Debug.Log($"[AtlasSphere] Hit enemy: {enemy.name} damage:{damage}");
+                if (debugLogs) Debug.Log($"[AtlasSphere] Hit enemy: {enemy.name} damage:{damage}");
             }
         }
 

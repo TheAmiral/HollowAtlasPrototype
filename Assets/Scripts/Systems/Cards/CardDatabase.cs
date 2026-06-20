@@ -229,7 +229,7 @@ public static class CardDatabase
     static string KatanaPreview(int lv) => lv switch
     {
         2 => "+4 Hasar  +0.2 Alan",           3 => "+5 Hasar  Saldırı Hızı +%10",
-        4 => "+6 Hasar  +0.25 Alan",          5 => "+8 Hasar  Saldırı Hızı +%12",
+        4 => "+6 Hasar  +0.25 Alan",          5 => "+8 Hasar  Saldırı Hızı +%11",
         6 => "+10 Hasar  +0.3 Alan",          7 => "+12 Hasar  Saldırı Hızı +%12",
         8 => "+15 Hasar  +0.4 Alan  Saldırı Hızı MAX", _ => "Güçlenir"
     };
@@ -242,9 +242,9 @@ public static class CardDatabase
     };
     static string KunaiPreview(int lv) => lv switch
     {
-        2 => "+5 Hasar",              3 => "Atış Hızı +%10",
+        2 => "+5 Hasar",              3 => "Atış Hızı +%12",
         4 => "2 Kunai  +5 Hasar",    5 => "+8 Hasar",
-        6 => "Atış Hızı +%10",       7 => "3 Kunai  +8 Hasar",
+        6 => "Atış Hızı +%14",       7 => "3 Kunai  +8 Hasar",
         8 => "+12 Hasar  Hız MAX",   _ => "Güçlenir"
     };
     static string SphereDesc(int lv) => lv switch
