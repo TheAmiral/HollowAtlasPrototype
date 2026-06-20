@@ -1282,10 +1282,10 @@ public class MainHudCanvasUI : MonoBehaviour
     //    Bölümler: SİLAHLAR / PASİFLER / KALINTILAR
     //    Veri kaynakları: WeaponInventory, RunLoadoutSystem (pasifler + chest ödülleri)
 
-    private const float LOADOUT_W   = 198f;
+    private const float LOADOUT_W   = 224f;
     private const float SEC_H       = 19f;   // bölüm başlığı yüksekliği
-    private const float ROW_H       = 30f;
-    private const float ROW_ICON    = 24f;
+    private const float ROW_H       = 52f;   // 2x ikon için satır yüksekliği
+    private const float ROW_ICON    = 48f;   // 2x büyütülmüş ikon
     private const float ROW_GAP     = 3f;
     private const float SEC_GAP     = 7f;
     private const float TOP_PAD     = 6f;
@@ -1487,7 +1487,7 @@ public class MainHudCanvasUI : MonoBehaviour
         ir.anchoredPosition = new Vector2(3f, 0f);
 
         // İsim
-        var txt = LoadoutLabel(row.rectTransform, "Name", name, 11, FontStyle.Bold,
+        var txt = LoadoutLabel(row.rectTransform, "Name", name, 13, FontStyle.Bold,
             LoadoutRowTx, TextAnchor.MiddleLeft);
         var tr = txt.rectTransform;
         tr.offsetMin = new Vector2(ROW_ICON + 7f, 0f);
