@@ -151,11 +151,12 @@ MonoBehaviour:
   miniBossPrefab: {fileID: 688597333956293172, guid: 8e1767a672b8f9045ae5bd1a5f2c21cc, type: 3}
   player: {fileID: 1096577504}
   bossDisplayName: "Atlas Muhaf\u0131z\u0131"
-  firstBossTime: 60
+  firstBossTime: 20
   spawnDistance: 14
   warningDuration: 3
   bossSpawnHeight: 1
-  waveInterval: 90
+  waveInterval: 300
+  debugLogging: 1
   showLegacyBottomPanel: 0
 --- !u!4 &24891308
 Transform:
@@ -884,7 +885,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b4bc27e1dfb65249ac2f39bc9d32ae0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
-  maxHealth: 10000
+  maxHealth: 150
   showLegacyOnGUI: 0
   uiX: 10
   uiY: 196
@@ -1170,18 +1171,59 @@ MonoBehaviour:
   tankEnemyPrefab: {fileID: 688597333956293172, guid: 57ec1d15806c148419215daee17544ad, type: 3}
   shooterEnemyPrefab: {fileID: 688597333956293172, guid: 69124b42dcfa7694aa02933d0921f540, type: 3}
   player: {fileID: 1096577504}
-  spawnInterval: 0.75
   minSpawnDistance: 10
   maxSpawnDistance: 14
+  usePhaseSystem: 1
+  bossActiveSpawnMultiplier: 1.5
+  minSpawnIntervalFloor: 0.18
+  phases:
+  - name: P1 Basic
+    endTime: 60
+    spawnInterval: 1.2
+    maxAlive: 14
+    fastChance: 0
+    tankChance: 0
+    shooterChance: 0
+  - name: P2 +Fast
+    endTime: 180
+    spawnInterval: 1
+    maxAlive: 20
+    fastChance: 0.3
+    tankChance: 0
+    shooterChance: 0
+  - name: P3 +Tank/Shooter
+    endTime: 300
+    spawnInterval: 0.8
+    maxAlive: 28
+    fastChance: 0.3
+    tankChance: 0.18
+    shooterChance: 0.15
+  - name: P4 Dense
+    endTime: 420
+    spawnInterval: 0.6
+    maxAlive: 36
+    fastChance: 0.32
+    tankChance: 0.2
+    shooterChance: 0.2
+  - name: P5 Max
+    endTime: 600
+    spawnInterval: 0.45
+    maxAlive: 46
+    fastChance: 0.32
+    tankChance: 0.22
+    shooterChance: 0.22
+  spawnInterval: 0.75
   maxAliveEnemies: 25
   fastSpawnChance: 0.25
   tankSpawnChance: 0.15
   shooterSpawnChance: 0.2
+  difficultyRamp: 0.02
   basicEnemyXP: 1
   fastEnemyXP: 2
   shooterEnemyXP: 3
   tankEnemyXP: 4
-  difficultyRamp: 0.02
+  debugLogging: 1
+  verboseSpawnLog: 0
 --- !u!4 &1285650916
 Transform:
   m_ObjectHideFlags: 0

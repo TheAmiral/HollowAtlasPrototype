@@ -252,6 +252,8 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 1f;
         RelicChestSpawnSystem.Instance?.ResetForNewRun();
         RunStatsSystem.Instance?.ResetForNewRun();
+        RunLoadoutSystem.Instance?.ResetForNewRun();
+        WeaponInventory.Instance?.ResetForNewRun();
     }
 
     void TogglePause()
@@ -270,6 +272,8 @@ public class GameManager : MonoBehaviour
         RelicSelectionSystem.Instance?.ForceClose();
         RelicChestSpawnSystem.Instance?.ResetForNewRun();
         RunStatsSystem.Instance?.ResetForNewRun();
+        RunLoadoutSystem.Instance?.ResetForNewRun();
+        WeaponInventory.Instance?.ResetForNewRun();
         IsPaused = false;
         pauseSettingsOpen = false;
         Time.timeScale = 1f;
@@ -282,6 +286,8 @@ public class GameManager : MonoBehaviour
         RelicSelectionSystem.Instance?.ForceClose();
         RelicChestSpawnSystem.Instance?.ResetForNewRun();
         RunStatsSystem.Instance?.ResetForNewRun();
+        RunLoadoutSystem.Instance?.ResetForNewRun();
+        WeaponInventory.Instance?.ResetForNewRun();
         IsPaused = false;
         IsGameOver = false;
         pauseSettingsOpen = false;

@@ -97,11 +97,18 @@ public class GameOverUIController : MonoBehaviour
         Text hint = MakeText(innerRect, "RestartHint", "R ile yeniden ba\u015Flat", 154f, 28f, MutedTextColor, 18, FontStyle.Normal, font);
         hint.alignment = TextAnchor.MiddleCenter;
 
-        Button restartButton = MakeButton(innerRect, font);
+        Button restartButton = MakeButton(innerRect, font, "Yeniden Başlat", -110f, 200f);
         restartButton.onClick.AddListener(() =>
         {
             if (GameManager.Instance != null)
                 GameManager.Instance.RestartGame();
+        });
+
+        Button menuButton = MakeButton(innerRect, font, "Ana Menü", 110f, 200f);
+        menuButton.onClick.AddListener(() =>
+        {
+            if (GameManager.Instance != null)
+                GameManager.Instance.ReturnToMainMenu();
         });
 
         overlay.GetComponent<Image>().raycastTarget = true;
@@ -122,14 +129,14 @@ public class GameOverUIController : MonoBehaviour
         rootGroup.blocksRaycasts = visible;
     }
 
-    static Button MakeButton(RectTransform parent, Font font)
+    static Button MakeButton(RectTransform parent, Font font, string labelText, float anchoredX, float width)
     {
-        GameObject go = MakePanel(parent, "RestartButton", ButtonColor);
+        GameObject go = MakePanel(parent, labelText + "Button", ButtonColor);
         RectTransform rect = go.GetComponent<RectTransform>();
         rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
         rect.pivot = new Vector2(0.5f, 1f);
-        rect.sizeDelta = new Vector2(230f, 44f);
-        rect.anchoredPosition = new Vector2(0f, -204f);
+        rect.sizeDelta = new Vector2(width, 44f);
+        rect.anchoredPosition = new Vector2(anchoredX, -204f);
 
         Image image = go.GetComponent<Image>();
         Button button = go.AddComponent<Button>();
@@ -146,7 +153,7 @@ public class GameOverUIController : MonoBehaviour
         colors.fadeDuration = 0.08f;
         button.colors = colors;
 
-        Text label = MakeText(rect, "Label", "Yeniden Ba\u015Flat", 0f, 44f, Color.white, 18, FontStyle.Bold, font);
+        Text label = MakeText(rect, "Label", labelText, 0f, 44f, Color.white, 18, FontStyle.Bold, font);
         label.alignment = TextAnchor.MiddleCenter;
 
         return button;

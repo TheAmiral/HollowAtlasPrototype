@@ -353,7 +353,7 @@ public class MainHudCanvasUI : MonoBehaviour
 
     // Feedback UI refs (cached during runtime build)
     private Image     _xpFrameImage;
-    private Image     dashBarFill;
+    private RectTransform dashBarFillRect;
     private Transform _levelRowTransform;
     private Transform _goldPipTransform;
     private Text      killText;
@@ -404,6 +404,7 @@ public class MainHudCanvasUI : MonoBehaviour
         HandleCriticalHP();
         ForceVisibleHudState();
         DetectAndTriggerFeedback();
+        UpdateLoadoutHud();
     }
 
     // ── Bar updates ─────────────────────────────────────────────────────────
@@ -428,8 +429,19 @@ public class MainHudCanvasUI : MonoBehaviour
             xpBarFill.fillAmount = currentXpFill;
         }
 
-        if (_playerMovement != null && dashBarFill != null)
-            dashBarFill.fillAmount = _playerMovement.DashCooldownNormalized;
+        if (_playerMovement != null && dashBarFillRect != null)
+        {
+            // Ham DashCooldownNormalized: 0 = dash yeni atıldı, 1 = dash hazır → invert gerekmez.
+            // Sağ kenar (anchorMax.x = 1) sabit; sol kenarı (anchorMin.x = 1 - ready01) sola
+            // kaydırarak cyan alanı SAĞDAN SOLA büyütür (XP bar'ın tersi yön).
+            float ready01 = Mathf.Clamp01(_playerMovement.DashCooldownNormalized);
+            Vector2 fillAnchorMin = dashBarFillRect.anchorMin;
+            Vector2 fillAnchorMax = dashBarFillRect.anchorMax;
+            fillAnchorMin.x = 1f - ready01;
+            fillAnchorMax.x = 1f;
+            dashBarFillRect.anchorMin = fillAnchorMin;
+            dashBarFillRect.anchorMax = fillAnchorMax;
+        }
     }
 
     private void UpdateLabels()
@@ -455,7 +467,12 @@ public class MainHudCanvasUI : MonoBehaviour
                 : "KILL: 0";
 
         if (timerText != null && GameManager.Instance != null)
-            timerText.text = $"Time: {GameManager.Instance.ElapsedTime:0.0}s";
+        {
+            int totalSeconds = Mathf.FloorToInt(GameManager.Instance.ElapsedTime);
+            int minutes = totalSeconds / 60;
+            int seconds = totalSeconds % 60;
+            timerText.text = $"{minutes}.{seconds:00}";
+        }
 
         if (minimapPlaceholderImage != null)
         {
@@ -785,6 +802,7 @@ public class MainHudCanvasUI : MonoBehaviour
         BuildBottomLeftInfo(root, font);
         BuildBottomCombatHud(root, font);
         BuildMinimapPlaceholder(root, font);
+        BuildLoadoutHud(root, font);
     }
 
     // ── HUD_BottomLeft_Info: small gold + timer ───────────────────────────────
@@ -819,7 +837,7 @@ public class MainHudCanvasUI : MonoBehaviour
             TextAnchor.MiddleLeft, 12, font);
         killText.color = new Color(0.85f, 0.85f, 0.85f, 0.80f);
 
-        timerText = CreateText(panelRect, "Timer_Text", "Time: 0.0s",
+        timerText = CreateText(panelRect, "Timer_Text", "0.00",
             new Vector2(8f, -26f), new Vector2(190f, 20f),
             TextAnchor.MiddleLeft, 10, font);
         timerText.color = new Color(TextSoftLavender.r, TextSoftLavender.g, TextSoftLavender.b, 0.62f);
@@ -1155,22 +1173,20 @@ public class MainHudCanvasUI : MonoBehaviour
         bg.GetComponent<Image>().sprite = GetRoundedBarSprite();
         bg.GetComponent<Image>().color  = new Color(0.04f, 0.06f, 0.12f, 1f);
 
-        // Fill
+        // Fill (cyan) — RectTransform sağ anchor ile SAĞDAN SOLA büyür; Image.fillAmount KULLANILMAZ.
         GameObject fill = new GameObject("Dash_Bar_Fill", typeof(RectTransform), typeof(Image));
         fill.transform.SetParent(bgRect, false);
-        RectTransform fillRect = fill.GetComponent<RectTransform>();
-        fillRect.anchorMin = Vector2.zero;
-        fillRect.anchorMax = Vector2.one;
-        fillRect.offsetMin = Vector2.zero;
-        fillRect.offsetMax = Vector2.zero;
+        dashBarFillRect = fill.GetComponent<RectTransform>();
+        dashBarFillRect.anchorMin = new Vector2(0f, 0f);   // anchorMin.x = 1f - ready01 her frame set edilir
+        dashBarFillRect.anchorMax = new Vector2(1f, 1f);   // sağ kenar sabit (1 = dash hazır → full)
+        dashBarFillRect.pivot     = new Vector2(1f, 0.5f); // sağ pivot — sağdan sola dolum
+        dashBarFillRect.offsetMin = Vector2.zero;
+        dashBarFillRect.offsetMax = Vector2.zero;
 
-        dashBarFill               = fill.GetComponent<Image>();
-        dashBarFill.sprite        = GetRoundedBarSprite();
-        dashBarFill.color         = new Color(0.15f, 0.90f, 1f, 0.90f);
-        dashBarFill.type          = Image.Type.Filled;
-        dashBarFill.fillMethod    = Image.FillMethod.Horizontal;
-        dashBarFill.fillOrigin    = (int)Image.OriginHorizontal.Left;
-        dashBarFill.fillAmount    = 1f;
+        Image dashFillImg = fill.GetComponent<Image>();
+        dashFillImg.sprite = GetRoundedBarSprite();
+        dashFillImg.color  = new Color32(0x47, 0xE6, 0xF2, 0xFF); // parlak cyan #47E6F2, alpha 1
+        dashFillImg.type   = Image.Type.Simple;
     }
 
     private void BuildGoldPip(RectTransform parent, Font font)
@@ -1260,5 +1276,279 @@ public class MainHudCanvasUI : MonoBehaviour
         text.horizontalOverflow = HorizontalWrapMode.Overflow;
         text.verticalOverflow   = VerticalWrapMode.Overflow;
         return text;
+    }
+
+    // ── BUILD HUD — gameplay sırasında oyuncunun build'ini gösteren sol panel ──
+    //    Bölümler: SİLAHLAR / PASİFLER / KALINTILAR
+    //    Veri kaynakları: WeaponInventory, RunLoadoutSystem (pasifler + chest ödülleri)
+
+    private const float LOADOUT_W   = 198f;
+    private const float SEC_H       = 19f;   // bölüm başlığı yüksekliği
+    private const float ROW_H       = 30f;
+    private const float ROW_ICON    = 24f;
+    private const float ROW_GAP     = 3f;
+    private const float SEC_GAP     = 7f;
+    private const float TOP_PAD     = 6f;
+    private const float BOT_PAD     = 8f;
+
+    private static readonly WeaponType[] WeaponOrder =
+        { WeaponType.KatanaAura, WeaponType.RuhKunai, WeaponType.AtlasSphere };
+
+    private static readonly Color LoadoutPanelBg = new Color(0.04f, 0.02f, 0.09f, 0.80f);
+    private static readonly Color LoadoutSecBg   = new Color(0.18f, 0.07f, 0.36f, 0.92f);
+    private static readonly Color LoadoutSecTx   = new Color(1.00f, 0.85f, 0.32f, 1f);
+    private static readonly Color LoadoutRowBg   = new Color(0.10f, 0.06f, 0.22f, 0.85f);
+    private static readonly Color LoadoutRowTx   = new Color(0.92f, 0.90f, 1.00f, 1f);
+
+    private RectTransform _loadoutRoot;
+    private Font          _loadoutFont;
+    private int           _lastLoadoutSig = int.MinValue;
+    private bool          _loadoutVisible = true; // ilk frame'de kesin uygulansın diye farklı başlat
+    private float         _loadoutBuildY;          // rebuild sırasında akan y konumu
+
+    private void BuildLoadoutHud(RectTransform root, Font font)
+    {
+        _loadoutFont = font;
+        EnsureLoadoutRoot();
+    }
+
+    // Build sırasından bağımsız olarak paneli garantiye al (lazy-init).
+    private void EnsureLoadoutRoot()
+    {
+        if (_loadoutRoot != null) return;
+
+        if (_loadoutFont == null)
+            _loadoutFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+        var go = new GameObject("HUD_Build", typeof(RectTransform));
+        go.transform.SetParent(transform, false);
+        _loadoutRoot = go.GetComponent<RectTransform>();
+        _loadoutRoot.anchorMin = _loadoutRoot.anchorMax = new Vector2(0f, 0.5f);
+        _loadoutRoot.pivot     = new Vector2(0f, 0.5f);
+        _loadoutRoot.anchoredPosition = new Vector2(16f, 0f);
+        _loadoutRoot.sizeDelta = new Vector2(LOADOUT_W, 0f);
+        _loadoutRoot.SetAsLastSibling();
+
+        Debug.Log("[MainHudCanvasUI] Build HUD initialized");
+    }
+
+    private void UpdateLoadoutHud()
+    {
+        EnsureLoadoutRoot();
+
+        // İçerik yalnızca build değişince yeniden çizilir
+        int sig = ComputeLoadoutSignature();
+        if (sig != _lastLoadoutSig)
+        {
+            _lastLoadoutSig = sig;
+            RebuildLoadoutHud();
+        }
+
+        // Görünürlük: kart seçim ekranları açıkken gizle, gameplay'de göster
+        bool selectionOpen = Time.timeScale <= 0f
+                             || (LevelUpCardSystem.Instance != null && LevelUpCardSystem.Instance.SelectionPending);
+        bool shouldShow = !selectionOpen;
+
+        if (shouldShow != _loadoutVisible)
+        {
+            _loadoutVisible = shouldShow;
+            _loadoutRoot.gameObject.SetActive(shouldShow);
+            Debug.Log($"[MainHudCanvasUI] Build HUD visible {shouldShow}");
+        }
+    }
+
+    // Silah/pasif/kalıntı durumunu özetleyen hafif imza — değişince rebuild tetikler.
+    private int ComputeLoadoutSignature()
+    {
+        int sig = 17;
+
+        var inv = WeaponInventory.Instance;
+        if (inv != null)
+        {
+            foreach (var w in WeaponOrder)
+            {
+                sig = sig * 31 + (inv.HasWeapon(w) ? inv.GetLevel(w) : 0);
+                sig = sig * 31 + (inv.IsWeaponAwakened(w) ? 1 : 0);
+            }
+        }
+
+        var rls = RunLoadoutSystem.Instance;
+        if (rls != null)
+        {
+            var po = rls.OrderedPassives;
+            sig = sig * 31 + po.Count;
+            for (int i = 0; i < po.Count; i++)
+            {
+                sig = sig * 31 + po[i].GetHashCode();
+                sig = sig * 31 + rls.GetPassiveLevel(po[i]);
+            }
+            sig = sig * 31 + rls.ChestRewards.Count;
+        }
+
+        return sig;
+    }
+
+    private void RebuildLoadoutHud()
+    {
+        for (int i = _loadoutRoot.childCount - 1; i >= 0; i--)
+            Destroy(_loadoutRoot.GetChild(i).gameObject);
+
+        // Arka plan — ilk eklenir (en altta), anchors ile root'a yayılır
+        var bg = LoadoutImage(_loadoutRoot, "PanelBg", LoadoutPanelBg);
+        bg.rectTransform.anchorMin = Vector2.zero; bg.rectTransform.anchorMax = Vector2.one;
+        bg.rectTransform.offsetMin = Vector2.zero; bg.rectTransform.offsetMax = Vector2.zero;
+
+        _loadoutBuildY = TOP_PAD;
+
+        // SİLAHLAR
+        BuildSectionHeader("SİLAHLAR");
+        var inv = WeaponInventory.Instance;
+        if (inv != null)
+        {
+            foreach (var w in WeaponOrder)
+            {
+                if (!inv.HasWeapon(w)) continue;
+                int  lv  = inv.GetLevel(w);
+                bool awk = inv.IsWeaponAwakened(w);
+                BuildLoadoutRow(WeaponIconId(w, awk), WeaponRowName(w, lv, awk),
+                    awk ? CardKind.WeaponAwakening : CardKind.WeaponUpgrade);
+            }
+        }
+
+        _loadoutBuildY += SEC_GAP;
+
+        // PASİFLER
+        BuildSectionHeader("PASİFLER");
+        var rls = RunLoadoutSystem.Instance;
+        if (rls != null)
+        {
+            var po = rls.OrderedPassives;
+            for (int i = 0; i < po.Count; i++)
+            {
+                string pid = po[i];
+                int lv = rls.GetPassiveLevel(pid);
+                BuildLoadoutRow("icon_" + pid,
+                    $"{CardDatabase.GetPassiveName(pid)} Lv {lv}", CardKind.PassiveUnlock);
+            }
+        }
+
+        _loadoutBuildY += SEC_GAP;
+
+        // KALINTILAR
+        BuildSectionHeader("KALINTILAR");
+        if (rls != null)
+        {
+            var rewards = rls.ChestRewards;
+            for (int i = 0; i < rewards.Count; i++)
+            {
+                var e = rewards[i];
+                BuildLoadoutRow(e.iconId, e.title, e.kind);
+            }
+        }
+
+        float totalH = _loadoutBuildY + BOT_PAD;
+        _loadoutRoot.sizeDelta = new Vector2(LOADOUT_W, totalH);
+    }
+
+    private void BuildSectionHeader(string title)
+    {
+        var header = LoadoutImage(_loadoutRoot, "Section", LoadoutSecBg);
+        var hr = header.rectTransform;
+        hr.anchorMin = new Vector2(0f, 1f); hr.anchorMax = new Vector2(1f, 1f);
+        hr.pivot = new Vector2(0.5f, 1f);
+        hr.sizeDelta = new Vector2(-4f, SEC_H);
+        hr.anchoredPosition = new Vector2(0f, -_loadoutBuildY);
+
+        var t = LoadoutLabel(header.rectTransform, "SecLabel", title, 11, FontStyle.Bold,
+            LoadoutSecTx, TextAnchor.MiddleLeft);
+        t.rectTransform.offsetMin = new Vector2(6f, 0f);
+        t.rectTransform.offsetMax = new Vector2(-4f, 0f);
+
+        _loadoutBuildY += SEC_H + ROW_GAP;
+    }
+
+    private void BuildLoadoutRow(string iconId, string name, CardKind kind)
+    {
+        var row = LoadoutImage(_loadoutRoot, "Row", LoadoutRowBg);
+        var rr = row.rectTransform;
+        rr.anchorMin = new Vector2(0f, 1f); rr.anchorMax = new Vector2(1f, 1f);
+        rr.pivot = new Vector2(0.5f, 1f);
+        rr.sizeDelta = new Vector2(-4f, ROW_H);
+        rr.anchoredPosition = new Vector2(0f, -_loadoutBuildY);
+
+        // İkon
+        var icon = LoadoutImage(row.rectTransform, "Icon", Color.white);
+        icon.sprite         = RewardIconLibrary.GetIcon(iconId, kind);
+        icon.preserveAspect = true;
+        var ir = icon.rectTransform;
+        ir.anchorMin = new Vector2(0f, 0.5f); ir.anchorMax = new Vector2(0f, 0.5f);
+        ir.pivot = new Vector2(0f, 0.5f);
+        ir.sizeDelta = new Vector2(ROW_ICON, ROW_ICON);
+        ir.anchoredPosition = new Vector2(3f, 0f);
+
+        // İsim
+        var txt = LoadoutLabel(row.rectTransform, "Name", name, 11, FontStyle.Bold,
+            LoadoutRowTx, TextAnchor.MiddleLeft);
+        var tr = txt.rectTransform;
+        tr.offsetMin = new Vector2(ROW_ICON + 7f, 0f);
+        tr.offsetMax = new Vector2(-4f, 0f);
+
+        _loadoutBuildY += ROW_H + ROW_GAP;
+    }
+
+    // ── İkon / isim eşlemeleri ────────────────────────────────────────────────
+
+    private static string WeaponIconId(WeaponType w, bool awakened) => w switch
+    {
+        WeaponType.KatanaAura  => awakened ? "icon_kanli_hilal"    : "icon_katana_aura",
+        WeaponType.RuhKunai    => awakened ? "icon_ruh_firtinasi"  : "icon_ruh_kunai",
+        WeaponType.AtlasSphere => awakened ? "icon_atlas_halosu"   : "icon_atlas_kuresi",
+        _                      => "icon_unknown"
+    };
+
+    private static string WeaponRowName(WeaponType w, int lv, bool awakened)
+    {
+        if (awakened)
+            return w switch
+            {
+                WeaponType.KatanaAura  => "Kanlı Hilal",
+                WeaponType.RuhKunai    => "Ruh Fırtınası",
+                WeaponType.AtlasSphere => "Atlas Halosu",
+                _                      => CardDatabase.GetWeaponName(w)
+            };
+        return $"{CardDatabase.GetWeaponName(w)} Lv {lv}";
+    }
+
+    // ── UI yardımcıları ───────────────────────────────────────────────────────
+
+    private Image LoadoutImage(Transform parent, string name, Color color)
+    {
+        var go = new GameObject(name, typeof(RectTransform));
+        go.transform.SetParent(parent, false);
+        var img = go.AddComponent<Image>();
+        img.color = color;
+        img.raycastTarget = false;
+        return img;
+    }
+
+    private Text LoadoutLabel(Transform parent, string name, string content, int size,
+        FontStyle style, Color color, TextAnchor anchor)
+    {
+        var go = new GameObject(name, typeof(RectTransform));
+        go.transform.SetParent(parent, false);
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+        var txt = go.AddComponent<Text>();
+        txt.font      = _loadoutFont;
+        txt.text      = content;
+        txt.fontSize  = size;
+        txt.fontStyle = style;
+        txt.color     = color;
+        txt.alignment = anchor;
+        txt.horizontalOverflow = HorizontalWrapMode.Wrap;
+        txt.verticalOverflow   = VerticalWrapMode.Truncate;
+        txt.raycastTarget = false;
+        return txt;
     }
 }

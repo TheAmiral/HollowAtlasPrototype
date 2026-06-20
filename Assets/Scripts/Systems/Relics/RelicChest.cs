@@ -18,6 +18,10 @@ public class RelicChest : MonoBehaviour
     [Tooltip("Placeholder'ın genel ölçeği.")]
     public float visualScale = 1f;
 
+    [Header("Debug")]
+    [Tooltip("Sandık yaşam döngüsü loglarını ([RelicChest] Opened/Consumed) aç/kapat.")]
+    public bool debugLogs = true;
+
     const string PlaceholderName = "RelicChestPlaceholderVisual";
 
     static bool _shaderWarningLogged;
@@ -49,6 +53,9 @@ public class RelicChest : MonoBehaviour
             (GameManager.Instance.IsGameOver || GameManager.Instance.IsPaused)) return;
         if (RelicSelectionSystem.Instance != null &&
             RelicSelectionSystem.Instance.SelectionPending) return;
+        // Suppress chest interaction while any card selection screen is open
+        // (level-up, boss reward, or chest reward).
+        if (LevelUpCardSystem.IsSelectionOpen) { _playerNearby = false; return; }
 
         _playerNearby = Vector3.Distance(
             transform.position,
@@ -66,15 +73,39 @@ public class RelicChest : MonoBehaviour
     {
         _consumed     = true;
         _playerNearby = false;
-
-        RelicInventory.EnsureInstance();
-        BiomeRerollService.EnsureInstance();
-
-        if (RelicSelectionSystem.Instance == null)
-            new GameObject("RelicSelectionSystem").AddComponent<RelicSelectionSystem>();
+        if (debugLogs) Debug.Log("[RelicChest] Opened");
 
         RelicChestSpawnSystem.NotifyChestConsumed(this);
-        RelicSelectionSystem.Instance.TriggerRelicSelection(_playerRef);
+
+        var cards = CardOfferGenerator.GenerateChestOffer(3);
+        if (cards.Count == 0)
+        {
+            Debug.LogWarning("[RelicChest] No chest cards available.");
+            Destroy(gameObject);
+            return;
+        }
+
+        if (LevelUpCardSystem.Instance == null)
+        {
+            Debug.LogWarning("[RelicChest] LevelUpCardSystem not found.");
+            Destroy(gameObject);
+            return;
+        }
+
+        // "Consumed" seçim tamamlanınca loglanır (sıra: Opened → Reward selected →
+        // Consumed). Chest hemen Destroy edildiği için lambda 'this' yerine local
+        // bool yakalar (yok edilmiş MonoBehaviour'a erişim olmaz).
+        bool logLifecycle = debugLogs;
+        bool opened = LevelUpCardSystem.Instance.ShowChestCards(
+            "ATLAS KALINTISI SEÇ", "Bir lütuf seç", cards,
+            () => { if (logLifecycle) Debug.Log("[RelicChest] Consumed"); });
+        if (!opened)
+        {
+            Debug.LogWarning("[RelicChest] Chest reward screen could not open.");
+            _consumed = false;
+            return;
+        }
+
         Destroy(gameObject);
     }
 
@@ -190,6 +221,8 @@ public class RelicChest : MonoBehaviour
         if (_consumed || !_playerNearby) return;
         if (RelicSelectionSystem.Instance != null &&
             RelicSelectionSystem.Instance.SelectionPending) return;
+        // Hide the "[E] open chest" prompt while a card selection screen is up.
+        if (LevelUpCardSystem.IsSelectionOpen) return;
 
         EnsureStyles();
 

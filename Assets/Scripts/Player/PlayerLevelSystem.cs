@@ -15,9 +15,12 @@ public class PlayerLevelSystem : MonoBehaviour
     public float uiWidth = 220f;
     public float uiHeight = 48f;
 
-    public int Level => level;
-    public int CurrentXP => currentXP;
-    public int XPToNextLevel => xpToNextLevel;
+    public int   Level         => level;
+    public int   CurrentXP    => currentXP;
+    public int   XPToNextLevel => xpToNextLevel;
+    public float XpMultiplier  { get; private set; } = 1f;
+
+    public void AddXpMultiplier(float pct) => XpMultiplier += pct;
 
     private AutoAttackAura aura;
     private PlayerMovement movement;
@@ -68,7 +71,7 @@ public class PlayerLevelSystem : MonoBehaviour
         if (amount <= 0)
             return;
 
-        currentXP += amount;
+        currentXP += Mathf.RoundToInt(amount * XpMultiplier);
 
         while (currentXP >= xpToNextLevel)
         {

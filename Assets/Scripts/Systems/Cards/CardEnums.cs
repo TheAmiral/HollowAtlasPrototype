@@ -61,3 +61,18 @@ public enum CardEffectKind
     RandomStatBundle,
     Special
 }
+
+public enum CardKind
+{
+    WeaponUnlock,
+    WeaponUpgrade,
+    PassiveUnlock,
+    PassiveUpgrade,
+    Special,
+    WeaponAwakening,
+    ChestRelic,
+    ChestSeal,
+    ChestEconomy,
+    ChestSurvival,
+    ChestAtlas,
+}

@@ -2,11 +2,14 @@ using UnityEngine;
 
 public class GoldPickup : MonoBehaviour
 {
-    public int goldAmount = 10;
-    public float rotateSpeed = 120f;
-    public float collectRadius = 1.2f;
+    public int   goldAmount    = 10;
+    public float rotateSpeed  = 120f;
+    public float collectRadius = 0.8f;   // anlık toplama mesafesi — küçük kalır
+    public float attractRadius = 3.5f;   // çekim başladığı mesafe
+    public float attractSpeed  = 8f;     // pikap'ın oyuncuya doğru hızı
 
     private bool collected;
+    private bool _attracting;
 
     private Transform  playerTransform;
     private GoldWallet playerWallet;
@@ -18,29 +21,43 @@ public class GoldPickup : MonoBehaviour
 
     void Update()
     {
-        transform.Rotate(0f, rotateSpeed * Time.deltaTime, 0f, Space.World);
+        // Çekilirken dönme animasyonunu durdur
+        if (!_attracting)
+            transform.Rotate(0f, rotateSpeed * Time.deltaTime, 0f, Space.World);
         TryCollectByProximity();
     }
 
-    // Toplama collider yüksekliğine bağımlı olmasın diye XZ düzleminde
-    // player root mesafesiyle toplanır; Y farkı yok sayılır.
     void TryCollectByProximity()
     {
-        if (collected)
-            return;
-
-        if (Time.timeScale <= 0f)
-            return;
+        if (collected) return;
+        if (Time.timeScale <= 0f) return;
 
         ResolvePlayer();
-        if (playerTransform == null || playerWallet == null)
-            return;
+        if (playerTransform == null || playerWallet == null) return;
 
-        Vector2 self   = new Vector2(transform.position.x, transform.position.z);
-        Vector2 player = new Vector2(playerTransform.position.x, playerTransform.position.z);
+        Vector2 selfXZ   = new Vector2(transform.position.x, transform.position.z);
+        Vector2 playerXZ = new Vector2(playerTransform.position.x, playerTransform.position.z);
+        float dist = Vector2.Distance(selfXZ, playerXZ);
 
-        if (Vector2.Distance(self, player) <= collectRadius)
+        // Toplama mesafesine girdi: hemen topla
+        if (dist <= collectRadius)
+        {
             Collect(playerWallet);
+            return;
+        }
+
+        // Çekim alanına girdi: oyuncuya doğru süzül
+        float multiplier = RunLoadoutSystem.Instance?.PickupRadiusMultiplier ?? 1f;
+        if (dist <= attractRadius * multiplier)
+        {
+            Vector3 target = new Vector3(playerTransform.position.x, transform.position.y, playerTransform.position.z);
+            transform.position = Vector3.MoveTowards(transform.position, target, attractSpeed * Time.deltaTime);
+            _attracting = true;
+        }
+        else
+        {
+            _attracting = false;
+        }
     }
 
     void ResolvePlayer()
@@ -76,7 +93,8 @@ public class GoldPickup : MonoBehaviour
     {
         collected = true;
 
-        float multiplier = RelicInventory.Instance != null ? RelicInventory.Instance.GoldMultiplier : 1f;
+        float multiplier = (RelicInventory.Instance?.GoldMultiplier ?? 1f)
+                         * (RunLoadoutSystem.Instance?.GoldPickupMultiplier ?? 1f);
         int   finalGold  = Mathf.RoundToInt(goldAmount * multiplier);
         wallet.AddGold(finalGold);
 
