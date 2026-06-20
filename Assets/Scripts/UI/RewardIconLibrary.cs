@@ -3,7 +3,7 @@ using UnityEngine;
 
 // Sandık / uyanış ödülleri için ikon sağlayıcı.
 // Önce Resources/Icons/Rewards/{iconId}.png dener; bulamazsa
-// runtime'da iconId'ye özgü renkli bir placeholder sprite üretir.
+// RewardIconCatalog rengiyle runtime'da iconId'ye özgü placeholder sprite üretir.
 public static class RewardIconLibrary
 {
     static readonly Dictionary<string, Sprite> _cache = new();
@@ -128,34 +128,5 @@ public static class RewardIconLibrary
 
     // ── iconId → renk ─────────────────────────────────────────────────────────
 
-    static Color GetColor(string iconId) => iconId switch
-    {
-        // Silahlar
-        "icon_katana_aura"     => new Color(0.85f, 0.42f, 0.12f),
-        "icon_ruh_kunai"       => new Color(0.10f, 0.72f, 0.80f),
-        "icon_atlas_kuresi"    => new Color(0.72f, 0.55f, 0.22f),
-        // Pasifler
-        "icon_kan_yemini"      => new Color(0.78f, 0.18f, 0.22f),
-        "icon_ruzgar_adimi"    => new Color(0.20f, 0.62f, 0.85f),
-        "icon_demir_beden"     => new Color(0.45f, 0.55f, 0.70f),
-        "icon_zaman_kirigi"    => new Color(0.85f, 0.45f, 0.20f),
-        "icon_buyuyen_yanki"   => new Color(0.55f, 0.30f, 0.78f),
-        "icon_ruh_miknatis"    => new Color(0.25f, 0.78f, 0.55f),
-        "icon_atlas_bereketi"  => new Color(0.55f, 0.45f, 0.85f),
-        "icon_lanetli_servet"  => new Color(0.70f, 0.25f, 0.62f),
-        // Chest / kalıntılar
-        "icon_firavun_tozu"    => new Color(0.85f, 0.25f, 0.25f),
-        "icon_altin_damar"     => new Color(0.95f, 0.80f, 0.12f),
-        "icon_atlas_parcasi"   => new Color(0.25f, 0.80f, 0.50f),
-        "icon_muhafiz_muhru"   => new Color(0.25f, 0.55f, 0.90f),
-        "icon_golge_adim"      => new Color(0.55f, 0.35f, 0.90f),
-        "icon_atlas_cekirdegi" => new Color(0.25f, 0.62f, 0.95f),
-        "icon_tas_deri"        => new Color(0.55f, 0.72f, 0.42f),
-        "icon_yasam_runu"      => new Color(0.35f, 0.92f, 0.55f),
-        "icon_atlas_pusulasi"  => new Color(0.92f, 0.72f, 0.20f),
-        "icon_kanli_hilal"     => new Color(0.90f, 0.45f, 0.15f),
-        "icon_ruh_firtinasi"   => new Color(0.20f, 0.80f, 1.00f),
-        "icon_atlas_halosu"    => new Color(0.70f, 0.45f, 0.95f),
-        _                      => new Color(0.60f, 0.55f, 0.80f),
-    };
+    static Color GetColor(string iconId) => RewardIconCatalog.GetColor(iconId);
 }
