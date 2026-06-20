@@ -54,7 +54,22 @@ public class WeaponInventory : MonoBehaviour
     public int  OwnedWeaponCount               => _levels.Count;
     public IEnumerable<WeaponType> OwnedWeapons() => _levels.Keys;
     public bool IsWeaponAwakened(WeaponType w)  => _awakened.Contains(w);
-    public void MarkWeaponAwakened(WeaponType w) => _awakened.Add(w);
+
+    /// <summary>Silahı uyanmış olarak işaretler. Idempotent — aynı silah iki kez
+    /// uyanamaz, tekrar çağrı sessiz geçer (yalnız ilk seferde loglar).</summary>
+    public void MarkWeaponAwakened(WeaponType w)
+    {
+        if (!_awakened.Add(w)) return; // zaten uyanmış → tekrar loglama/uygulama yok
+        Debug.Log($"[Awakening] {AwakenedDisplayName(w)} awakened");
+    }
+
+    static string AwakenedDisplayName(WeaponType w) => w switch
+    {
+        WeaponType.KatanaAura  => "Katana Aura",
+        WeaponType.RuhKunai    => "Ruh Kunai",
+        WeaponType.AtlasSphere => "Atlas Sphere",
+        _                      => w.ToString()
+    };
 
     /// <summary>
     /// Silahı edinir (Lv1'den başlar) veya mevcut seviyeyi 1 artırır.
