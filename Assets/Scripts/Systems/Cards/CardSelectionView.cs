@@ -480,18 +480,18 @@ public class CardSelectionView : MonoBehaviour
         bandRect.anchoredPosition = Vector2.zero;
         bandGo.GetComponent<Image>().raycastTarget = false;
 
-        // Icon — CardKind'a göre
-        var iconRect = MakeRegion(bodyRect, "IconArea", 16f, 52f, 0f);
-        string iconChar = card.cardKind switch
-        {
-            CardKind.WeaponUnlock  => "⚔",
-            CardKind.WeaponUpgrade => "⚔",
-            _                      => "◈"
-        };
-        var iconT = MakeText(iconRect, "Icon", iconChar,
-            Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-            40, FontStyle.Normal, CardThemeLibrary.WithAlpha(visual.text, 0.72f));
-        iconT.alignment = TextAnchor.MiddleCenter;
+        // Icon — gerçek reward sprite (RewardIconLibrary), sol HUD ile aynı görsel
+        var iconGo = new GameObject("Icon");
+        iconGo.transform.SetParent(bodyRect, false);
+        var iconImg = iconGo.AddComponent<Image>();
+        iconImg.sprite         = RewardIconLibrary.GetIcon(card.iconId, card.cardKind);
+        iconImg.preserveAspect = true;
+        iconImg.raycastTarget  = false;
+        var iconRect = iconGo.GetComponent<RectTransform>();
+        iconRect.anchorMin = iconRect.anchorMax = new Vector2(0.5f, 1f);
+        iconRect.pivot     = new Vector2(0.5f, 1f);
+        iconRect.sizeDelta = new Vector2(64f, 64f);
+        iconRect.anchoredPosition = new Vector2(0f, -9f);
 
         // CardKind badge (eski class badge yerinde)
         string kindLabel = GetCardKindLabel(card);
