@@ -5,6 +5,10 @@ public class PlayerHealth : MonoBehaviour
     [Header("Player Health")]
     public int maxHealth = 100;
 
+    [Header("Debug")]
+    [Tooltip("Hasar alımını loglar. Varsayılan kapalı — demo console'u temiz kalsın (her vuruşta log = spam).")]
+    public bool debugLogs = false;
+
     [Header("UI")]
     public bool showLegacyOnGUI = false;
     public float uiX = 10f;
@@ -54,7 +58,8 @@ public class PlayerHealth : MonoBehaviour
         if (currentHealth < 0)
             currentHealth = 0;
 
-        Debug.Log($"Player damaged: {amount} | HP: {currentHealth}/{maxHealth}");
+        if (debugLogs)
+            Debug.Log($"Player damaged: {amount} | HP: {currentHealth}/{maxHealth}");
 
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayPlayerDamage();
