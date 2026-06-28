@@ -35,9 +35,13 @@ public class CardView : MonoBehaviour,
     float _hoverT;
     Vector2 _basePos;
 
+    // Merkez kart vurgusu için temel ölçek (1 = normal). Hover bunun üzerine biner.
+    public float BaseScale { get; private set; } = 1f;
+    public void SetBaseScale(float s) => BaseScale = Mathf.Max(0.01f, s);
+
     const float HOVER_SPEED = 14f;
-    const float HOVER_SCALE = 1.085f;
-    const float HOVER_LIFT  = 20f;
+    const float HOVER_SCALE = 1.10f;
+    const float HOVER_LIFT  = 26f;
 
     public void Init(int index, CardDefinition card, Action<int> onClick)
     {
@@ -82,7 +86,7 @@ public class CardView : MonoBehaviour,
         float target = _hovered ? 1f : 0f;
         _hoverT = Mathf.Lerp(_hoverT, target, Time.unscaledDeltaTime * HOVER_SPEED);
 
-        RootRect.localScale        = Vector3.one * Mathf.Lerp(1f, HOVER_SCALE, _hoverT);
+        RootRect.localScale        = Vector3.one * (BaseScale * Mathf.Lerp(1f, HOVER_SCALE, _hoverT));
         RootRect.anchoredPosition  = _basePos + Vector2.up * Mathf.Lerp(0f, HOVER_LIFT, _hoverT);
 
         // Rarity pulse (Chaos)
@@ -172,18 +176,19 @@ public class CardView : MonoBehaviour,
 
     public IEnumerator SelectPulse()
     {
-        float dur = 0.18f, t = 0f;
+        // Seçimde belirgin bir "punch": hızlı büyü, sonra otur. BaseScale korunur.
+        float dur = 0.16f, t = 0f;
         while (t < dur)
         {
             t += Time.unscaledDeltaTime;
-            RootRect.localScale = Vector3.one * Mathf.Lerp(HOVER_SCALE, 1.12f, t / dur);
+            RootRect.localScale = Vector3.one * (BaseScale * Mathf.Lerp(HOVER_SCALE, 1.20f, t / dur));
             yield return null;
         }
         t = 0f;
-        while (t < dur * 0.5f)
+        while (t < dur * 0.6f)
         {
             t += Time.unscaledDeltaTime;
-            RootRect.localScale = Vector3.one * Mathf.Lerp(1.12f, 1f, t / (dur * 0.5f));
+            RootRect.localScale = Vector3.one * (BaseScale * Mathf.Lerp(1.20f, 1f, t / (dur * 0.6f)));
             yield return null;
         }
     }

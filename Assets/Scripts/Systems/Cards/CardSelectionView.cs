@@ -20,6 +20,12 @@ public class CardSelectionView : MonoBehaviour
     CanvasGroup _rerollGroup;
     CanvasGroup _buildPanelGroup;
     Text        _titleText;
+
+    // Visual Polish Pass v2 — animasyon için saklanan UI refleri
+    RectTransform _backdropRect;     // sinematik container (entrance scale-in)
+    RectTransform _titleRootRect;    // başlık kökü (entrance slide/scale)
+    RectTransform _titleSheenRect;   // başlık üzerinde gezen ışık (sheen)
+    Image         _titleSheenImg;
     Text        _subtitleText;
     Text        _subtitleShadow;
 
@@ -66,8 +72,9 @@ public class CardSelectionView : MonoBehaviour
 
     public IEnumerator DismissSelected(int selectedIndex)
     {
-        if (selectedIndex < _views.Count)
+        if (selectedIndex >= 0 && selectedIndex < _views.Count && _views[selectedIndex] != null)
             StartCoroutine(_views[selectedIndex].SelectPulse());
+        FlashCard(selectedIndex);
 
         for (int i = 0; i < _views.Count; i++)
         {
@@ -112,6 +119,7 @@ public class CardSelectionView : MonoBehaviour
         InputBlocked = true;
         if (selectedIndex >= 0 && selectedIndex < _views.Count && _views[selectedIndex] != null)
             StartCoroutine(_views[selectedIndex].SelectPulse());
+        FlashCard(selectedIndex);
 
         const float dur = 0.20f;
         for (int i = 0; i < _views.Count; i++)
@@ -239,6 +247,7 @@ public class CardSelectionView : MonoBehaviour
         trRect.anchoredPosition = new Vector2(0f, -46f);
         _titleGroup = titleRoot.AddComponent<CanvasGroup>();
         _titleGroup.alpha = 0f;
+        _titleRootRect = trRect;   // entrance animasyonu için
 
         // Başlık arkası okunabilirlik için yumuşak koyu radial plaka
         var titlePlate = MakePanel(trRect, "TitlePlate", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
@@ -270,6 +279,7 @@ public class CardSelectionView : MonoBehaviour
         _subtitleText.horizontalOverflow = HorizontalWrapMode.Wrap;
         _subtitleText.verticalOverflow   = VerticalWrapMode.Overflow;
         BuildTitleDivider(trRect);
+        BuildTitleSheen(trRect);   // başlık üzerinde periyodik ışık geçişi
 
         // Build panel (sol) — normal level-up ekranında göster, boss reward'da gizle
         if (!_isBossReward)
@@ -313,6 +323,7 @@ public class CardSelectionView : MonoBehaviour
             Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
             21, FontStyle.Bold, new Color(0.82f, 0.80f, 1.00f, 1f));
         ht.alignment = TextAnchor.MiddleCenter;
+        UIPulseGlow.Attach(ht, 2.2f, 0.15f);   // hint satırında nazik nabız
         hintBorder.GetComponent<Image>().raycastTarget = false;
         hintBg.GetComponent<Image>().raycastTarget     = false;
 
@@ -805,6 +816,10 @@ public class CardSelectionView : MonoBehaviour
         view.SetIconGlow(iconGlowGo.GetComponent<Image>(), 0.22f);
         view.SetPremiumGold(_isBossReward);
 
+        // Merkez kart vurgusu — tek sayıda kart varsa ortadaki hafifçe daha büyük durur
+        int centerIndex = (_cards.Count % 2 == 1) ? _cards.Count / 2 : -1;
+        view.SetBaseScale(index == centerIndex ? 1.06f : 1f);
+
         return view;
     }
 
@@ -1043,6 +1058,10 @@ public class CardSelectionView : MonoBehaviour
                  RectTransformUtility.RectangleContainsScreenPoint(_rerollBtnBorder, Mouse.current.position.ReadValue(), null);
         Color target = h ? new Color(0.40f, 0.26f, 0.09f, 0.96f) : new Color(0.28f, 0.18f, 0.06f, 0.92f);
         _rerollBtnBg.color = Color.Lerp(_rerollBtnBg.color, target, Time.unscaledDeltaTime * 12f);
+
+        // Hover'da hafif büyüme (premium his)
+        float ts = h ? 1.04f : 1f;
+        _rerollBtnBorder.localScale = Vector3.Lerp(_rerollBtnBorder.localScale, Vector3.one * ts, Time.unscaledDeltaTime * 12f);
     }
 
     void TryClickReroll()
@@ -1131,13 +1150,24 @@ public class CardSelectionView : MonoBehaviour
 
     IEnumerator AnimateIn()
     {
-        yield return StartCoroutine(Fade(_overlayGroup, 0f, 1f, 0.28f));
-        StartCoroutine(Fade(_titleGroup, 0f, 1f, 0.25f));
+        // 1) Overlay + sinematik container birlikte girer (fade + hafif scale-in)
+        StartCoroutine(Fade(_overlayGroup, 0f, 1f, 0.30f));
+        if (_backdropRect != null) StartCoroutine(IntroTransform(_backdropRect, Vector2.zero, 0.95f, 0.34f));
+        yield return new WaitForSecondsRealtime(0.12f);
+
+        // 2) Başlık: fade + aşağıdan süzülerek ve hafif büyüyerek
+        StartCoroutine(Fade(_titleGroup, 0f, 1f, 0.30f));
+        if (_titleRootRect != null) StartCoroutine(IntroTransform(_titleRootRect, new Vector2(0f, -28f), 0.92f, 0.42f));
+
+        // 3) Kartlar: kademeli (stagger) bounce slide-in
         for (int i = 0; i < _views.Count; i++)
-            StartCoroutine(AnimateCardIn(_views[i], 0.10f * i));
-        yield return new WaitForSecondsRealtime(0.10f * (_views.Count - 1) + 0.35f);
-        yield return StartCoroutine(Fade(_hintGroup, 0f, 1f, 0.20f));
-        if (_rerollGroup != null) StartCoroutine(Fade(_rerollGroup, 0f, 1f, 0.20f));
+            StartCoroutine(AnimateCardIn(_views[i], 0.06f + 0.09f * i));
+        yield return new WaitForSecondsRealtime(0.09f * Mathf.Max(0, _views.Count - 1) + 0.46f);
+
+        // 4) Destek UI + sürekli sheen
+        StartCoroutine(Fade(_hintGroup, 0f, 1f, 0.22f));
+        if (_rerollGroup != null) StartCoroutine(Fade(_rerollGroup, 0f, 1f, 0.22f));
+        if (_titleSheenRect != null && _titleSheenImg != null) StartCoroutine(SheenLoop());
         InputBlocked = false;
     }
 
@@ -1145,7 +1175,8 @@ public class CardSelectionView : MonoBehaviour
     {
         if (delay > 0f) yield return new WaitForSecondsRealtime(delay);
         var rect      = w.RootRect;
-        float dur     = 0.38f, t = 0f;
+        float bs      = w.BaseScale;
+        float dur     = 0.40f, t = 0f;
         Vector2 start = rect.anchoredPosition + Vector2.down * ENTER_OFFSET;
         Vector2 end   = rect.anchoredPosition;
         var group     = GetOrAddCanvasGroup(w.gameObject);
@@ -1155,14 +1186,112 @@ public class CardSelectionView : MonoBehaviour
             t += Time.unscaledDeltaTime;
             float te = BounceEaseOut(Mathf.Clamp01(t / dur));
             rect.anchoredPosition = Vector2.Lerp(start, end, te);
-            rect.localScale       = Vector3.Lerp(Vector3.one * 0.80f, Vector3.one, te);
+            rect.localScale       = Vector3.Lerp(Vector3.one * (0.80f * bs), Vector3.one * bs, te);
             group.alpha           = Mathf.Lerp(0f, 1f, Mathf.Clamp01(t / dur * 3f));
             yield return null;
         }
         rect.anchoredPosition = end;
-        rect.localScale       = Vector3.one;
+        rect.localScale       = Vector3.one * bs;
         group.alpha           = 1f;
         w.Ready               = true;
+    }
+
+    // Bir RectTransform'u (konum offset + ölçek) başlangıçtan yerine yumuşatarak getirir.
+    IEnumerator IntroTransform(RectTransform rt, Vector2 fromOffset, float fromScale, float dur)
+    {
+        if (rt == null) yield break;
+        Vector2 baseP = rt.anchoredPosition;
+        rt.anchoredPosition = baseP + fromOffset;
+        rt.localScale       = Vector3.one * fromScale;
+        float t = 0f;
+        while (t < dur)
+        {
+            t += Time.unscaledDeltaTime;
+            float k = EaseOutCubic(Mathf.Clamp01(t / dur));
+            rt.anchoredPosition = Vector2.Lerp(baseP + fromOffset, baseP, k);
+            rt.localScale       = Vector3.one * Mathf.Lerp(fromScale, 1f, k);
+            yield return null;
+        }
+        rt.anchoredPosition = baseP;
+        rt.localScale       = Vector3.one;
+    }
+
+    static float EaseOutCubic(float t) { t = 1f - t; return 1f - t * t * t; }
+
+    // Başlık üzerinde periyodik geçen ışık. Ekran açık kaldıkça döner (root yok olunca durur).
+    IEnumerator SheenLoop()
+    {
+        const float travel = 460f;
+        while (true)
+        {
+            yield return new WaitForSecondsRealtime(2.6f);
+            if (_titleSheenRect == null || _titleSheenImg == null) yield break;
+            float dur = 0.7f, t = 0f;
+            while (t < dur)
+            {
+                t += Time.unscaledDeltaTime;
+                float k = Mathf.Clamp01(t / dur);
+                _titleSheenRect.anchoredPosition = new Vector2(Mathf.Lerp(-travel, travel, k), _titleSheenRect.anchoredPosition.y);
+                var c = _titleSheenImg.color; c.a = Mathf.Sin(k * Mathf.PI) * 0.22f; _titleSheenImg.color = c;
+                yield return null;
+            }
+            if (_titleSheenImg != null) { var cc = _titleSheenImg.color; cc.a = 0f; _titleSheenImg.color = cc; }
+        }
+    }
+
+    // Başlık genişliğine kırpılmış sheen çubuğu kurar (SheenLoop bunu süzdürür).
+    void BuildTitleSheen(RectTransform parent)
+    {
+        const float wrapW = 720f, wrapH = 92f;
+        var wrapGo = new GameObject("TitleSheenMask");
+        wrapGo.transform.SetParent(parent, false);
+        var wrapRect = wrapGo.AddComponent<RectTransform>();
+        wrapRect.anchorMin = wrapRect.anchorMax = new Vector2(0.5f, 1f);
+        wrapRect.pivot      = new Vector2(0.5f, 1f);
+        wrapRect.sizeDelta  = new Vector2(wrapW, wrapH);
+        wrapRect.anchoredPosition = new Vector2(0f, -8f);
+        wrapGo.AddComponent<RectMask2D>();
+
+        var bar = UIGlow(wrapRect, "Sheen", new Vector2(0.5f, 0.5f), new Vector2(-wrapW, 0f),
+            new Vector2(120f, wrapH * 1.7f), new Color(1f, 0.98f, 0.85f, 0f), true);
+        _titleSheenRect = bar.rectTransform;
+        _titleSheenImg  = bar;
+    }
+
+    // Seçilen kartın üzerinde kısa altın patlama (select flash).
+    void FlashCard(int index)
+    {
+        if (index < 0 || index >= _views.Count || _views[index] == null) return;
+        var root = _views[index].RootRect;
+        if (root == null) return;
+        var go  = new GameObject("SelectFlash");
+        go.transform.SetParent(root, false);
+        var img = go.AddComponent<Image>();
+        img.sprite        = SoftGlow();
+        img.raycastTarget = false;
+        img.color         = new Color(1f, 0.95f, 0.72f, 0f);
+        var r = go.GetComponent<RectTransform>();
+        r.anchorMin = r.anchorMax = new Vector2(0.5f, 0.5f);
+        r.pivot     = new Vector2(0.5f, 0.5f);
+        r.sizeDelta = new Vector2(CARD_W + 140f, CARD_H + 140f);
+        r.anchoredPosition = Vector2.zero;
+        StartCoroutine(FlashRoutine(img, r));
+    }
+
+    IEnumerator FlashRoutine(Image img, RectTransform r)
+    {
+        float dur = 0.30f, t = 0f;
+        Vector2 s0 = r != null ? r.sizeDelta : Vector2.zero;
+        Vector2 s1 = s0 * 1.18f;
+        while (t < dur)
+        {
+            t += Time.unscaledDeltaTime;
+            float k = Mathf.Clamp01(t / dur);
+            if (img != null) { var c = img.color; c.a = Mathf.Sin(k * Mathf.PI) * 0.55f; img.color = c; }
+            if (r   != null) r.sizeDelta = Vector2.Lerp(s0, s1, k);
+            yield return null;
+        }
+        if (img != null) { var c = img.color; c.a = 0f; img.color = c; }
     }
 
     // ── Layout helpers ────────────────────────────────────────────────────────
@@ -1189,9 +1318,14 @@ public class CardSelectionView : MonoBehaviour
         Color portalGold   = CardThemeLibrary.FrameGold;
         Color emberRed     = new Color(0.72f, 0.18f, 0.24f);
 
-        UIGlow(parent, "AtmPortal", new Vector2(0.5f, 0.50f), new Vector2(0f, 24f), new Vector2(1500f, 1080f), CardThemeLibrary.WithAlpha(portalPurple, 0.14f), true);
-        UIGlow(parent, "AtmGold",   new Vector2(0.5f, 0.80f), new Vector2(0f, 0f),  new Vector2(1080f, 520f),  CardThemeLibrary.WithAlpha(portalGold,   0.09f), true);
-        UIGlow(parent, "AtmEmber",  new Vector2(0.5f, 0.15f), new Vector2(0f, 0f),  new Vector2(1320f, 460f),  CardThemeLibrary.WithAlpha(emberRed,     0.07f), true);
+        var portal = UIGlow(parent, "AtmPortal", new Vector2(0.5f, 0.50f), new Vector2(0f, 24f), new Vector2(1500f, 1080f), CardThemeLibrary.WithAlpha(portalPurple, 0.14f), true);
+        var goldG  = UIGlow(parent, "AtmGold",   new Vector2(0.5f, 0.80f), new Vector2(0f, 0f),  new Vector2(1080f, 520f),  CardThemeLibrary.WithAlpha(portalGold,   0.09f), true);
+        UIGlow(parent, "AtmEmber", new Vector2(0.5f, 0.15f), new Vector2(0f, 0f),  new Vector2(1320f, 460f),  CardThemeLibrary.WithAlpha(emberRed,     0.07f), true);
+
+        // Yaşayan portal: nabız + nazik dikey süzülme (parallax)
+        UIPulseGlow.Attach(portal, 1.4f, 0.30f);
+        UIPulseGlow.Attach(goldG,  1.0f, 0.40f);
+        UIFloat.Attach(goldG.rectTransform, new Vector2(0f, 18f), 0.5f);
     }
 
     // Resources yolu — buraya bir Sprite konulursa portre otomatik kullanılır.
@@ -1212,6 +1346,7 @@ public class CardSelectionView : MonoBehaviour
         hRect.anchoredPosition = new Vector2(60f, -30f);   // hafif taşma → "looming" figür
         var hGroup = holder.AddComponent<CanvasGroup>();
         hGroup.blocksRaycasts = false; hGroup.interactable = false;
+        UIFloat.Attach(hRect, new Vector2(0f, 10f), 0.5f);   // nazik nefes/parallax
 
         // Figürün arkasında mor portal glow (gerçek portre de placeholder da bunun önünde)
         UIGlow(hRect, "PortraitGlow", new Vector2(0.5f, 0.5f), new Vector2(-30f, 120f), new Vector2(560f, 720f),
@@ -1274,6 +1409,7 @@ public class CardSelectionView : MonoBehaviour
         br.pivot = new Vector2(0.5f, 0.5f);
         br.sizeDelta = new Vector2(1264f, 560f);
         br.anchoredPosition = new Vector2(0f, -24f);
+        _backdropRect = br;   // entrance scale-in için
 
         var purple = MakePanel(br, "BackdropPurple", Vector2.zero, Vector2.one,
             CardThemeLibrary.WithAlpha(CardThemeLibrary.PanelBorder, 0.42f));
