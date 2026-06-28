@@ -24,6 +24,9 @@ public class CardView : MonoBehaviour,
     Image  _cardBg;
     Image  _glow2;
     Image  _hoverHalo;
+    Image  _iconGlow;
+    float  _iconGlowBaseA;
+    bool   _premiumGold;
     CanvasGroup _hoverPromptGroup;
 
     CardVisualTheme _visual;
@@ -59,6 +62,19 @@ public class CardView : MonoBehaviour,
         _hoverPromptGroup  = hoverPromptGroup;
     }
 
+    // Icon arkasındaki radial glow (hover'da hafif güçlenir)
+    public void SetIconGlow(Image iconGlow, float baseAlpha)
+    {
+        _iconGlow      = iconGlow;
+        _iconGlowBaseA = baseAlpha;
+    }
+
+    // Boss reward (Atlas Ödülü) kartları için çerçeveyi altına çek
+    public void SetPremiumGold(bool on) => _premiumGold = on;
+
+    // Gövde tonu için kullanılan visual theme'i dışarıdan ayarla (boss reward gold uyumu)
+    public void OverrideVisualTheme(CardVisualTheme v) => _visual = v;
+
     void Update()
     {
         if (!Ready) return;
@@ -74,53 +90,73 @@ public class CardView : MonoBehaviour,
             ? Mathf.PingPong(Time.unscaledTime * 4.5f, 1f)
             : 0f;
 
-        Color categoryAccent = _visual.main;
-        if (_card.visualCategory == CardVisualCategory.Chaos)
-            categoryAccent = Color.Lerp(_visual.main, _visual.secondaryGlow, 0.4f + pulse * 0.6f);
+        // Rarity renkleri — premium gold (boss reward) modunda altına doğru çekilir
+        Color gold      = CardThemeLibrary.FrameGold;
+        Color rarAccent = _premiumGold ? Color.Lerp(_rar.accent, gold, 0.55f) : _rar.accent;
+        Color rarGlow   = _premiumGold ? Color.Lerp(_rar.glow,   gold, 0.55f) : _rar.glow;
 
+        // Dış aura — rarity glow (kontrollü)
         if (_rarityAura != null)
         {
-            Color c = _visual.glow;
-            c.a = Mathf.Lerp(_rar.glowAlpha, _rar.glowAlpha * 2.5f, _hoverT);
+            Color c = rarGlow;
+            c.a = Mathf.Lerp(_rar.glowAlpha, _rar.glowAlpha * 2.6f, _hoverT);
             if (_card.visualCategory == CardVisualCategory.Chaos) c.a += pulse * 0.06f;
             _rarityAura.color = c;
         }
 
+        // Rim — rarity accent
         if (_rarityRim != null)
         {
-            Color c = categoryAccent;
-            float baseA = _rar.glowAlpha * 1.8f;
-            c.a = Mathf.Lerp(baseA, Mathf.Min(1f, baseA * 2.2f), _hoverT);
+            Color c = rarAccent;
+            float baseA = Mathf.Clamp01(0.30f + _rar.glowAlpha);
+            c.a = Mathf.Lerp(baseA, Mathf.Min(1f, baseA * 1.7f), _hoverT);
             if (_card.visualCategory == CardVisualCategory.Chaos) c.a = Mathf.Clamp01(c.a + pulse * 0.08f);
             _rarityRim.color = c;
         }
 
+        // Border — rarity accent + altın karışımı (Epik'te daha çok altın; premium his)
         if (_border != null)
         {
-            Color c = Color.Lerp(categoryAccent, Color.white, 0.1f);
-            c.a = Mathf.Lerp(0.72f, 1f, _hoverT);
+            float goldMix = _card.rarity == CardRarity.Epic ? 0.34f
+                          : _card.rarity == CardRarity.Legendary ? 0f
+                          : 0.14f;
+            Color c = Color.Lerp(rarAccent, gold, goldMix);
+            c = Color.Lerp(c, Color.white, 0.06f);
+            c.a = Mathf.Lerp(0.80f, 1f, _hoverT);
             _border.color = c;
         }
 
+        // İç glow — rarity glow, kontrollü
         if (_glow2 != null)
         {
-            Color c = _visual.glow;
-            c.a = Mathf.Lerp(0.14f, 0.48f, _hoverT);
+            Color c = rarGlow;
+            c.a = Mathf.Lerp(_rar.glowAlpha * 0.7f, _rar.glowAlpha * 1.9f, _hoverT);
             _glow2.color = c;
         }
 
+        // Hover halo — rarity glow beyaza yaklaşır
         if (_hoverHalo != null)
         {
-            Color c = Color.Lerp(_visual.glow, Color.white, 0.15f);
-            c.a = Mathf.Lerp(0f, 0.30f, _hoverT);
+            Color c = Color.Lerp(rarGlow, Color.white, 0.18f);
+            c.a = Mathf.Lerp(0f, 0.32f, _hoverT);
             _hoverHalo.color = c;
         }
 
+        // Gövde — sabit koyu indigo + çok hafif kategori tonu + hover'da hafif aydınlanma
         if (_cardBg != null)
         {
-            float b = Mathf.Lerp(0f, 0.10f, _hoverT);
-            Color d = _visual.dark;
-            _cardBg.color = new Color(d.r + b, d.g + b, d.b + b, 0.97f);
+            Color baseI  = CardThemeLibrary.CardBaseIndigo;
+            Color tinted = Color.Lerp(baseI, _visual.dark, 0.16f);
+            float b = Mathf.Lerp(0f, 0.06f, _hoverT);
+            _cardBg.color = new Color(tinted.r + b, tinted.g + b, tinted.b + b, 0.985f);
+        }
+
+        // Icon arkası radial glow — hover'da hafif güçlenir
+        if (_iconGlow != null)
+        {
+            Color c = _iconGlow.color;
+            c.a = Mathf.Lerp(_iconGlowBaseA, Mathf.Min(1f, _iconGlowBaseA * 1.9f), _hoverT);
+            _iconGlow.color = c;
         }
 
         if (_hoverPromptGroup != null)

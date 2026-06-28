@@ -18,6 +18,7 @@ public class CardSelectionView : MonoBehaviour
     CanvasGroup _titleGroup;
     CanvasGroup _hintGroup;
     CanvasGroup _rerollGroup;
+    CanvasGroup _buildPanelGroup;
     Text        _titleText;
     Text        _subtitleText;
     Text        _subtitleShadow;
@@ -81,12 +82,37 @@ public class CardSelectionView : MonoBehaviour
         yield return StartCoroutine(Fade(_overlayGroup, 1f, 0f, 0.30f));
     }
 
+    // Bir kart seçilince çağrılır: seçim kontrollerini (reroll, hint, başlık, build
+    // paneli) gizler; geriye yalnız overlay + feedback paneli kalır. Input zaten
+    // InputBlocked ile kapalıdır (reroll feedback state'inde çalışmaz).
+    public void EnterFeedbackState()
+    {
+        InputBlocked = true;
+        HideGroup(_rerollGroup);
+        HideGroup(_hintGroup);
+        HideGroup(_titleGroup);
+        HideGroup(_buildPanelGroup);
+    }
+
+    void HideGroup(CanvasGroup g)
+    {
+        if (g == null) return;
+        g.blocksRaycasts = false;
+        g.interactable   = false;
+        StartCoroutine(Fade(g, g.alpha, 0f, 0.18f));
+    }
+
     public GameObject BuildFeedbackPanel(CardDefinition card, List<StatDelta> deltas)
     {
+        var rar     = CardThemeLibrary.GetRarityTheme(card.rarity);
+        Color gold  = CardThemeLibrary.FrameGold;
+        Color rarAccent = _isBossReward ? Color.Lerp(rar.accent, gold, 0.55f) : rar.accent;
+        Color rarGlow   = _isBossReward ? Color.Lerp(rar.glow,   gold, 0.55f) : rar.glow;
+
         bool hasDeltas = deltas != null && deltas.Count > 0;
         int lineCount  = hasDeltas ? deltas.Count : 1;
-        const float W = 420f, LINE_H = 30f, HEADER_H = 86f, BOT_PAD = 16f;
-        float panelH   = HEADER_H + lineCount * LINE_H + BOT_PAD;
+        const float W = 440f, LINE_H = 30f, TOP_BLOCK = 152f, BOT_PAD = 18f;
+        float panelH   = TOP_BLOCK + lineCount * LINE_H + BOT_PAD;
 
         var container     = new GameObject("FeedbackPanel");
         container.transform.SetParent(transform, false);
@@ -94,25 +120,54 @@ public class CardSelectionView : MonoBehaviour
         containerRect.anchorMin = containerRect.anchorMax = new Vector2(0.5f, 0.5f);
         containerRect.pivot     = new Vector2(0.5f, 0.5f);
         containerRect.sizeDelta = new Vector2(W, panelH);
-        containerRect.anchoredPosition = new Vector2(0f, 30f);
+        containerRect.anchoredPosition = new Vector2(0f, 20f);
         var cg = container.AddComponent<CanvasGroup>();
         cg.alpha = 0f; cg.blocksRaycasts = false; cg.interactable = false;
 
-        var vt = CardThemeLibrary.GetVisualTheme(card.visualCategory);
-        FBPanel(container.transform, "FBBorder", vt.main, vt.main, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-        var border = container.transform.Find("FBBorder");
-        var bgGo   = FBPanel(border, "FBBg",
-            CardThemeLibrary.WithAlpha(vt.dark, 0.97f), CardThemeLibrary.WithAlpha(vt.dark, 0.97f),
-            Vector2.zero, Vector2.one, new Vector2(2.5f, 2.5f), new Vector2(-2.5f, -2.5f));
-        FBPanel(bgGo.transform, "FBAccent",
-            CardThemeLibrary.WithAlpha(vt.glow, 0.28f), CardThemeLibrary.WithAlpha(vt.glow, 0.28f),
-            Vector2.zero, Vector2.one, new Vector2(1f, 1f), new Vector2(-1f, -1f));
+        // Seçilen kartın rarity rengine göre yumuşak glow (premium his)
+        var glowGo  = MakePanel(containerRect, "FBGlow", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+            CardThemeLibrary.WithAlpha(rarGlow, 0.22f));
+        var glowImg = glowGo.GetComponent<Image>();
+        glowImg.sprite = SoftGlow(); glowImg.raycastTarget = false;
+        var glowRect = glowGo.GetComponent<RectTransform>();
+        glowRect.pivot = new Vector2(0.5f, 0.5f);
+        glowRect.sizeDelta = new Vector2(W + 170f, panelH + 170f);
+        glowRect.anchoredPosition = Vector2.zero;
+
+        // İnce gold çerçeve → koyu mor/indigo gövde
+        var borderGo = MakePanel(containerRect, "FBBorder", Vector2.zero, Vector2.one, CardThemeLibrary.WithAlpha(gold, 0.85f));
+        borderGo.GetComponent<RectTransform>().offsetMin = Vector2.zero;
+        borderGo.GetComponent<RectTransform>().offsetMax = Vector2.zero;
+        borderGo.GetComponent<Image>().raycastTarget = false;
+        var bgGo = MakePanel(borderGo.GetComponent<RectTransform>(), "FBBg", Vector2.zero, Vector2.one,
+            new Color(0.055f, 0.035f, 0.110f, 0.985f));
+        bgGo.GetComponent<RectTransform>().offsetMin = new Vector2(2f, 2f);
+        bgGo.GetComponent<RectTransform>().offsetMax = new Vector2(-2f, -2f);
+        bgGo.GetComponent<Image>().raycastTarget = false;
         var bgRect = bgGo.GetComponent<RectTransform>();
 
-        float y = 14f;
-        FBText(bgRect, "FBLabel", "LÜTUF KAZANILDI", y, 22f, 15, FontStyle.Bold, CardThemeLibrary.TitleGold, TextAnchor.UpperCenter); y += 26f;
-        FBText(bgRect, "FBTitle", card.title, y, 30f, 23, FontStyle.Bold, vt.text, TextAnchor.UpperCenter); y += 34f;
-        FBDivider(bgRect, "FBDiv", y, 1.5f, CardThemeLibrary.WithAlpha(vt.glow, 0.55f), 36f); y += 12f;
+        float y = 16f;
+
+        // Seçilen ikon — küçük dairesel çerçeve içinde
+        float iconCY = -(y + 28f);
+        MakeCircle(bgRect, "FBIconGlow",   84f, CardThemeLibrary.WithAlpha(rarGlow, 0.22f),  new Vector2(0f, iconCY), soft: true);
+        MakeCircle(bgRect, "FBIconAccent", 62f, CardThemeLibrary.WithAlpha(rarAccent, 0.90f), new Vector2(0f, iconCY));
+        MakeCircle(bgRect, "FBIconDark",   56f, new Color(0.05f, 0.035f, 0.10f, 0.98f),       new Vector2(0f, iconCY));
+        var icoGo = new GameObject("FBIcon");
+        icoGo.transform.SetParent(bgRect, false);
+        var icoImg = icoGo.AddComponent<Image>();
+        icoImg.sprite = RewardIconLibrary.GetIcon(card.iconId, card.cardKind);
+        icoImg.preserveAspect = true; icoImg.raycastTarget = false;
+        var icoRect = icoGo.GetComponent<RectTransform>();
+        icoRect.anchorMin = icoRect.anchorMax = new Vector2(0.5f, 1f);
+        icoRect.pivot = new Vector2(0.5f, 0.5f);
+        icoRect.sizeDelta = new Vector2(48f, 48f);
+        icoRect.anchoredPosition = new Vector2(0f, iconCY);
+        y += 60f;
+
+        FBText(bgRect, "FBLabel", _isBossReward ? "ÖDÜL KAZANILDI" : "LÜTUF KAZANILDI", y, 22f, 15, FontStyle.Bold, CardThemeLibrary.TitleGold, TextAnchor.UpperCenter); y += 26f;
+        FBText(bgRect, "FBTitle", card.title, y, 30f, 23, FontStyle.Bold, CardThemeLibrary.BodyTextSoft, TextAnchor.UpperCenter); y += 34f;
+        FBDivider(bgRect, "FBDiv", y, 1.5f, CardThemeLibrary.WithAlpha(gold, 0.50f), 40f); y += 12f;
         if (hasDeltas)
         {
             foreach (var d in deltas)
@@ -155,6 +210,17 @@ public class CardSelectionView : MonoBehaviour
         trRect.anchoredPosition = new Vector2(0f, -46f);
         _titleGroup = titleRoot.AddComponent<CanvasGroup>();
         _titleGroup.alpha = 0f;
+
+        // Başlık arkası okunabilirlik için yumuşak koyu radial plaka
+        var titlePlate = MakePanel(trRect, "TitlePlate", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+            new Color(0.02f, 0.01f, 0.05f, 0.34f));
+        var tpRect = titlePlate.GetComponent<RectTransform>();
+        tpRect.pivot = new Vector2(0.5f, 1f);
+        tpRect.sizeDelta = new Vector2(820f, 150f);
+        tpRect.anchoredPosition = new Vector2(0f, 6f);
+        var tpImg = titlePlate.GetComponent<Image>();
+        tpImg.sprite = SoftGlow();
+        tpImg.raycastTarget = false;
 
         _titleText = MakeText(trRect, "TitleText", title,
             Vector2.zero, Vector2.one, new Vector2(0f, -18f), Vector2.zero,
@@ -249,9 +315,22 @@ public class CardSelectionView : MonoBehaviour
         panelRect.sizeDelta = new Vector2(PANEL_W, panelH);
         panelRect.anchoredPosition = new Vector2(16f, 0f);
 
+        // Seçim tamamlanınca topluca gizlemek için CanvasGroup
+        _buildPanelGroup = panelGo.AddComponent<CanvasGroup>();
+
+        // İnce çerçeve + koyu yarı saydam iç zemin (çok parlak mor blok yerine)
         var panelBg = panelGo.AddComponent<Image>();
-        panelBg.color = new Color(0.04f, 0.02f, 0.10f, 0.88f);
+        panelBg.color = CardThemeLibrary.WithAlpha(CardThemeLibrary.PanelBorder, 0.50f);
         panelBg.raycastTarget = false;
+
+        var innerGo = new GameObject("PanelInner");
+        innerGo.transform.SetParent(panelRect, false);
+        var innerImg = innerGo.AddComponent<Image>();
+        innerImg.color = new Color(0.035f, 0.022f, 0.075f, 0.90f);
+        innerImg.raycastTarget = false;
+        var innerRect = innerGo.GetComponent<RectTransform>();
+        innerRect.anchorMin = Vector2.zero; innerRect.anchorMax = Vector2.one;
+        innerRect.offsetMin = new Vector2(2f, 2f); innerRect.offsetMax = new Vector2(-2f, -2f);
 
         float y = 10f;
 
@@ -263,13 +342,15 @@ public class CardSelectionView : MonoBehaviour
         {
             bool filled = false;
             string slotText = "—";
+            string slotIcon = null;
             if (inv != null && i < weaponOrder.Length && inv.HasWeapon(weaponOrder[i]))
             {
                 filled = true;
                 int lv = inv.GetLevel(weaponOrder[i]);
                 slotText = $"{CardDatabase.GetWeaponName(weaponOrder[i])}  Lv {lv}";
+                slotIcon = WeaponIconId(weaponOrder[i]);
             }
-            var (bg, txt) = BuildSlot(panelRect, ref y, slotText, filled, SLOT_H, PANEL_W);
+            var (bg, txt) = BuildSlot(panelRect, ref y, slotText, filled, SLOT_H, PANEL_W, slotIcon, CardKind.WeaponUnlock);
             _weaponSlotBgs.Add(bg);
             _weaponSlotTexts.Add(txt);
         }
@@ -283,14 +364,16 @@ public class CardSelectionView : MonoBehaviour
         {
             bool filled = false;
             string slotText = "—";
+            string slotIcon = null;
             if (rls != null && i < rls.OrderedPassives.Count)
             {
                 string pid = rls.OrderedPassives[i];
                 filled = true;
                 int lv = rls.GetPassiveLevel(pid);
                 slotText = $"{CardDatabase.GetPassiveName(pid)}  Lv {lv}";
+                slotIcon = "icon_" + pid;
             }
-            var (bg, txt) = BuildSlot(panelRect, ref y, slotText, filled, SLOT_H, PANEL_W);
+            var (bg, txt) = BuildSlot(panelRect, ref y, slotText, filled, SLOT_H, PANEL_W, slotIcon, CardKind.PassiveUnlock);
             _passiveSlotBgs.Add(bg);
             _passiveSlotTexts.Add(txt);
         }
@@ -307,8 +390,20 @@ public class CardSelectionView : MonoBehaviour
         hRect.sizeDelta = new Vector2(-8f, headerH);
         hRect.anchoredPosition = new Vector2(0f, -y);
         var hImg = hGo.AddComponent<Image>();
-        hImg.color = new Color(0.18f, 0.10f, 0.32f, 0.80f);
+        hImg.color = new Color(0.11f, 0.06f, 0.19f, 0.82f);
         hImg.raycastTarget = false;
+
+        // Sol kenarda ince altın aksan çubuğu
+        var accentGo = new GameObject("HeaderAccent");
+        accentGo.transform.SetParent(hGo.transform, false);
+        var accentImg = accentGo.AddComponent<Image>();
+        accentImg.color = CardThemeLibrary.WithAlpha(CardThemeLibrary.FrameGold, 0.75f);
+        accentImg.raycastTarget = false;
+        var accentRect = accentGo.GetComponent<RectTransform>();
+        accentRect.anchorMin = new Vector2(0f, 0f); accentRect.anchorMax = new Vector2(0f, 1f);
+        accentRect.pivot = new Vector2(0f, 0.5f);
+        accentRect.sizeDelta = new Vector2(3f, -8f);
+        accentRect.anchoredPosition = new Vector2(2f, 0f);
 
         // Başlık metni — ayrı child GO (aynı GO'ya Image + Text eklenemez)
         var labelGo   = new GameObject("HeaderLabel");
@@ -319,9 +414,9 @@ public class CardSelectionView : MonoBehaviour
         var ht = labelGo.AddComponent<Text>();
         ht.font      = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         ht.text      = header;
-        ht.fontSize  = 13;
+        ht.fontSize  = 14;
         ht.fontStyle = FontStyle.Bold;
-        ht.color     = new Color(0.85f, 0.78f, 1.00f, 0.90f);
+        ht.color     = new Color(0.96f, 0.90f, 1.00f, 0.96f);
         ht.alignment = TextAnchor.MiddleCenter;
         ht.horizontalOverflow = HorizontalWrapMode.Overflow;
         ht.verticalOverflow   = VerticalWrapMode.Overflow;
@@ -329,7 +424,8 @@ public class CardSelectionView : MonoBehaviour
         y += headerH + 4f;
     }
 
-    (Image bg, Text txt) BuildSlot(RectTransform parent, ref float y, string content, bool filled, float h, float panelW)
+    (Image bg, Text txt) BuildSlot(RectTransform parent, ref float y, string content, bool filled, float h, float panelW,
+        string iconId = null, CardKind iconKind = CardKind.PassiveUnlock)
     {
         // Arka plan GO (yalnızca Image)
         var slotGo   = new GameObject("Slot");
@@ -343,25 +439,52 @@ public class CardSelectionView : MonoBehaviour
         slotImg.color = SlotNormal;
         slotImg.raycastTarget = false;
 
+        // Dolu slotlarda sol tarafa küçük ikon
+        float textLeft = 6f;
+        bool hasIcon = filled && !string.IsNullOrEmpty(iconId);
+        if (hasIcon)
+        {
+            var icGo = new GameObject("SlotIcon");
+            icGo.transform.SetParent(slotGo.transform, false);
+            var icImg = icGo.AddComponent<Image>();
+            icImg.sprite         = RewardIconLibrary.GetIcon(iconId, iconKind);
+            icImg.preserveAspect = true;
+            icImg.raycastTarget  = false;
+            var icR = icGo.GetComponent<RectTransform>();
+            icR.anchorMin = icR.anchorMax = new Vector2(0f, 0.5f);
+            icR.pivot     = new Vector2(0f, 0.5f);
+            icR.sizeDelta = new Vector2(28f, 28f);
+            icR.anchoredPosition = new Vector2(5f, 0f);
+            textLeft = 38f;
+        }
+
         // Metin child GO (Image + Text aynı GO'da olamaz)
         var lblGo   = new GameObject("SlotLabel");
         lblGo.transform.SetParent(slotGo.transform, false);
         var lblRect = lblGo.AddComponent<RectTransform>();
         lblRect.anchorMin = Vector2.zero; lblRect.anchorMax = Vector2.one;
-        lblRect.offsetMin = new Vector2(4f, 0f); lblRect.offsetMax = new Vector2(-4f, 0f);
+        lblRect.offsetMin = new Vector2(textLeft, 0f); lblRect.offsetMax = new Vector2(-6f, 0f);
         var txt = lblGo.AddComponent<Text>();
         txt.font      = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         txt.text      = content;
         txt.fontSize  = 12;
-        txt.fontStyle = FontStyle.Normal;
-        txt.color     = filled ? new Color(0.80f, 0.90f, 0.70f, 1f) : new Color(0.40f, 0.36f, 0.55f, 0.70f);
-        txt.alignment = TextAnchor.MiddleCenter;
+        txt.fontStyle = filled ? FontStyle.Bold : FontStyle.Normal;
+        txt.color     = filled ? new Color(0.88f, 0.92f, 0.80f, 1f) : new Color(0.42f, 0.38f, 0.55f, 0.65f);
+        txt.alignment = hasIcon ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter;
         txt.horizontalOverflow = HorizontalWrapMode.Overflow;
         txt.verticalOverflow   = VerticalWrapMode.Overflow;
         txt.raycastTarget = false;
         y += h + 2f;
         return (slotImg, txt);
     }
+
+    static string WeaponIconId(WeaponType wt) => wt switch
+    {
+        WeaponType.KatanaAura  => "icon_katana_aura",
+        WeaponType.RuhKunai    => "icon_ruh_kunai",
+        WeaponType.AtlasSphere => "icon_atlas_kuresi",
+        _                      => null
+    };
 
     (bool isWeapon, int index) ComputeSlotTarget(CardDefinition card)
     {
@@ -404,56 +527,71 @@ public class CardSelectionView : MonoBehaviour
 
     CardView BuildCardWidget(RectTransform parent, CardDefinition card, float xPos, int index)
     {
-        var visual = CardThemeLibrary.GetVisualTheme(card.visualCategory);
+        // Boss reward kartları gold/Atlas teması; normal kartlar kategori temasını kullanır
+        var visual = _isBossReward
+            ? CardThemeLibrary.GetVisualTheme(CardVisualCategory.BossReward)
+            : CardThemeLibrary.GetVisualTheme(card.visualCategory);
         var rar    = CardThemeLibrary.GetRarityTheme(card.rarity);
         float glowAlpha = Mathf.Max(0.16f, rar.glowAlpha);
 
-        // Aura glow
-        var auraGo   = MakePanel(parent, $"Aura_{index}", Vector2.zero, Vector2.zero, CardThemeLibrary.WithAlpha(visual.glow, glowAlpha));
+        // Rarity renkleri — boss reward'da altına çekilir (premium Atlas his)
+        Color gold      = CardThemeLibrary.FrameGold;
+        Color rarAccent = _isBossReward ? Color.Lerp(rar.accent, gold, 0.55f) : rar.accent;
+        Color rarGlow   = _isBossReward ? Color.Lerp(rar.glow,   gold, 0.55f) : rar.glow;
+
+        // Aura glow (rarity) — yumuşak radial
+        var auraGo   = MakePanel(parent, $"Aura_{index}", Vector2.zero, Vector2.zero, CardThemeLibrary.WithAlpha(rarGlow, glowAlpha));
         var auraRect = auraGo.GetComponent<RectTransform>();
         auraRect.anchorMin = auraRect.anchorMax = new Vector2(0.5f, 0.5f);
         auraRect.pivot     = new Vector2(0.5f, 0.5f);
-        auraRect.sizeDelta = new Vector2(CARD_W + 48f, CARD_H + 48f);
+        auraRect.sizeDelta = new Vector2(CARD_W + 60f, CARD_H + 60f);
         auraRect.anchoredPosition = new Vector2(xPos, 0f);
+        var auraImg0 = auraGo.GetComponent<Image>();
+        auraImg0.sprite = SoftGlow();
         var auraGroup = GetOrAddCanvasGroup(auraGo);
         auraGroup.interactable = false; auraGroup.blocksRaycasts = false;
 
-        // Hover halo
+        // Hover halo (rarity)
         var haloGo   = MakePanel(auraRect, "HoverHalo", Vector2.zero, Vector2.zero, Color.clear);
         var haloRect = haloGo.GetComponent<RectTransform>();
         haloRect.anchorMin = haloRect.anchorMax = new Vector2(0.5f, 0.5f);
         haloRect.pivot     = new Vector2(0.5f, 0.5f);
-        haloRect.sizeDelta = new Vector2(CARD_W + 80f, CARD_H + 80f);
+        haloRect.sizeDelta = new Vector2(CARD_W + 96f, CARD_H + 96f);
         haloRect.anchoredPosition = Vector2.zero;
+        haloGo.GetComponent<Image>().sprite = SoftGlow();
 
-        // Category glow
-        var glow2Go   = MakePanel(auraRect, "CategoryGlow", Vector2.zero, Vector2.zero, CardThemeLibrary.WithAlpha(visual.glow, 0.14f));
+        // İç glow (rarity)
+        var glow2Go   = MakePanel(auraRect, "CategoryGlow", Vector2.zero, Vector2.zero, CardThemeLibrary.WithAlpha(rarGlow, 0.14f));
         var glow2Rect = glow2Go.GetComponent<RectTransform>();
         glow2Rect.anchorMin = glow2Rect.anchorMax = new Vector2(0.5f, 0.5f);
         glow2Rect.pivot     = new Vector2(0.5f, 0.5f);
-        glow2Rect.sizeDelta = new Vector2(CARD_W + 20f, CARD_H + 20f);
+        glow2Rect.sizeDelta = new Vector2(CARD_W + 22f, CARD_H + 22f);
         glow2Rect.anchoredPosition = Vector2.zero;
         var glow2Group = GetOrAddCanvasGroup(glow2Go);
         glow2Group.interactable = false; glow2Group.blocksRaycasts = false;
 
-        // Rim
-        var rimGo   = MakePanel(glow2Rect, "CategoryRim", Vector2.zero, Vector2.zero, CardThemeLibrary.WithAlpha(visual.main, glowAlpha * 1.8f));
+        // Rim (rarity accent)
+        var rimGo   = MakePanel(glow2Rect, "CategoryRim", Vector2.zero, Vector2.zero, CardThemeLibrary.WithAlpha(rarAccent, glowAlpha * 1.8f));
         var rimRect = rimGo.GetComponent<RectTransform>();
         rimRect.anchorMin = rimRect.anchorMax = new Vector2(0.5f, 0.5f);
         rimRect.pivot     = new Vector2(0.5f, 0.5f);
-        rimRect.sizeDelta = new Vector2(CARD_W + 8f, CARD_H + 8f);
+        rimRect.sizeDelta = new Vector2(CARD_W + 11f, CARD_H + 11f);
         rimRect.anchoredPosition = Vector2.zero;
 
-        // Border
-        var borderGo   = MakePanel(rimRect, "Border", Vector2.zero, Vector2.zero, CardThemeLibrary.WithAlpha(visual.main, 0.85f));
+        // Border (rarity accent + altın karışımı)
+        float goldMix = card.rarity == CardRarity.Epic ? 0.34f
+                      : card.rarity == CardRarity.Legendary ? 0f : 0.14f;
+        Color borderCol = Color.Lerp(rarAccent, gold, goldMix);
+        var borderGo   = MakePanel(rimRect, "Border", Vector2.zero, Vector2.zero, CardThemeLibrary.WithAlpha(borderCol, 0.86f));
         var borderRect = borderGo.GetComponent<RectTransform>();
         borderRect.anchorMin = borderRect.anchorMax = new Vector2(0.5f, 0.5f);
         borderRect.pivot     = new Vector2(0.5f, 0.5f);
-        borderRect.sizeDelta = new Vector2(CARD_W + 3f, CARD_H + 3f);
+        borderRect.sizeDelta = new Vector2(CARD_W + 3.5f, CARD_H + 3.5f);
         borderRect.anchoredPosition = Vector2.zero;
 
-        // Card body
-        var bodyGo   = MakePanel(borderRect, "CardBody", Vector2.zero, Vector2.zero, new Color(visual.dark.r, visual.dark.g, visual.dark.b, 0.97f));
+        // Card body — koyu indigo (rarity ile boyanmaz)
+        Color bodyBase = Color.Lerp(CardThemeLibrary.CardBaseIndigo, visual.dark, 0.16f);
+        var bodyGo   = MakePanel(borderRect, "CardBody", Vector2.zero, Vector2.zero, new Color(bodyBase.r, bodyBase.g, bodyBase.b, 0.985f));
         var bodyRect = bodyGo.GetComponent<RectTransform>();
         bodyRect.anchorMin = bodyRect.anchorMax = new Vector2(0.5f, 0.5f);
         bodyRect.pivot     = new Vector2(0.5f, 0.5f);
@@ -471,16 +609,26 @@ public class CardSelectionView : MonoBehaviour
         int capturedIndex = index;
         btn.onClick.AddListener(() => TrySelectCard(capturedIndex));
 
-        // Top band
-        var bandGo   = MakePanel(bodyRect, "TopBand", new Vector2(0f, 1f), new Vector2(1f, 1f), CardThemeLibrary.WithAlpha(visual.main, 0.55f));
+        // Top band (rarity tinted) + accent underline
+        var bandGo   = MakePanel(bodyRect, "TopBand", new Vector2(0f, 1f), new Vector2(1f, 1f), CardThemeLibrary.WithAlpha(rarAccent, 0.16f));
         var bandRect = bandGo.GetComponent<RectTransform>();
         bandRect.anchorMin = new Vector2(0f, 1f); bandRect.anchorMax = new Vector2(1f, 1f);
         bandRect.pivot     = new Vector2(0.5f, 1f);
-        bandRect.sizeDelta = new Vector2(0f, 82f);
+        bandRect.sizeDelta = new Vector2(0f, 98f);
         bandRect.anchoredPosition = Vector2.zero;
         bandGo.GetComponent<Image>().raycastTarget = false;
+        var bandLineGo = MakePanel(bodyRect, "TopBandLine", new Vector2(0f, 1f), new Vector2(1f, 1f), CardThemeLibrary.WithAlpha(rarAccent, 0.55f));
+        var blRect = bandLineGo.GetComponent<RectTransform>();
+        blRect.anchorMin = new Vector2(0.06f, 1f); blRect.anchorMax = new Vector2(0.94f, 1f);
+        blRect.pivot = new Vector2(0.5f, 1f); blRect.sizeDelta = new Vector2(0f, 1.5f); blRect.anchoredPosition = new Vector2(0f, -98f);
+        bandLineGo.GetComponent<Image>().raycastTarget = false;
 
-        // Icon — gerçek reward sprite (RewardIconLibrary), sol HUD ile aynı görsel
+        // Framed icon (üst merkez): radial glow → accent disk → koyu disk → icon
+        const float ICON_CY = -52f;
+        var iconGlowGo = MakeCircle(bodyRect, "IconGlow",       116f, CardThemeLibrary.WithAlpha(rarGlow, 0.18f),            new Vector2(0f, ICON_CY), soft: true);
+        MakeCircle(bodyRect, "IconAccentDisc", 92f, CardThemeLibrary.WithAlpha(rarAccent, 0.90f),          new Vector2(0f, ICON_CY));
+        MakeCircle(bodyRect, "IconDarkDisc",   84f, new Color(0.05f, 0.035f, 0.10f, 0.98f),                new Vector2(0f, ICON_CY));
+
         var iconGo = new GameObject("Icon");
         iconGo.transform.SetParent(bodyRect, false);
         var iconImg = iconGo.AddComponent<Image>();
@@ -489,107 +637,135 @@ public class CardSelectionView : MonoBehaviour
         iconImg.raycastTarget  = false;
         var iconRect = iconGo.GetComponent<RectTransform>();
         iconRect.anchorMin = iconRect.anchorMax = new Vector2(0.5f, 1f);
-        iconRect.pivot     = new Vector2(0.5f, 1f);
-        iconRect.sizeDelta = new Vector2(64f, 64f);
-        iconRect.anchoredPosition = new Vector2(0f, -9f);
+        iconRect.pivot     = new Vector2(0.5f, 0.5f);
+        iconRect.sizeDelta = new Vector2(74f, 74f);
+        iconRect.anchoredPosition = new Vector2(0f, ICON_CY);
 
-        // CardKind badge (eski class badge yerinde)
-        string kindLabel = GetCardKindLabel(card);
-        var badgeGo   = MakePanel(bodyRect, "KindBadge", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-            CardThemeLibrary.WithAlpha(visual.main, 0.18f));
-        var badgeRect = badgeGo.GetComponent<RectTransform>();
-        badgeRect.pivot       = new Vector2(0.5f, 1f);
-        badgeRect.sizeDelta   = new Vector2(CARD_W - 16f, 26f);
-        badgeRect.anchoredPosition = new Vector2(0f, -90f);
-        var badgeTxt = MakeText(badgeRect, "KindText", kindLabel,
+        // Index rozeti (sol üst köşe, altın çerçeveli)
+        var idxBorderGo = MakePanel(bodyRect, "IndexBadge", new Vector2(0f, 1f), new Vector2(0f, 1f), CardThemeLibrary.WithAlpha(gold, 0.90f));
+        var idxBorderRect = idxBorderGo.GetComponent<RectTransform>();
+        idxBorderRect.pivot = new Vector2(0f, 1f);
+        idxBorderRect.sizeDelta = new Vector2(30f, 30f);
+        idxBorderRect.anchoredPosition = new Vector2(9f, -9f);
+        idxBorderGo.GetComponent<Image>().raycastTarget = false;
+        var idxInnerGo = MakePanel(idxBorderRect, "IndexInner", Vector2.zero, Vector2.one, new Color(0.06f, 0.04f, 0.11f, 0.96f));
+        idxInnerGo.GetComponent<RectTransform>().offsetMin = new Vector2(1.6f, 1.6f);
+        idxInnerGo.GetComponent<RectTransform>().offsetMax = new Vector2(-1.6f, -1.6f);
+        idxInnerGo.GetComponent<Image>().raycastTarget = false;
+        var idxTxt = MakeText(idxInnerGo.GetComponent<RectTransform>(), "IndexNum", (index + 1).ToString(),
             Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-            12, FontStyle.Bold, CardThemeLibrary.WithAlpha(visual.text, 0.90f));
-        ConfigText(badgeTxt, TextAnchor.MiddleCenter, 10, 12);
-        badgeGo.GetComponent<Image>().raycastTarget = false;
+            16, FontStyle.Bold, new Color(1f, 0.90f, 0.62f, 1f));
+        idxTxt.alignment = TextAnchor.MiddleCenter;
 
-        // Title
-        var titleRect = MakeRegion(bodyRect, "TitleArea", 122f, 44f, 16f);
+        // Rarity etiketi (sağ üst köşe)
+        var rarLabelRect = MakeRegion(bodyRect, "RarityArea", 8f, 16f, 12f);
+        var rarLabel = MakeText(rarLabelRect, "RarityLabel", rar.displayName,
+            Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
+            11, FontStyle.Bold, CardThemeLibrary.WithAlpha(rarAccent, 0.95f));
+        rarLabel.alignment = TextAnchor.UpperRight;
+
+        // Kind pill (tip + level) — koyu yarı saydam strip
+        string kindLabel = GetCardKindLabel(card);
+        var pillGo = MakePanel(bodyRect, "KindPill", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), CardThemeLibrary.CardPanelDark);
+        var pillRect = pillGo.GetComponent<RectTransform>();
+        pillRect.pivot = new Vector2(0.5f, 1f);
+        pillRect.sizeDelta = new Vector2(CARD_W - 40f, 24f);
+        pillRect.anchoredPosition = new Vector2(0f, -106f);
+        pillGo.GetComponent<Image>().raycastTarget = false;
+        var pillTxt = MakeText(pillRect, "KindText", kindLabel,
+            Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
+            12, FontStyle.Bold, CardThemeLibrary.WithAlpha(rarAccent, 0.95f));
+        ConfigText(pillTxt, TextAnchor.MiddleCenter, 9, 12);
+
+        // Title — daha büyük, ikonla çakışmaz, taşmada küçülür
+        var titleRect = MakeRegion(bodyRect, "TitleArea", 136f, 52f, 12f);
         var titleT    = MakeText(titleRect, "CardTitle", card.title,
             Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-            22, FontStyle.Bold, visual.text);
-        ConfigText(titleT, TextAnchor.MiddleCenter, 13, 22);
+            26, FontStyle.Bold, CardThemeLibrary.BodyTextSoft);
+        ConfigText(titleT, TextAnchor.MiddleCenter, 15, 26);
 
-        // Level progress
+        // Level progress dots
         string levelStr = BuildLevelString(card);
-        var lvGo   = MakePanel(bodyRect, "LevelBg", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-            CardThemeLibrary.WithAlpha(visual.dark, 0.60f));
-        var lvRect = lvGo.GetComponent<RectTransform>();
-        lvRect.pivot     = new Vector2(0.5f, 1f);
-        lvRect.sizeDelta = new Vector2(CARD_W - 24f, 22f);
-        lvRect.anchoredPosition = new Vector2(0f, -172f);
-        var lvTxt = MakeText(lvRect, "LevelText", levelStr,
-            Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-            12, FontStyle.Bold, CardThemeLibrary.WithAlpha(visual.glow, 0.90f));
-        ConfigText(lvTxt, TextAnchor.MiddleCenter, 9, 12);
-        lvGo.GetComponent<Image>().raycastTarget = false;
+        if (!string.IsNullOrEmpty(levelStr))
+        {
+            MakeText(bodyRect, "LevelDots", levelStr,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -200f), new Vector2(CARD_W - 40f, 20f),
+                13, FontStyle.Bold, CardThemeLibrary.WithAlpha(rarAccent, 0.85f));
+        }
 
-        // Divider
-        var divGo   = MakePanel(bodyRect, "Divider", Vector2.zero, Vector2.zero, CardThemeLibrary.WithAlpha(visual.glow, 0.40f));
+        // Divider (altın hairline)
+        var divGo   = MakePanel(bodyRect, "Divider", Vector2.zero, Vector2.zero, CardThemeLibrary.WithAlpha(gold, 0.38f));
         var divRect = divGo.GetComponent<RectTransform>();
-        divRect.anchorMin = new Vector2(0.1f, 1f); divRect.anchorMax = new Vector2(0.9f, 1f);
+        divRect.anchorMin = new Vector2(0.12f, 1f); divRect.anchorMax = new Vector2(0.88f, 1f);
         divRect.pivot     = new Vector2(0.5f, 1f);
-        divRect.sizeDelta = new Vector2(0f, 1.5f);
-        divRect.anchoredPosition = new Vector2(0f, -200f);
+        divRect.sizeDelta = new Vector2(0f, 1.4f);
+        divRect.anchoredPosition = new Vector2(0f, -216f);
         divGo.GetComponent<Image>().raycastTarget = false;
 
-        // Description
-        var descRect = MakeRegion(bodyRect, "DescArea", 208f, 100f, 18f);
-        var descT    = MakeText(descRect, "Desc", card.description,
-            Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-            14, FontStyle.Normal, new Color(visual.text.r, visual.text.g, visual.text.b, 0.75f));
+        // Description — koyu yarı saydam panel, kırık beyaz metin
+        var descBgGo = MakePanel(bodyRect, "DescBg", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), CardThemeLibrary.CardPanelDark);
+        var descBgRect = descBgGo.GetComponent<RectTransform>();
+        descBgRect.pivot = new Vector2(0.5f, 1f);
+        descBgRect.sizeDelta = new Vector2(CARD_W - 28f, 92f);
+        descBgRect.anchoredPosition = new Vector2(0f, -226f);
+        descBgGo.GetComponent<Image>().raycastTarget = false;
+        var descT = MakeText(descBgRect, "Desc", card.description,
+            Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-16f, -10f),
+            14, FontStyle.Normal, CardThemeLibrary.WithAlpha(CardThemeLibrary.BodyTextSoft, 0.86f));
         ConfigText(descT, TextAnchor.UpperCenter, 10, 14);
 
-        // Effect preview strip
-        var effGo   = MakePanel(bodyRect, "EffectBg", Vector2.zero, Vector2.zero, CardThemeLibrary.WithAlpha(visual.dark, 0.80f));
+        // Effect strip — koyu mor/siyah zemin + altın/cyan metin, taşmada küçülür
+        var effGo   = MakePanel(bodyRect, "EffectBg", Vector2.zero, Vector2.zero, new Color(0.04f, 0.025f, 0.09f, 0.88f));
         var effRect = effGo.GetComponent<RectTransform>();
         effRect.anchorMin = new Vector2(0.07f, 0f); effRect.anchorMax = new Vector2(0.93f, 0f);
         effRect.pivot     = new Vector2(0.5f, 0f);
-        effRect.sizeDelta = new Vector2(0f, 54f);
-        effRect.anchoredPosition = new Vector2(0f, 12f);
-        var effT = MakeText(effRect, "EffText", card.effectPreview,
-            Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-            12, FontStyle.Bold, visual.glow);
-        ConfigText(effT, TextAnchor.MiddleCenter, 9, 13);
+        effRect.sizeDelta = new Vector2(0f, 56f);
+        effRect.anchoredPosition = new Vector2(0f, 14f);
         effGo.GetComponent<Image>().raycastTarget = false;
+        var effLineGo = MakePanel(effRect, "EffLine", new Vector2(0f, 1f), new Vector2(1f, 1f), CardThemeLibrary.WithAlpha(gold, 0.45f));
+        var elRect = effLineGo.GetComponent<RectTransform>();
+        elRect.anchorMin = new Vector2(0f, 1f); elRect.anchorMax = new Vector2(1f, 1f); elRect.pivot = new Vector2(0.5f, 1f);
+        elRect.sizeDelta = new Vector2(0f, 1.2f); elRect.anchoredPosition = Vector2.zero;
+        effLineGo.GetComponent<Image>().raycastTarget = false;
+        Color effTextCol = (_isBossReward || card.rarity == CardRarity.Legendary)
+            ? new Color(1.00f, 0.89f, 0.64f, 1f)
+            : new Color(0.66f, 0.92f, 1.00f, 1f);
+        var effT = MakeText(effRect, "EffText", card.effectPreview,
+            Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-14f, -6f),
+            13, FontStyle.Bold, effTextCol);
+        ConfigText(effT, TextAnchor.MiddleCenter, 9, 13);
 
-        // Index number
-        var numT = MakeText(bodyRect, "IndexNum", $"[ {index + 1} ]",
-            new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0f, 72f), new Vector2(0f, 18f),
-            13, FontStyle.Normal, new Color(visual.text.r, visual.text.g, visual.text.b, 0.40f));
-        ConfigText(numT, TextAnchor.MiddleCenter, 9, 13);
-
-        // Hover prompt
-        var promptGo   = MakePanel(auraRect, "HoverPrompt", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),
-            new Color(0.06f, 0.04f, 0.12f, 0.92f));
+        // Hover "SEÇ" rozeti — koyu-altın
+        var promptGo   = MakePanel(auraRect, "HoverPrompt", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), CardThemeLibrary.WithAlpha(gold, 0.90f));
         var promptRect = promptGo.GetComponent<RectTransform>();
         promptRect.pivot     = new Vector2(0.5f, 0.5f);
-        promptRect.sizeDelta = new Vector2(94f, 26f);
-        promptRect.anchoredPosition = new Vector2(0f, -2f);
+        promptRect.sizeDelta = new Vector2(108f, 30f);
+        promptRect.anchoredPosition = new Vector2(0f, 8f);
+        var promptInnerGo = MakePanel(promptRect, "PromptInner", Vector2.zero, Vector2.one, new Color(0.08f, 0.05f, 0.13f, 0.95f));
+        promptInnerGo.GetComponent<RectTransform>().offsetMin = new Vector2(1.6f, 1.6f);
+        promptInnerGo.GetComponent<RectTransform>().offsetMax = new Vector2(-1.6f, -1.6f);
         var promptGroup = promptGo.AddComponent<CanvasGroup>();
         promptGroup.alpha = 0f; promptGroup.interactable = false; promptGroup.blocksRaycasts = false;
         var promptT = MakeText(promptRect, "PromptText", "SEÇ",
             Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-            13, FontStyle.Bold, new Color(1f, 0.93f, 0.70f, 1f));
+            14, FontStyle.Bold, new Color(1f, 0.92f, 0.66f, 1f));
         promptT.alignment = TextAnchor.MiddleCenter;
 
         // Raycast targets cleanup
-        auraGo.GetComponent<Image>().raycastTarget    = false;
-        haloGo.GetComponent<Image>().raycastTarget    = false;
-        glow2Go.GetComponent<Image>().raycastTarget   = false;
-        rimGo.GetComponent<Image>().raycastTarget     = false;
-        borderGo.GetComponent<Image>().raycastTarget  = false;
-        promptGo.GetComponent<Image>().raycastTarget  = false;
+        auraImg0.raycastTarget                          = false;
+        haloGo.GetComponent<Image>().raycastTarget      = false;
+        glow2Go.GetComponent<Image>().raycastTarget     = false;
+        rimGo.GetComponent<Image>().raycastTarget       = false;
+        borderGo.GetComponent<Image>().raycastTarget    = false;
+        promptGo.GetComponent<Image>().raycastTarget    = false;
+        promptInnerGo.GetComponent<Image>().raycastTarget = false;
 
         // CardView attach
         var view = auraGo.AddComponent<CardView>();
         view.Init(index, card, TrySelectCard);
+        view.OverrideVisualTheme(visual);
         view.SetVisualRefs(
-            auraGo.GetComponent<Image>(),
+            auraImg0,
             rimGo.GetComponent<Image>(),
             borderGo.GetComponent<Image>(),
             bodyGo.GetComponent<Image>(),
@@ -597,8 +773,70 @@ public class CardSelectionView : MonoBehaviour
             haloGo.GetComponent<Image>(),
             promptGroup
         );
+        view.SetIconGlow(iconGlowGo.GetComponent<Image>(), 0.18f);
+        view.SetPremiumGold(_isBossReward);
 
         return view;
+    }
+
+    // ── Circle / glow helpers (icon frame) ────────────────────────────────────
+    // Runtime'da üretilen daire sprite'ları — builtin resource'a bağımlı değil,
+    // Unity sürümünden bağımsız çalışır (GetBuiltinResource bazı sürümlerde hata basar).
+
+    static Sprite _solidCircleSprite;
+    static Sprite _softGlowSprite;
+
+    static Sprite SolidCircle() => _solidCircleSprite ??= BuildCircleSprite(false);
+    static Sprite SoftGlow()    => _softGlowSprite    ??= BuildCircleSprite(true);
+
+    static Sprite BuildCircleSprite(bool soft)
+    {
+        const int size = 64;
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+        {
+            filterMode = FilterMode.Bilinear,
+            wrapMode   = TextureWrapMode.Clamp,
+            hideFlags  = HideFlags.HideAndDontSave,
+            name       = soft ? "CardSoftGlow" : "CardSolidCircle"
+        };
+        float c   = (size - 1) * 0.5f;
+        float rad = c;
+        for (int yy = 0; yy < size; yy++)
+        {
+            for (int xx = 0; xx < size; xx++)
+            {
+                float dx = xx - c, dy = yy - c;
+                float d  = Mathf.Sqrt(dx * dx + dy * dy) / rad;   // 0 merkez → 1 kenar
+                float a;
+                if (soft)
+                {
+                    a = Mathf.Clamp01(1f - d);
+                    a *= a;                                       // merkeze ağırlıklı yumuşak düşüş
+                }
+                else
+                {
+                    float edge = 1.6f / rad;                      // ~1.6px anti-alias kenar
+                    a = Mathf.Clamp01((1f - d) / edge);
+                }
+                tex.SetPixel(xx, yy, new Color(1f, 1f, 1f, a));
+            }
+        }
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
+    }
+
+    GameObject MakeCircle(RectTransform parent, string name, float size, Color color, Vector2 anchoredPos, bool soft = false)
+    {
+        var go  = MakePanel(parent, name, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), color);
+        var img = go.GetComponent<Image>();
+        img.sprite        = soft ? SoftGlow() : SolidCircle();
+        img.raycastTarget = false;
+        var r = go.GetComponent<RectTransform>();
+        r.anchorMin = r.anchorMax = new Vector2(0.5f, 1f);
+        r.pivot     = new Vector2(0.5f, 0.5f);
+        r.sizeDelta = new Vector2(size, size);
+        r.anchoredPosition = anchoredPos;
+        return go;
     }
 
     static string GetCardKindLabel(CardDefinition card)
@@ -922,17 +1160,33 @@ public class CardSelectionView : MonoBehaviour
 
     void BuildCardFocusBackdrop(RectTransform parent)
     {
-        var outer = MakePanel(parent, "Backdrop", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-            new Color(0.055f, 0.028f, 0.110f, 0.44f));
-        var or = outer.GetComponent<RectTransform>();
-        or.pivot = new Vector2(0.5f, 0.5f);
-        or.sizeDelta = new Vector2(1140f, 520f);
-        or.anchoredPosition = new Vector2(0f, -28f);
-        var inner = MakePanel(or, "BackdropInner", Vector2.zero, Vector2.one, new Color(0.006f, 0.004f, 0.018f, 0.58f));
-        inner.GetComponent<RectTransform>().offsetMin = new Vector2(2f, 2f);
-        inner.GetComponent<RectTransform>().offsetMax = new Vector2(-2f, -2f);
-        outer.GetComponent<Image>().raycastTarget = false;
-        inner.GetComponent<Image>().raycastTarget = false;
+        // Dış ince altın çerçeve → mor çerçeve → koyu yarı saydam container (premium container)
+        var border = MakePanel(parent, "BackdropBorder", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+            CardThemeLibrary.WithAlpha(CardThemeLibrary.FrameGold, 0.22f));
+        var br = border.GetComponent<RectTransform>();
+        br.pivot = new Vector2(0.5f, 0.5f);
+        br.sizeDelta = new Vector2(1180f, 540f);
+        br.anchoredPosition = new Vector2(0f, -24f);
+
+        var purple = MakePanel(br, "BackdropPurple", Vector2.zero, Vector2.one,
+            CardThemeLibrary.WithAlpha(CardThemeLibrary.PanelBorder, 0.42f));
+        purple.GetComponent<RectTransform>().offsetMin = new Vector2(2f, 2f);
+        purple.GetComponent<RectTransform>().offsetMax = new Vector2(-2f, -2f);
+
+        var fill = MakePanel(purple.GetComponent<RectTransform>(), "BackdropFill", Vector2.zero, Vector2.one,
+            new Color(0.030f, 0.018f, 0.065f, 0.55f));
+        fill.GetComponent<RectTransform>().offsetMin = new Vector2(2.5f, 2.5f);
+        fill.GetComponent<RectTransform>().offsetMax = new Vector2(-2.5f, -2.5f);
+
+        var inner = MakePanel(fill.GetComponent<RectTransform>(), "BackdropInner", Vector2.zero, Vector2.one,
+            new Color(0.006f, 0.004f, 0.018f, 0.45f));
+        inner.GetComponent<RectTransform>().offsetMin = new Vector2(44f, 32f);
+        inner.GetComponent<RectTransform>().offsetMax = new Vector2(-44f, -32f);
+
+        border.GetComponent<Image>().raycastTarget = false;
+        purple.GetComponent<Image>().raycastTarget = false;
+        fill.GetComponent<Image>().raycastTarget   = false;
+        inner.GetComponent<Image>().raycastTarget  = false;
     }
 
     void BuildTitleDivider(RectTransform parent)
@@ -941,27 +1195,27 @@ public class CardSelectionView : MonoBehaviour
         var sr = shadow.GetComponent<RectTransform>();
         sr.anchorMin = new Vector2(0.24f, 0f); sr.anchorMax = new Vector2(0.76f, 0f);
         sr.pivot = new Vector2(0.5f, 0f); sr.sizeDelta = new Vector2(0f, 4f); sr.anchoredPosition = new Vector2(0f, 7f);
-        var line = MakePanel(parent, "TitleLine", Vector2.zero, Vector2.zero, CardThemeLibrary.TitleGold);
-        var lr = line.GetComponent<RectTransform>();
-        lr.anchorMin = new Vector2(0.28f, 0f); lr.anchorMax = new Vector2(0.72f, 0f);
-        lr.pivot = new Vector2(0.5f, 0f); lr.sizeDelta = new Vector2(0f, 2f); lr.anchoredPosition = new Vector2(0f, 9f);
-        shadow.GetComponent<Image>().raycastTarget = false;
-        line.GetComponent<Image>().raycastTarget   = false;
+        // İki yana incelen zarif altın çizgi (orta boşluk + merkez elması)
+        var lineL = MakePanel(parent, "TitleLineL", Vector2.zero, Vector2.zero, CardThemeLibrary.WithAlpha(CardThemeLibrary.TitleGold, 0.9f));
+        var llr = lineL.GetComponent<RectTransform>();
+        llr.anchorMin = new Vector2(0.30f, 0f); llr.anchorMax = new Vector2(0.475f, 0f);
+        llr.pivot = new Vector2(0.5f, 0f); llr.sizeDelta = new Vector2(0f, 1.6f); llr.anchoredPosition = new Vector2(0f, 9f);
+        var lineR = MakePanel(parent, "TitleLineR", Vector2.zero, Vector2.zero, CardThemeLibrary.WithAlpha(CardThemeLibrary.TitleGold, 0.9f));
+        var lrr = lineR.GetComponent<RectTransform>();
+        lrr.anchorMin = new Vector2(0.525f, 0f); lrr.anchorMax = new Vector2(0.70f, 0f);
+        lrr.pivot = new Vector2(0.5f, 0f); lrr.sizeDelta = new Vector2(0f, 1.6f); lrr.anchoredPosition = new Vector2(0f, 9f);
+        // Merkez elması
+        var diamond = MakePanel(parent, "TitleDiamond", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), CardThemeLibrary.TitleGold);
+        var dr = diamond.GetComponent<RectTransform>();
+        dr.pivot = new Vector2(0.5f, 0.5f); dr.sizeDelta = new Vector2(8f, 8f); dr.anchoredPosition = new Vector2(0f, 9.5f);
+        diamond.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+        shadow.GetComponent<Image>().raycastTarget  = false;
+        lineL.GetComponent<Image>().raycastTarget   = false;
+        lineR.GetComponent<Image>().raycastTarget   = false;
+        diamond.GetComponent<Image>().raycastTarget = false;
     }
 
     // ── Feedback helpers ──────────────────────────────────────────────────────
-
-    static GameObject FBPanel(Transform parent, string name, Color c1, Color c2, Vector2 amin, Vector2 amax, Vector2 offMin, Vector2 offMax)
-    {
-        var go  = new GameObject(name);
-        go.transform.SetParent(parent, false);
-        var img = go.AddComponent<Image>();
-        img.color = c1; img.raycastTarget = false;
-        var r = go.GetComponent<RectTransform>();
-        r.anchorMin = amin; r.anchorMax = amax;
-        r.offsetMin = offMin; r.offsetMax = offMax;
-        return go;
-    }
 
     static void FBText(RectTransform parent, string name, string content, float topY, float height,
         int fontSize, FontStyle style, Color color, TextAnchor align)

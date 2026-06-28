@@ -7,6 +7,7 @@ using UnityEngine;
 public static class RewardIconLibrary
 {
     static readonly Dictionary<string, Sprite> _cache = new();
+    static readonly HashSet<string> _warnedMissing = new();
 
     const int  TexSize = 64;
     const float PixelsPerUnit = 100f;
@@ -27,7 +28,13 @@ public static class RewardIconLibrary
             return loaded;
         }
 
-        // 2) Placeholder üret
+        // 2) Gerçek asset yok — kart başına bir kez uyar, sonra placeholder üret (oyun akışı bozulmaz)
+        if (_warnedMissing.Add(iconId))
+        {
+            string cardName = RewardIconCatalog.GetSpec(iconId, kind).DisplayName;
+            Debug.LogWarning($"[HollowAtlas] No upgrade icon mapping found for card: {cardName} ({iconId})");
+        }
+
         var generated = GeneratePlaceholder(iconId, kind);
         _cache[iconId] = generated;
         return generated;

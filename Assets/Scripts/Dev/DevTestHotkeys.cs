@@ -1,8 +1,7 @@
 // ═════════════════════════════════════════════════════════════════════════════
-//  WARNING: Temporary debug panel. Must be removed/disabled before public demo
-//           or Steam build. Bu panel TEST amaçlıdır ve NORMAL build'lerde de
-//           bilerek açıktır. Yayın öncesi bu dosyayı (+ .meta) sil veya
-//           EnableDevPanelInReleaseBuild = false yap.
+//  WARNING: Temporary debug panel. EDITOR-ONLY — yalnız Unity Editor'da görünür;
+//           normal build ve demo/development build'lerde tamamen kapalıdır.
+//           (Build'de açmak gerekirse EnableDevPanelInReleaseBuild = true.)
 // ═════════════════════════════════════════════════════════════════════════════
 //
 //  DevTestHotkeys.cs   (GEÇİCİ / TEMP DEV TOOL — manuel kart seçici)
@@ -35,14 +34,14 @@ using UnityEngine;
 
 public class DevTestHotkeys : MonoBehaviour
 {
-    // TEMP: Enabled in normal builds for gameplay testing. Remove before release.
-    // true  → Editor + Development Build + NORMAL build → panel aktif.
-    // false → sadece Editor/Development Build'de aktif (klasik dev davranışı).
-    private const bool EnableDevPanelInReleaseBuild = true;
+    // Dev panel artık YALNIZ Unity Editor'da görünür. Normal build ve demo /
+    // development build'lerde tamamen kapalıdır. Build'de göstermek gerekirse
+    // bu const true yapılabilir.
+    private const bool EnableDevPanelInReleaseBuild = false;
 
-    // Editor/Dev build'de her zaman açık; normal build'de yukarıdaki const'a bağlı.
+    // Yalnız Unity Editor'da açık; tüm build türlerinde (development dahil) kapalı.
     static bool DevPanelEnabled =>
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR
         true;
 #else
         EnableDevPanelInReleaseBuild;

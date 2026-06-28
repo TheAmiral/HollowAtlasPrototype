@@ -146,11 +146,15 @@ public class LevelUpCardSystem : MonoBehaviour
         if (_isChestReward)     Debug.Log($"[RelicChest] Reward selected: {card.title}");
         else if (_isBossReward) Debug.Log($"[BossReward] Selected: {card.title}");
 
+        // Feedback yalnız belirsiz/random sonuçlu kartlarda gösterilir. Normal
+        // kartlarda snapshot/delta hesabı da atlanır (hızlı akış).
+        bool showFeedback = ShouldShowSelectionResultFeedback(card);
+
         List<StatDelta> deltas;
         try
         {
             if (_isBossReward && !_isChestReward) Debug.Log("[BossReward] Apply started");
-            deltas = CardRewardApplier.Apply(card, _player);
+            deltas = CardRewardApplier.Apply(card, _player, computeDeltas: showFeedback);
             if (_isBossReward && !_isChestReward) Debug.Log("[BossReward] Apply finished");
         }
         catch (System.Exception e)
@@ -163,22 +167,32 @@ public class LevelUpCardSystem : MonoBehaviour
             return;
         }
 
-        StartCoroutine(AnimateOut(index, card, deltas));
+        StartCoroutine(AnimateOut(index, card, showFeedback, deltas));
     }
 
-    IEnumerator AnimateOut(int selectedIndex, CardDefinition card, List<StatDelta> deltas)
+    IEnumerator AnimateOut(int selectedIndex, CardDefinition card, bool showFeedback, List<StatDelta> deltas)
     {
         try
         {
-            yield return StartCoroutine(_view.DismissSelected(selectedIndex));
-
-            if (ShouldShowResultFeedback(card))
+            // Feedback paneli YALNIZ sonucu belirsiz/random kartlarda gösterilir
+            // (ShouldShowSelectionResultFeedback → IsRandomLike). Normal level-up /
+            // Atlas lütfu ve normal boss/sandık kartlarında kart anında uygulanır
+            // (apply zaten SelectCard içinde yapıldı), ekran hızlıca kapanır ve
+            // feedback state'e (reroll/hint/title/build gizleme) hiç girilmez.
+            if (showFeedback)
             {
+                _view.EnterFeedbackState();
+                yield return StartCoroutine(_view.DismissSelected(selectedIndex));
+
                 var feedbackGo = _view.BuildFeedbackPanel(card, deltas);
                 var feedbackCg = feedbackGo.GetComponent<CanvasGroup>();
                 yield return StartCoroutine(FadeCanvasGroup(feedbackCg, 0f, 1f, 0.20f));
-                yield return new WaitForSecondsRealtime(0.88f);
-                StartCoroutine(FadeCanvasGroup(feedbackCg, 1f, 0f, 0.22f));
+                yield return new WaitForSecondsRealtime(0.85f);
+                yield return StartCoroutine(FadeCanvasGroup(feedbackCg, 1f, 0f, 0.22f));
+            }
+            else
+            {
+                yield return StartCoroutine(_view.DismissSelected(selectedIndex));
             }
 
             yield return StartCoroutine(_view.FadeOutOverlay());
@@ -203,8 +217,13 @@ public class LevelUpCardSystem : MonoBehaviour
     }
 
     // ── Feedback gate ─────────────────────────────────────────────────────────
-
-    static bool ShouldShowResultFeedback(CardDefinition card)
+    // Feedback ("LÜTUF/ÖDÜL KAZANILDI") YALNIZ sonucu karttan net anlaşılmayan,
+    // belirsiz/random sonuçlu kartlarda gösterilir (ör. Khaos Aynası, random combo):
+    //   IsRandomLike  =  Khaos sınıfı  ||  CardTag.Random  ||  CardTag.ShowsResultFeedback
+    // Normal level-up / Atlas lütfu kartları (Rüzgar Adımı, Demir Beden, Son Vuruş…)
+    // anında uygulanır, feedback gösterilmez → hızlı akış. Boss/sandık ödülleri de
+    // kart random değilse feedback'siz hızlı kapanır.
+    static bool ShouldShowSelectionResultFeedback(CardDefinition card)
     {
         if (card == null) return false;
         return card.IsRandomLike;

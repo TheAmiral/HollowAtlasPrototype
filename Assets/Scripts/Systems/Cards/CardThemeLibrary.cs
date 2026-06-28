@@ -200,11 +200,15 @@ public static class CardThemeLibrary
 
     public static CardRarityTheme GetRarityTheme(CardRarity r) => r switch
     {
-        CardRarity.Common    => new CardRarityTheme { accent = Hex("BFC7D5"), glow = Hex("BFC7D5"), glowAlpha = 0.08f, displayName = "Yaygın"   },
-        CardRarity.Rare      => new CardRarityTheme { accent = Hex("4DB8FF"), glow = Hex("4DB8FF"), glowAlpha = 0.18f, displayName = "Nadir"    },
-        CardRarity.Epic      => new CardRarityTheme { accent = Hex("B45CFF"), glow = Hex("B45CFF"), glowAlpha = 0.26f, displayName = "Epik"     },
-        CardRarity.Legendary => new CardRarityTheme { accent = Hex("FFD45A"), glow = Hex("FFD45A"), glowAlpha = 0.34f, displayName = "Efsanevi" },
-        CardRarity.Chaos     => new CardRarityTheme { accent = Hex("FF4FD8"), glow = Hex("FF4FD8"), glowAlpha = 0.28f, displayName = "Khaos"    },
+        // Yaygın: parlak gri yerine koyu lacivert zemin + hafif cyan accent
+        CardRarity.Common    => new CardRarityTheme { accent = Hex("8FC9DC"), glow = Hex("5FA9C6"), glowAlpha = 0.11f, displayName = "Yaygın"   },
+        // Nadir: mor / violet
+        CardRarity.Rare      => new CardRarityTheme { accent = Hex("A86CFF"), glow = Hex("9B5CFF"), glowAlpha = 0.20f, displayName = "Nadir"    },
+        // Epik: pembe / magenta (border'da altın ile karışır)
+        CardRarity.Epic      => new CardRarityTheme { accent = Hex("F46BD0"), glow = Hex("E85CC8"), glowAlpha = 0.28f, displayName = "Epik"     },
+        // Efsanevi: altın glow — ama gövde sapsarı olmaz, sadece çerçeve/glow
+        CardRarity.Legendary => new CardRarityTheme { accent = Hex("F4C24E"), glow = Hex("FFD45A"), glowAlpha = 0.34f, displayName = "Efsanevi" },
+        CardRarity.Chaos     => new CardRarityTheme { accent = Hex("FF4FD8"), glow = Hex("FF4FD8"), glowAlpha = 0.30f, displayName = "Khaos"    },
         _ => new CardRarityTheme { accent = Color.grey, glow = Color.grey, glowAlpha = 0.05f, displayName = "?" }
     };
 
@@ -241,6 +245,16 @@ public static class CardThemeLibrary
     public static readonly Color PanelBorder  = Hex("4B2A72", 0.72f);
     public static readonly Color TitleGold    = Hex("FFD21A");
     public static readonly Color SubtitleTint = Hex("D8C8F0");
+
+    // ── Premium kart paleti (polish) ────────────────────────────────────────────
+    // Kart gövdesi: koyu mor / siyaha yakın indigo (rarity rengiyle boyanmaz)
+    public static readonly Color CardBaseIndigo = Hex("0E0A1E", 0.985f);
+    // Açıklama / effect panelleri için koyu yarı saydam zemin
+    public static readonly Color CardPanelDark  = Hex("070512", 0.82f);
+    // Çerçeve altın tonu (mor + altın premium his)
+    public static readonly Color FrameGold      = Hex("E8C063");
+    // Kırık beyaz gövde metni
+    public static readonly Color BodyTextSoft   = Hex("F1ECFF");
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 

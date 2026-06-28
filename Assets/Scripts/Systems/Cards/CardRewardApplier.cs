@@ -17,11 +17,15 @@ public struct StatDelta
 
 public static class CardRewardApplier
 {
-    public static List<StatDelta> Apply(CardDefinition card, GameObject player)
+    // computeDeltas=false → snapshot/diff atlanır ve null döner (normal kartlarda
+    // feedback paneli gösterilmediği için gereksiz işten kaçınılır). Varsayılan true
+    // ile geriye dönük uyumludur.
+    public static List<StatDelta> Apply(CardDefinition card, GameObject player, bool computeDeltas = true)
     {
-        if (card == null || player == null) return new List<StatDelta>();
+        if (card == null || player == null) return computeDeltas ? new List<StatDelta>() : null;
 
-        var before = Snapshot.Take(player);
+        Snapshot before = default;
+        if (computeDeltas) before = Snapshot.Take(player);
 
         switch (card.cardKind)
         {
@@ -76,6 +80,7 @@ public static class CardRewardApplier
                 break;
         }
 
+        if (!computeDeltas) return null;
         return Snapshot.Diff(before, Snapshot.Take(player));
     }
 
