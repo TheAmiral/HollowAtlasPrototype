@@ -1,24 +1,21 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// Atlas Kalıntı Olay Sistemi — kill milestone + süre kapısı kombinasyonu.
-// Kill eşikleri: 75 / 180 / 340 / 550, sonrası büyüyen adımlarla devam eder.
-// İlk sandık için GameManager.ElapsedTime >= 90 s şartı aranır.
-// Sonraki sandıklar için önceki sandığın tüketildiği andan itibaren en az 120 s geçmeli.
-// Aynı anda sadece 1 aktif sandık olabilir; boss kill sayacı artırmaz.
+// Atlas Kalıntı Sandığı spawn sistemi — MVP.
+// Kural: Bir run'da en fazla 1 sandık spawn olur.
+// Tetik: 20 normal düşman öldürüldüğünde (boss sayılmaz).
+// Yerleşim: oyuncudan 6–8 birim uzağa, oyuncunun üstüne değil, okunabilir bir noktaya.
+// Açıldığında tekrar spawn olmaz; yeni run (restart/scene reload) state'i sıfırlar.
+// Büyük bir director/event sistemi YOK — bilinçli olarak basit ve izole tutuldu.
 public class RelicChestSpawnSystem : MonoBehaviour
 {
     public static RelicChestSpawnSystem Instance { get; private set; }
 
-    [Header("Kill Milestones")]
-    [Tooltip("Sabit kill eşikleri. Array bittikten sonra büyüyen artışla devam eder.")]
-    public int[] baseKillThresholds = { 75, 180, 340, 550 };
-
-    [Header("Time Gates")]
-    [Tooltip("İlk sandık için gereken minimum oturum süresi (saniye).")]
-    public float firstChestMinTime = 90f;
-    [Tooltip("İkinci ve sonraki sandıklar için önceki sandıktan itibaren gereken minimum süre (saniye).")]
-    public float minSecondsBetweenChests = 120f;
+    [Header("Spawn Rule")]
+    [Tooltip("Sandığın spawn olması için gereken normal düşman öldürme sayısı.")]
+    public int killsToSpawnChest = 20;
+    [Tooltip("Bir run içinde spawn edilebilecek maksimum sandık sayısı (MVP = 1).")]
+    public int maxChestsPerRun = 1;
 
     [Header("Placement")]
     [Tooltip("Sandık oyuncudan en az kaç birim uzağa spawn olsun?")]
@@ -37,12 +34,8 @@ public class RelicChestSpawnSystem : MonoBehaviour
     const string MainMenuSceneName     = "MainMenu";
     const string StudioSplashSceneName = "StudioSplash";
 
-    // Beyond-array increment base; grows ×1.25 each extra chest
-    const int BeyondBaseIncrement = 260;
-
     int        _totalNormalKillsThisRun;
-    int        _chestIndex;              // how many chests have been spawned this run
-    float      _lastChestConsumedTime;   // Time.time when last chest was opened (-9999 = never)
+    int        _chestsSpawnedThisRun;
     GameObject _activeChest;
     GameObject _playerRef;
 
@@ -73,8 +66,9 @@ public class RelicChestSpawnSystem : MonoBehaviour
     {
         if (Instance == null || chest == null) return;
         if (Instance._activeChest != chest.gameObject) return;
-        Instance._activeChest           = null;
-        Instance._lastChestConsumedTime = Time.time;
+        // Sandık açıldı/tüketildi. Sayaç dolu olduğu için (maxChestsPerRun) aynı
+        // run'da ikinci sandık spawn olmaz — sadece aktif referansı temizliyoruz.
+        Instance._activeChest = null;
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -108,8 +102,7 @@ public class RelicChestSpawnSystem : MonoBehaviour
     public void ResetForNewRun()
     {
         _totalNormalKillsThisRun = 0;
-        _chestIndex              = 0;
-        _lastChestConsumedTime   = -9999f;
+        _chestsSpawnedThisRun    = 0;
         _activeChest             = null;
         _playerRef               = null;
     }
@@ -143,50 +136,19 @@ public class RelicChestSpawnSystem : MonoBehaviour
                && sceneName != StudioSplashSceneName;
     }
 
-    // ── Threshold & time gate ─────────────────────────────────────────────────
-
-    // Returns the kill count required to spawn the next chest (index = _chestIndex).
-    int GetNextKillThreshold()
-    {
-        if (_chestIndex < baseKillThresholds.Length)
-            return baseKillThresholds[_chestIndex];
-
-        // Beyond the base array: start from last entry and grow each step by ×1.25
-        int beyondCount = _chestIndex - baseKillThresholds.Length + 1;
-        int total       = baseKillThresholds[baseKillThresholds.Length - 1];
-        int increment   = BeyondBaseIncrement;
-        for (int i = 0; i < beyondCount; i++)
-        {
-            total    += increment;
-            increment = Mathf.RoundToInt(increment * 1.25f);
-        }
-        return total;
-    }
-
     bool CanSpawnChest()
     {
+        // Run başına maksimum sandık kotası dolduysa bir daha spawn etme.
+        if (_chestsSpawnedThisRun >= Mathf.Max(1, maxChestsPerRun))
+            return false;
+
+        // Halen açılmamış aktif sandık varsa yenisini spawn etme.
         if (_activeChest != null)
             return false;
 
-        if (_totalNormalKillsThisRun < GetNextKillThreshold())
+        // Kill eşiği henüz dolmadıysa bekle.
+        if (_totalNormalKillsThisRun < Mathf.Max(1, killsToSpawnChest))
             return false;
-
-        if (_chestIndex == 0)
-        {
-            // First chest: minimum game-session time must have elapsed
-            if (GameManager.Instance == null)
-                return false;
-            if (GameManager.Instance.ElapsedTime < firstChestMinTime)
-                return false;
-        }
-        else
-        {
-            // Subsequent chests: cooldown starts when the previous chest was consumed
-            if (_lastChestConsumedTime < 0f)
-                return false;  // previous chest was never opened
-            if (Time.time - _lastChestConsumedTime < minSecondsBetweenChests)
-                return false;
-        }
 
         return true;
     }
@@ -207,9 +169,9 @@ public class RelicChestSpawnSystem : MonoBehaviour
         chest.visualScale             = 1f;
 
         _activeChest = chestObject;
-        _chestIndex++;
+        _chestsSpawnedThisRun++;
 
-        Debug.Log($"[RelicChestSpawnSystem] Chest #{_chestIndex} spawned at {_totalNormalKillsThisRun} kills, {spawnPosition}. Next threshold: {GetNextKillThreshold()}.");
+        Debug.Log($"[RelicChestSpawnSystem] Chest spawned at {_totalNormalKillsThisRun} kills, pos {spawnPosition}.");
     }
 
     bool TryFindSpawnPosition(Vector3 fallbackPosition, out Vector3 spawnPosition)
