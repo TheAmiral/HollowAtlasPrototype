@@ -1194,8 +1194,13 @@ public class CardSelectionView : MonoBehaviour
         UIGlow(parent, "AtmEmber",  new Vector2(0.5f, 0.15f), new Vector2(0f, 0f),  new Vector2(1320f, 460f),  CardThemeLibrary.WithAlpha(emberRed,     0.07f), true);
     }
 
-    // Sağ tarafta büyük portre yuvası — şimdilik placeholder siluet + portal glow.
-    // İleride kadın samuray portresi bu alana bağlanacak; görsel olmasa da ekran bozulmaz.
+    // Resources yolu — buraya bir Sprite konulursa portre otomatik kullanılır.
+    // (Assets/Resources/UI/Portraits/samurai_kadin.png — Sprite, alpha açık)
+    const string PortraitResourcePath = "UI/Portraits/samurai_kadin";
+
+    // Sağ tarafta büyük portre yuvası. Gerçek portre asset'i varsa onu gösterir,
+    // yoksa placeholder siluet kalır. Asset yokken Resources.Load sessizce null
+    // döner → her açılışta hata basmaz, NRE atmaz, ekran bozulmaz.
     void BuildPortraitArea(RectTransform parent)
     {
         var holder = new GameObject("PortraitArea");
@@ -1207,17 +1212,37 @@ public class CardSelectionView : MonoBehaviour
         hRect.anchoredPosition = new Vector2(60f, -30f);   // hafif taşma → "looming" figür
         var hGroup = holder.AddComponent<CanvasGroup>();
         hGroup.blocksRaycasts = false; hGroup.interactable = false;
-        hGroup.alpha = 0.42f;                               // subtle; gerçek portre gelince yükseltilebilir
 
-        // Figürün arkasında mor portal glow
+        // Figürün arkasında mor portal glow (gerçek portre de placeholder da bunun önünde)
         UIGlow(hRect, "PortraitGlow", new Vector2(0.5f, 0.5f), new Vector2(-30f, 120f), new Vector2(560f, 720f),
             CardThemeLibrary.WithAlpha(new Color(0.50f, 0.24f, 0.82f), 0.16f), true);
 
-        // Placeholder siluet: gövde + omuz + baş (koyu, yumuşak kenarlı)
-        Color sil = new Color(0.03f, 0.018f, 0.05f, 1f);
-        UIGlow(hRect, "PortraitBody",     new Vector2(0.5f, 0f), new Vector2(-40f, 70f),  new Vector2(360f, 560f), sil, false);
-        UIGlow(hRect, "PortraitShoulder", new Vector2(0.5f, 0f), new Vector2(-40f, 300f), new Vector2(430f, 280f), sil, false);
-        UIGlow(hRect, "PortraitHead",     new Vector2(0.5f, 0f), new Vector2(-40f, 470f), new Vector2(180f, 200f), sil, false);
+        // Gerçek portre asset'i (varsa). Yoksa Resources.Load sessizce null döner.
+        var portraitSprite = Resources.Load<Sprite>(PortraitResourcePath);
+
+        if (portraitSprite != null)
+        {
+            hGroup.alpha = 0.90f;   // gerçek portre belirgin ama atmosferle bütünleşir
+            var pGo = new GameObject("Portrait");
+            pGo.transform.SetParent(hRect, false);
+            var pImg = pGo.AddComponent<Image>();
+            pImg.sprite         = portraitSprite;
+            pImg.preserveAspect = true;
+            pImg.raycastTarget  = false;          // input'u engellemez
+            var pr = pGo.GetComponent<RectTransform>();
+            pr.anchorMin = pr.anchorMax = new Vector2(0.5f, 0f);
+            pr.pivot     = new Vector2(0.5f, 0f);
+            pr.sizeDelta = new Vector2(600f, 900f);
+            pr.anchoredPosition = new Vector2(-30f, 20f);  // tabandan yükselen figür, hafif sola
+        }
+        else
+        {
+            hGroup.alpha = 0.42f;   // subtle placeholder siluet
+            Color sil = new Color(0.03f, 0.018f, 0.05f, 1f);
+            UIGlow(hRect, "PortraitBody",     new Vector2(0.5f, 0f), new Vector2(-40f, 70f),  new Vector2(360f, 560f), sil, false);
+            UIGlow(hRect, "PortraitShoulder", new Vector2(0.5f, 0f), new Vector2(-40f, 300f), new Vector2(430f, 280f), sil, false);
+            UIGlow(hRect, "PortraitHead",     new Vector2(0.5f, 0f), new Vector2(-40f, 470f), new Vector2(180f, 200f), sil, false);
+        }
     }
 
     void BuildVignette(RectTransform parent)
