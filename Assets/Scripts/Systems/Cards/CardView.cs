@@ -95,11 +95,11 @@ public class CardView : MonoBehaviour,
         Color rarAccent = _premiumGold ? Color.Lerp(_rar.accent, gold, 0.55f) : _rar.accent;
         Color rarGlow   = _premiumGold ? Color.Lerp(_rar.glow,   gold, 0.55f) : _rar.glow;
 
-        // Dış aura — rarity glow (kontrollü)
+        // Dış aura — rarity glow (kontrollü, cinematic pass'te biraz güçlendirildi)
         if (_rarityAura != null)
         {
             Color c = rarGlow;
-            c.a = Mathf.Lerp(_rar.glowAlpha, _rar.glowAlpha * 2.6f, _hoverT);
+            c.a = Mathf.Lerp(_rar.glowAlpha * 1.25f, _rar.glowAlpha * 2.9f, _hoverT);
             if (_card.visualCategory == CardVisualCategory.Chaos) c.a += pulse * 0.06f;
             _rarityAura.color = c;
         }
@@ -108,7 +108,7 @@ public class CardView : MonoBehaviour,
         if (_rarityRim != null)
         {
             Color c = rarAccent;
-            float baseA = Mathf.Clamp01(0.30f + _rar.glowAlpha);
+            float baseA = Mathf.Clamp01(0.36f + _rar.glowAlpha);
             c.a = Mathf.Lerp(baseA, Mathf.Min(1f, baseA * 1.7f), _hoverT);
             if (_card.visualCategory == CardVisualCategory.Chaos) c.a = Mathf.Clamp01(c.a + pulse * 0.08f);
             _rarityRim.color = c;
@@ -130,7 +130,7 @@ public class CardView : MonoBehaviour,
         if (_glow2 != null)
         {
             Color c = rarGlow;
-            c.a = Mathf.Lerp(_rar.glowAlpha * 0.7f, _rar.glowAlpha * 1.9f, _hoverT);
+            c.a = Mathf.Lerp(_rar.glowAlpha * 0.95f, _rar.glowAlpha * 2.1f, _hoverT);
             _glow2.color = c;
         }
 
@@ -138,7 +138,7 @@ public class CardView : MonoBehaviour,
         if (_hoverHalo != null)
         {
             Color c = Color.Lerp(rarGlow, Color.white, 0.18f);
-            c.a = Mathf.Lerp(0f, 0.32f, _hoverT);
+            c.a = Mathf.Lerp(0f, 0.38f, _hoverT);
             _hoverHalo.color = c;
         }
 

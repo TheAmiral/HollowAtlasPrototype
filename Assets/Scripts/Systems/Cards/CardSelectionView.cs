@@ -45,9 +45,9 @@ public class CardSelectionView : MonoBehaviour
     int  _playerLevel;
     bool _isBossReward;
 
-    const float CARD_W   = 256f;
-    const float CARD_H   = 390f;
-    const float CARD_GAP = 64f;
+    const float CARD_W   = 276f;
+    const float CARD_H   = 418f;
+    const float CARD_GAP = 78f;
     const float ENTER_OFFSET = 260f;
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -94,12 +94,39 @@ public class CardSelectionView : MonoBehaviour
         HideGroup(_buildPanelGroup);
     }
 
-    void HideGroup(CanvasGroup g)
+    void HideGroup(CanvasGroup g) => FadeGroupOut(g, 0.18f);
+
+    void FadeGroupOut(CanvasGroup g, float dur)
     {
         if (g == null) return;
         g.blocksRaycasts = false;
         g.interactable   = false;
-        StartCoroutine(Fade(g, g.alpha, 0f, 0.18f));
+        StartCoroutine(Fade(g, g.alpha, 0f, dur));
+    }
+
+    // Normal kart seçimi: kartlar + sinematik backdrop/atmosfer/portre/vignette
+    // (overlay altındakiler) + reroll/hint/başlık/build paneli HEPSİ birlikte hızlı
+    // kapanır → seçilen kart kaybolunca geride boş dikdörtgen kalmaz (~0.20 sn).
+    public IEnumerator FastDismiss(int selectedIndex)
+    {
+        InputBlocked = true;
+        if (selectedIndex >= 0 && selectedIndex < _views.Count && _views[selectedIndex] != null)
+            StartCoroutine(_views[selectedIndex].SelectPulse());
+
+        const float dur = 0.20f;
+        for (int i = 0; i < _views.Count; i++)
+        {
+            if (_views[i] == null) continue;
+            var g = GetOrAddCanvasGroup(_views[i].gameObject);
+            StartCoroutine(Fade(g, g.alpha, 0f, dur));
+        }
+        FadeGroupOut(_overlayGroup,    dur);   // backdrop + atmosphere + portrait + vignette
+        FadeGroupOut(_rerollGroup,     dur);
+        FadeGroupOut(_hintGroup,       dur);
+        FadeGroupOut(_titleGroup,      dur);
+        FadeGroupOut(_buildPanelGroup, dur);
+
+        yield return new WaitForSecondsRealtime(dur + 0.02f);
     }
 
     public GameObject BuildFeedbackPanel(CardDefinition card, List<StatDelta> deltas)
@@ -198,7 +225,9 @@ public class CardSelectionView : MonoBehaviour
         _overlayGroup.alpha = 0f; _overlayGroup.blocksRaycasts = true;
         var overlayRect = overlayGo.GetComponent<RectTransform>();
         BuildVignette(overlayRect);
+        BuildPortraitArea(overlayRect);       // sağda büyük portre yuvası (placeholder)
         BuildCardFocusBackdrop(overlayRect);
+        BuildAtlasAtmosphere(overlayRect);    // kartların arkasında portal/Atlas glow
 
         // Title root
         var titleRoot = new GameObject("TitleRoot");
@@ -623,11 +652,11 @@ public class CardSelectionView : MonoBehaviour
         blRect.pivot = new Vector2(0.5f, 1f); blRect.sizeDelta = new Vector2(0f, 1.5f); blRect.anchoredPosition = new Vector2(0f, -98f);
         bandLineGo.GetComponent<Image>().raycastTarget = false;
 
-        // Framed icon (üst merkez): radial glow → accent disk → koyu disk → icon
-        const float ICON_CY = -52f;
-        var iconGlowGo = MakeCircle(bodyRect, "IconGlow",       116f, CardThemeLibrary.WithAlpha(rarGlow, 0.18f),            new Vector2(0f, ICON_CY), soft: true);
-        MakeCircle(bodyRect, "IconAccentDisc", 92f, CardThemeLibrary.WithAlpha(rarAccent, 0.90f),          new Vector2(0f, ICON_CY));
-        MakeCircle(bodyRect, "IconDarkDisc",   84f, new Color(0.05f, 0.035f, 0.10f, 0.98f),                new Vector2(0f, ICON_CY));
+        // Framed icon medalyonu (üst merkez): radial glow → accent disk → koyu disk → icon
+        const float ICON_CY = -54f;
+        var iconGlowGo = MakeCircle(bodyRect, "IconGlow",       132f, CardThemeLibrary.WithAlpha(rarGlow, 0.22f),            new Vector2(0f, ICON_CY), soft: true);
+        MakeCircle(bodyRect, "IconAccentDisc", 104f, CardThemeLibrary.WithAlpha(rarAccent, 0.92f),         new Vector2(0f, ICON_CY));
+        MakeCircle(bodyRect, "IconDarkDisc",    94f, new Color(0.05f, 0.035f, 0.10f, 0.98f),               new Vector2(0f, ICON_CY));
 
         var iconGo = new GameObject("Icon");
         iconGo.transform.SetParent(bodyRect, false);
@@ -638,7 +667,7 @@ public class CardSelectionView : MonoBehaviour
         var iconRect = iconGo.GetComponent<RectTransform>();
         iconRect.anchorMin = iconRect.anchorMax = new Vector2(0.5f, 1f);
         iconRect.pivot     = new Vector2(0.5f, 0.5f);
-        iconRect.sizeDelta = new Vector2(74f, 74f);
+        iconRect.sizeDelta = new Vector2(84f, 84f);
         iconRect.anchoredPosition = new Vector2(0f, ICON_CY);
 
         // Index rozeti (sol üst köşe, altın çerçeveli)
@@ -773,7 +802,7 @@ public class CardSelectionView : MonoBehaviour
             haloGo.GetComponent<Image>(),
             promptGroup
         );
-        view.SetIconGlow(iconGlowGo.GetComponent<Image>(), 0.18f);
+        view.SetIconGlow(iconGlowGo.GetComponent<Image>(), 0.22f);
         view.SetPremiumGold(_isBossReward);
 
         return view;
@@ -1138,6 +1167,59 @@ public class CardSelectionView : MonoBehaviour
 
     // ── Layout helpers ────────────────────────────────────────────────────────
 
+    // Genel amaçlı yumuşak/keskin daire görseli (atmosfer + portre placeholder için).
+    Image UIGlow(RectTransform parent, string name, Vector2 anchor, Vector2 anchoredPos, Vector2 size, Color color, bool soft)
+    {
+        var go  = MakePanel(parent, name, anchor, anchor, color);
+        var img = go.GetComponent<Image>();
+        img.sprite        = soft ? SoftGlow() : SolidCircle();
+        img.raycastTarget = false;
+        var r = go.GetComponent<RectTransform>();
+        r.anchorMin = r.anchorMax = anchor;
+        r.pivot     = new Vector2(0.5f, 0.5f);
+        r.sizeDelta = size;
+        r.anchoredPosition = anchoredPos;
+        return img;
+    }
+
+    // Kartların arkasında kontrollü Atlas/portal enerjisi: mor portal + altın + kızıl kor.
+    void BuildAtlasAtmosphere(RectTransform parent)
+    {
+        Color portalPurple = new Color(0.46f, 0.20f, 0.78f);
+        Color portalGold   = CardThemeLibrary.FrameGold;
+        Color emberRed     = new Color(0.72f, 0.18f, 0.24f);
+
+        UIGlow(parent, "AtmPortal", new Vector2(0.5f, 0.50f), new Vector2(0f, 24f), new Vector2(1500f, 1080f), CardThemeLibrary.WithAlpha(portalPurple, 0.14f), true);
+        UIGlow(parent, "AtmGold",   new Vector2(0.5f, 0.80f), new Vector2(0f, 0f),  new Vector2(1080f, 520f),  CardThemeLibrary.WithAlpha(portalGold,   0.09f), true);
+        UIGlow(parent, "AtmEmber",  new Vector2(0.5f, 0.15f), new Vector2(0f, 0f),  new Vector2(1320f, 460f),  CardThemeLibrary.WithAlpha(emberRed,     0.07f), true);
+    }
+
+    // Sağ tarafta büyük portre yuvası — şimdilik placeholder siluet + portal glow.
+    // İleride kadın samuray portresi bu alana bağlanacak; görsel olmasa da ekran bozulmaz.
+    void BuildPortraitArea(RectTransform parent)
+    {
+        var holder = new GameObject("PortraitArea");
+        holder.transform.SetParent(parent, false);
+        var hRect = holder.AddComponent<RectTransform>();
+        hRect.anchorMin = new Vector2(1f, 0f); hRect.anchorMax = new Vector2(1f, 0f);
+        hRect.pivot     = new Vector2(1f, 0f);
+        hRect.sizeDelta = new Vector2(620f, 940f);
+        hRect.anchoredPosition = new Vector2(60f, -30f);   // hafif taşma → "looming" figür
+        var hGroup = holder.AddComponent<CanvasGroup>();
+        hGroup.blocksRaycasts = false; hGroup.interactable = false;
+        hGroup.alpha = 0.42f;                               // subtle; gerçek portre gelince yükseltilebilir
+
+        // Figürün arkasında mor portal glow
+        UIGlow(hRect, "PortraitGlow", new Vector2(0.5f, 0.5f), new Vector2(-30f, 120f), new Vector2(560f, 720f),
+            CardThemeLibrary.WithAlpha(new Color(0.50f, 0.24f, 0.82f), 0.16f), true);
+
+        // Placeholder siluet: gövde + omuz + baş (koyu, yumuşak kenarlı)
+        Color sil = new Color(0.03f, 0.018f, 0.05f, 1f);
+        UIGlow(hRect, "PortraitBody",     new Vector2(0.5f, 0f), new Vector2(-40f, 70f),  new Vector2(360f, 560f), sil, false);
+        UIGlow(hRect, "PortraitShoulder", new Vector2(0.5f, 0f), new Vector2(-40f, 300f), new Vector2(430f, 280f), sil, false);
+        UIGlow(hRect, "PortraitHead",     new Vector2(0.5f, 0f), new Vector2(-40f, 470f), new Vector2(180f, 200f), sil, false);
+    }
+
     void BuildVignette(RectTransform parent)
     {
         float s = 420f;
@@ -1165,7 +1247,7 @@ public class CardSelectionView : MonoBehaviour
             CardThemeLibrary.WithAlpha(CardThemeLibrary.FrameGold, 0.22f));
         var br = border.GetComponent<RectTransform>();
         br.pivot = new Vector2(0.5f, 0.5f);
-        br.sizeDelta = new Vector2(1180f, 540f);
+        br.sizeDelta = new Vector2(1264f, 560f);
         br.anchoredPosition = new Vector2(0f, -24f);
 
         var purple = MakePanel(br, "BackdropPurple", Vector2.zero, Vector2.one,

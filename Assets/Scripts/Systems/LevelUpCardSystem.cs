@@ -57,7 +57,7 @@ public class LevelUpCardSystem : MonoBehaviour
         if (_player != null)
             VFXSpawner.Instance?.Spawn("LevelUpBurst", _player.transform.position);
 
-        Open("ATLAS LÜTFU SEÇ", "Bir güçlendirme seç", playerLevel, isBossReward: false);
+        Open("ATLAS YANKILANIYOR", "Bir lütuf seç", playerLevel, isBossReward: false);
     }
 
     // Called by RelicChest with chest-only / awakening cards.
@@ -181,6 +181,7 @@ public class LevelUpCardSystem : MonoBehaviour
             // feedback state'e (reroll/hint/title/build gizleme) hiç girilmez.
             if (showFeedback)
             {
+                // Özel/random kart: backdrop, feedback paneli bitene kadar kalır.
                 _view.EnterFeedbackState();
                 yield return StartCoroutine(_view.DismissSelected(selectedIndex));
 
@@ -189,13 +190,15 @@ public class LevelUpCardSystem : MonoBehaviour
                 yield return StartCoroutine(FadeCanvasGroup(feedbackCg, 0f, 1f, 0.20f));
                 yield return new WaitForSecondsRealtime(0.85f);
                 yield return StartCoroutine(FadeCanvasGroup(feedbackCg, 1f, 0f, 0.22f));
+
+                yield return StartCoroutine(_view.FadeOutOverlay());
             }
             else
             {
-                yield return StartCoroutine(_view.DismissSelected(selectedIndex));
+                // Normal kart: kartlar + sinematik backdrop/atmosfer/portre + yan
+                // paneller birlikte hızlı kapanır; geride boş dikdörtgen kalmaz.
+                yield return StartCoroutine(_view.FastDismiss(selectedIndex));
             }
-
-            yield return StartCoroutine(_view.FadeOutOverlay());
         }
         finally
         {
